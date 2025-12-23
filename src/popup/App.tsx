@@ -11,12 +11,23 @@ function App() {
   const [volume, setVolume] = useState(1)
   const [detectedLanguage, setDetectedLanguage] = useState<string>('')
   const [_currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   useEffect(() => {
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
+      
+      // Load saved default voice
+      chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+        if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
+          setSelectedVoice(result.defaultVoiceIndex)
+        }
+        if (result.defaultRate !== undefined) setRate(result.defaultRate)
+        if (result.defaultPitch !== undefined) setPitch(result.defaultPitch)
+        if (result.defaultVolume !== undefined) setVolume(result.defaultVolume)
+      })
     }
 
     loadVoices()
@@ -44,12 +55,35 @@ function App() {
   // Auto-select best voice when language is detected or voices change
   useEffect(() => {
     if (voices.length > 0 && detectedLanguage) {
-      const bestVoice = findBestVoice(voices, detectedLanguage)
-      if (bestVoice !== -1) {
-        setSelectedVoice(bestVoice)
-      }
+      // Only auto-select if user hasn't manually chosen a voice
+      chrome.storage.local.get(['defaultVoiceIndex'], (result) => {
+        if (result.defaultVoiceIndex === undefined) {
+          const bestVoice = findBestVoice(voices, detectedLanguage)
+          if (bestVoice !== -1) {
+            setSelectedVoice(bestVoice)
+          }
+        }
+      })
     }
   }, [voices, detectedLanguage])
+
+  const saveAsDefault = () => {
+    chrome.storage.local.set({
+      defaultVoiceIndex: selectedVoice,
+      defaultRate: rate,
+      defaultPitch: pitch,
+      defaultVolume: volume
+    })
+    // Visual feedback
+    const button = document.querySelector('#save-default-btn')
+    if (button) {
+      const originalText = button.textContent
+      button.textContent = '✓ Saved!'
+      setTimeout(() => {
+        button.textContent = originalText
+      }, 2000)
+    }
+  }
 
   // Function to find the best voice for a given language
   const findBestVoice = (availableVoices: SpeechSynthesisVoice[], language: string): number => {
@@ -116,164 +150,57 @@ function App() {
     }
   }, [selectedText, detectedLanguage])
 
-  // Preprocess text for more natural speech
-  const preprocessText = (text: string): string => {
-    let processed = text
-
-    // Normalize whitespace
-    processed = processed.replace(/\s+/g, ' ').trim()
-
-    // Handle parenthetical expressions with slight pauses
-    processed = processed.replace(/\(([^)]+)\)/g, ', $1,')
-    processed = processed.replace(/\[([^\]]+)\]/g, ', $1,')
-    
-    // Handle quotes with pauses (remove quote markers for multilingual support)
-    processed = processed.replace(/"([^"]+)"/g, ', $1,')
-    processed = processed.replace(/'([^']+)'/g, '$1')
-
-    // Handle common abbreviations (expanded list)
-    processed = processed.replace(/\bDr\./gi, 'Doctor')
-    processed = processed.replace(/\bMr\./g, 'Mister')
-    processed = processed.replace(/\bMrs\./g, 'Misses')
-    processed = processed.replace(/\bMs\./g, 'Miss')
-    processed = processed.replace(/\bProf\./gi, 'Professor')
-    processed = processed.replace(/\bSt\./g, 'Saint')
-    processed = processed.replace(/\bAve\./g, 'Avenue')
-    processed = processed.replace(/\bBlvd\./g, 'Boulevard')
-    processed = processed.replace(/\bRd\./g, 'Road')
-    processed = processed.replace(/\betc\./gi, 'etcetera')
-    processed = processed.replace(/\be\.g\./gi, 'for example')
-    processed = processed.replace(/\bi\.e\./gi, 'that is')
-    processed = processed.replace(/\bvs\./gi, 'versus')
-    processed = processed.replace(/\betc\b/gi, 'etcetera')
-    processed = processed.replace(/\baka\b/gi, 'also known as')
-    processed = processed.replace(/\bFYI\b/gi, 'for your information')
-    processed = processed.replace(/\bASAP\b/gi, 'as soon as possible')
-
-    // Handle time formats
-    processed = processed.replace(/(\d{1,2}):(\d{2})\s*(am|pm)/gi, '$1 $2 $3')
-    processed = processed.replace(/(\d{1,2}):(\d{2})/g, '$1 $2')
-
-    // Handle dates more naturally
-    processed = processed.replace(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g, '$1 $2 $3')
-    
-    // Handle ordinal numbers
-    processed = processed.replace(/(\d+)(st|nd|rd|th)\b/gi, '$1$2')
-
-    // Handle percentages with pause
-    processed = processed.replace(/(\d+)%/g, '$1 percent')
-    
-    // Handle dollar amounts
-    processed = processed.replace(/\$(\d+)/g, '$1 dollars')
-    processed = processed.replace(/(\d+) dollars\.(\d+)/g, '$1 dollars and $2 cents')
-
-    // Handle numbers with commas (for thousands)
-    processed = processed.replace(/(\d+),(\d{3})/g, '$1$2')
-    
-    // Handle dashes and hyphens with slight pause
-    processed = processed.replace(/\s*--\s*/g, ', ')
-    processed = processed.replace(/\s*—\s*/g, ', ')
-    
-    // Add natural pauses after punctuation
-    processed = processed.replace(/\.\s+/g, '. ')
-    processed = processed.replace(/\?\s+/g, '? ')
-    processed = processed.replace(/!\s+/g, '! ')
-    processed = processed.replace(/,\s*/g, ', ')
-    processed = processed.replace(/;\s*/g, '; ')
-    processed = processed.replace(/:\s*/g, ': ')
-
-    // Clean up URLs and emails
-    processed = processed.replace(/https?:\/\/[^\s]+/g, ' ')
-    processed = processed.replace(/www\.[^\s]+/g, ' ')
-    processed = processed.replace(/[\w.-]+@[\w.-]+\.\w+/g, ' email address ')
-
-    // Remove excessive punctuation
-    processed = processed.replace(/\.{2,}/g, ',')
-    processed = processed.replace(/!{2,}/g, '!')
-    processed = processed.replace(/\?{2,}/g, '?')
-    
-    // Remove markdown and special formatting symbols
-    processed = processed.replace(/[*_#`~\[\]]/g, '')
-    processed = processed.replace(/^\s*[-•]\s*/gm, '') // Remove bullet points
-    
-    // Handle all caps (usually acronyms or emphasis)
-    processed = processed.replace(/\b([A-Z]{2,})\b/g, (match) => {
-      if (match.length <= 4) {
-        // Likely an acronym, space out letters
-        return match.split('').join('. ')
+  // Listen for state updates from background
+  useEffect(() => {
+    const messageListener = (message: any) => {
+      if (message.action === 'stateUpdate') {
+        setIsReading(message.state.isReading)
+        setIsPaused(message.state.isPaused)
       }
-      return match.toLowerCase()
-    })
-
-    // Clean up multiple spaces and extra commas
-    processed = processed.replace(/\s+/g, ' ')
-    processed = processed.replace(/,\s*,+/g, ',')
-    processed = processed.replace(/\s*,\s*/g, ', ')
-
-    return processed.trim()
-  }
+    }
+    
+    chrome.runtime.onMessage.addListener(messageListener)
+    
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener)
+    }
+  }, [])
 
   const handleReadText = () => {
     if (!selectedText) return
 
     if (isReading) {
       if (isPaused) {
-        window.speechSynthesis.resume()
+        // Send resume command to background
+        chrome.runtime.sendMessage({ action: 'resumeReading' })
         setIsPaused(false)
       } else {
-        window.speechSynthesis.pause()
+        // Send pause command to background
+        chrome.runtime.sendMessage({ action: 'pauseReading' })
         setIsPaused(true)
       }
       return
     }
 
-    // Preprocess text for more natural speech
-    const processedText = preprocessText(selectedText)
-    
-    // Split into sentences for better pacing (optional chunking for very long text)
-    const sentences = processedText.match(/[^.!?]+[.!?]+/g) || [processedText]
-    
-    // For now, read all at once but with processed text
-    // Future: could implement sentence-by-sentence with pauses
-    const finalText = sentences.join(' ')
-    
-    const utterance = new SpeechSynthesisUtterance(finalText)
-    
-    if (voices[selectedVoice]) {
-      utterance.voice = voices[selectedVoice]
-    }
-    
-    // Slightly varied rate for more natural sound (0.85-0.95 range)
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = volume
-
-    // Add natural-sounding boundary events for emphasis
-    utterance.onboundary = (_event) => {
-      // This fires at word boundaries, can be used for real-time highlighting
-      // Currently just helps with natural flow
-    }
-
-    utterance.onend = () => {
-      setIsReading(false)
-      setIsPaused(false)
-      setCurrentUtterance(null)
-    }
-
-    utterance.onerror = () => {
-      setIsReading(false)
-      setIsPaused(false)
-      setCurrentUtterance(null)
-    }
-
-    setCurrentUtterance(utterance)
-    window.speechSynthesis.speak(utterance)
-    setIsReading(true)
-    setIsPaused(false)
+    // Send start reading command to background/content script
+    chrome.runtime.sendMessage({
+      action: 'startReading',
+      text: selectedText,
+      voiceIndex: selectedVoice,
+      rate,
+      pitch,
+      volume
+    }, (response) => {
+      if (response?.success) {
+        setIsReading(true)
+        setIsPaused(false)
+      }
+    })
   }
 
   const handleStop = () => {
-    window.speechSynthesis.cancel()
+    // Send stop command to background
+    chrome.runtime.sendMessage({ action: 'stopReading' })
     setIsReading(false)
     setIsPaused(false)
     setCurrentUtterance(null)
@@ -328,128 +255,157 @@ function App() {
           )}
         </div>
 
-        {/* Voice Settings Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-5 mb-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
-            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            Voice Settings
-          </h2>
-
-          {/* Voice Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-medium text-gray-600">
-                Voice
-              </label>
-              {detectedLanguage && (
-                <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg font-medium flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                  </svg>
-                  {detectedLanguage.split('-')[0].toUpperCase()}
-                </span>
-              )}
-            </div>
-            <select
-              className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
-              value={selectedVoice}
-              onChange={(e) => setSelectedVoice(Number(e.target.value))}
+        {/* Voice Settings Card - Collapsible */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 mb-4 overflow-hidden">
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className="w-full p-5 flex items-center justify-between hover:bg-white/60 transition-colors"
+          >
+            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              Voice Settings
+            </h2>
+            <svg 
+              className={`w-5 h-5 text-gray-600 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
             >
-              {voices.map((voice, index) => (
-                <option key={index} value={index}>
-                  {voice.name} ({voice.lang})
-                  {voice.name.toLowerCase().includes('neural') ? ' ⚡' : ''}
-                  {voice.name.toLowerCase().includes('premium') ? ' ⭐' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-          {/* Speed Control */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Speed
-              </label>
-              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                {rate.toFixed(1)}x
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0.5"
-              max="2"
-              step="0.1"
-              value={rate}
-              onChange={(e) => setRate(Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>0.5x</span>
-              <span>2.0x</span>
-            </div>
-          </div>
+          {isSettingsOpen && (
+            <div className="p-5 pt-0 space-y-4">
+              {/* Voice Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-gray-600">
+                    Voice
+                  </label>
+                  {detectedLanguage && (
+                    <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg font-medium flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                      </svg>
+                      {detectedLanguage.split('-')[0].toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <select
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(Number(e.target.value))}
+                >
+                  {voices.map((voice, index) => (
+                    <option key={index} value={index}>
+                      {voice.name} ({voice.lang})
+                      {voice.name.toLowerCase().includes('neural') ? ' ⚡' : ''}
+                      {voice.name.toLowerCase().includes('premium') ? ' ⭐' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Pitch Control */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                Pitch
-              </label>
-              <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
-                {pitch.toFixed(1)}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0.5"
-              max="2"
-              step="0.1"
-              value={pitch}
-              onChange={(e) => setPitch(Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>Low</span>
-              <span>High</span>
-            </div>
-          </div>
+              {/* Speed Control */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Speed
+                  </label>
+                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+                    {rate.toFixed(1)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={rate}
+                  onChange={(e) => setRate(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>0.5x</span>
+                  <span>2.0x</span>
+                </div>
+              </div>
 
-          {/* Volume Control */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              {/* Pitch Control */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                    Pitch
+                  </label>
+                  <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
+                    {pitch.toFixed(1)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={pitch}
+                  onChange={(e) => setPitch(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+
+              {/* Volume Control */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    Volume
+                  </label>
+                  <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-1 rounded-lg">
+                    {Math.round(volume * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* Save Default Button */}
+              <button
+                id="save-default-btn"
+                onClick={saveAsDefault}
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Volume
-              </label>
-              <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-1 rounded-lg">
-                {Math.round(volume * 100)}%
-              </span>
+                Save as Default
+              </button>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>0%</span>
-              <span>100%</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Control Buttons */}
