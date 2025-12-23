@@ -301,13 +301,33 @@ function App() {
                   value={selectedVoice}
                   onChange={(e) => setSelectedVoice(Number(e.target.value))}
                 >
-                  {voices.map((voice, index) => (
-                    <option key={index} value={index}>
-                      {voice.name} ({voice.lang})
-                      {voice.name.toLowerCase().includes('neural') ? ' ⚡' : ''}
-                      {voice.name.toLowerCase().includes('premium') ? ' ⭐' : ''}
-                    </option>
-                  ))}
+                  {(() => {
+                    // Group voices by language
+                    const voicesByLang: { [key: string]: { voice: SpeechSynthesisVoice; index: number }[] } = {}
+                    
+                    voices.forEach((voice, index) => {
+                      const lang = voice.lang
+                      if (!voicesByLang[lang]) {
+                        voicesByLang[lang] = []
+                      }
+                      voicesByLang[lang].push({ voice, index })
+                    })
+
+                    // Sort languages alphabetically
+                    const sortedLangs = Object.keys(voicesByLang).sort()
+
+                    return sortedLangs.map(lang => (
+                      <optgroup key={lang} label={lang}>
+                        {voicesByLang[lang].map(({ voice, index }) => (
+                          <option key={index} value={index}>
+                            {voice.name}
+                            {voice.name.toLowerCase().includes('neural') ? ' ⚡' : ''}
+                            {voice.name.toLowerCase().includes('premium') ? ' ⭐' : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))
+                  })()}
                 </select>
               </div>
 
