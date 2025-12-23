@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Text Reader",
+  "name": "Read It For Me",
   "version": "1.0.0",
-  "description": "Select text on any webpage and have it read aloud to you",
+  "description": "Natural text-to-speech with smart language detection and premium voice selection for accessibility and productivity",
   "permissions": [
     "activeTab",
     "storage"

@@ -290,9 +290,9 @@ function App() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Text Reader
+            Read It For Me
           </h1>
-          <p className="text-sm text-gray-600 mt-1">Convert text to natural speech</p>
+          <p className="text-sm text-gray-600 mt-1">Natural speech for any web content</p>
         </div>
 
         {/* Text Input Card */}
