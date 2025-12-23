@@ -164,13 +164,161 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   return true
 });
 
-// Store selected text
-document.addEventListener('mouseup', () => {
-  const selectedText = window.getSelection()?.toString();
-  if (selectedText && selectedText.length > 0) {
-    chrome.storage.local.set({ lastSelectedText: selectedText });
+// Selection Tooltip Button
+let selectionTooltip: HTMLDivElement | null = null
+
+function createSelectionTooltip() {
+  if (selectionTooltip) return
+
+  selectionTooltip = document.createElement('div')
+  selectionTooltip.id = 'rifm-selection-tooltip'
+  selectionTooltip.innerHTML = `
+    <style>
+      #rifm-selection-tooltip {
+        position: absolute !important;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        color: white !important;
+        padding: 8px 16px !important;
+        border-radius: 20px !important;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        z-index: 2147483646 !important;
+        display: none !important;
+        align-items: center !important;
+        gap: 6px !important;
+        transition: all 0.2s !important;
+        user-select: none !important;
+        backdrop-filter: blur(10px) !important;
+      }
+
+      #rifm-selection-tooltip:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5) !important;
+      }
+
+      #rifm-selection-tooltip.show {
+        display: flex !important;
+      }
+
+      #rifm-selection-tooltip svg {
+        width: 16px !important;
+        height: 16px !important;
+        fill: white !important;
+      }
+    </style>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+    </svg>
+    <span>Read This</span>
+  `
+
+  selectionTooltip.addEventListener('click', handleSelectionRead)
+  document.body.appendChild(selectionTooltip)
+}
+
+function showSelectionTooltip(x: number, y: number) {
+  if (!selectionTooltip) createSelectionTooltip()
+  if (!selectionTooltip) return
+
+  // Position tooltip above the selection
+  selectionTooltip.style.left = `${x}px`
+  selectionTooltip.style.top = `${y - 45}px`
+  selectionTooltip.classList.add('show')
+}
+
+function hideSelectionTooltip() {
+  selectionTooltip?.classList.remove('show')
+}
+
+function handleSelectionRead() {
+  const selectedText = window.getSelection()?.toString()
+  if (!selectedText) return
+
+  hideSelectionTooltip()
+
+  // Get default settings or use defaults
+  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+    const voiceIndex = result.defaultVoiceIndex ?? 0
+    const rate = result.defaultRate ?? 0.9
+    const pitch = result.defaultPitch ?? 1
+    const volume = result.defaultVolume ?? 1
+
+    // Start reading with stored settings
+    const processedText = preprocessText(selectedText)
+    const utterance = new SpeechSynthesisUtterance(processedText)
+    
+    const voices = window.speechSynthesis.getVoices()
+    if (voices[voiceIndex]) {
+      utterance.voice = voices[voiceIndex]
+    }
+    
+    utterance.rate = rate
+    utterance.pitch = pitch
+    utterance.volume = volume
+
+    utterance.onend = () => {
+      isReading = false
+      isPaused = false
+      currentUtterance = null
+      hideFloatingPlayer()
+      updateState()
+    }
+
+    utterance.onerror = () => {
+      isReading = false
+      isPaused = false
+      currentUtterance = null
+      hideFloatingPlayer()
+      updateState()
+    }
+
+    currentUtterance = utterance
+    window.speechSynthesis.speak(utterance)
+    isReading = true
+    isPaused = false
+    updateState()
+    showFloatingPlayer()
+  })
+}
+
+// Store selected text and show tooltip
+document.addEventListener('mouseup', (e: MouseEvent) => {
+  // Small delay to ensure selection is complete
+  setTimeout(() => {
+    const selection = window.getSelection()
+    const selectedText = selection?.toString()
+    
+    if (selectedText && selectedText.trim().length > 0) {
+      chrome.storage.local.set({ lastSelectedText: selectedText })
+      
+      // Get selection position
+      const range = selection?.getRangeAt(0)
+      const rect = range?.getBoundingClientRect()
+      
+      if (rect) {
+        const x = rect.left + (rect.width / 2) - 50 // Center tooltip
+        const y = rect.top + window.scrollY
+        showSelectionTooltip(x, y)
+      }
+    } else {
+      hideSelectionTooltip()
+    }
+  }, 10)
+})
+
+// Hide tooltip when clicking elsewhere
+document.addEventListener('mousedown', (e: MouseEvent) => {
+  if (selectionTooltip && !selectionTooltip.contains(e.target as Node)) {
+    // Only hide if not clicking the tooltip itself
+    const selection = window.getSelection()
+    if (!selection || selection.toString().trim().length === 0) {
+      hideSelectionTooltip()
+    }
   }
-});
+})
 
 // Floating Player Code - Inline to ensure it loads
 let floatingPlayer: HTMLDivElement | null = null

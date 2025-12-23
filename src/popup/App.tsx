@@ -12,6 +12,7 @@ function App() {
   const [detectedLanguage, setDetectedLanguage] = useState<string>('')
   const [_currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [defaultsLoaded, setDefaultsLoaded] = useState(false)
 
   useEffect(() => {
     // Get available voices
@@ -19,7 +20,7 @@ function App() {
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
       
-      // Load saved default voice
+      // Load saved default voice settings
       chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
         if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
           setSelectedVoice(result.defaultVoiceIndex)
@@ -27,6 +28,7 @@ function App() {
         if (result.defaultRate !== undefined) setRate(result.defaultRate)
         if (result.defaultPitch !== undefined) setPitch(result.defaultPitch)
         if (result.defaultVolume !== undefined) setVolume(result.defaultVolume)
+        setDefaultsLoaded(true)
       })
     }
 
@@ -52,10 +54,10 @@ function App() {
     })
   }, [])
 
-  // Auto-select best voice when language is detected or voices change
+  // Auto-select best voice when language is detected or voices change (only if no defaults saved)
   useEffect(() => {
-    if (voices.length > 0 && detectedLanguage) {
-      // Only auto-select if user hasn't manually chosen a voice
+    if (voices.length > 0 && detectedLanguage && defaultsLoaded) {
+      // Only auto-select if user hasn't manually chosen a default voice
       chrome.storage.local.get(['defaultVoiceIndex'], (result) => {
         if (result.defaultVoiceIndex === undefined) {
           const bestVoice = findBestVoice(voices, detectedLanguage)
@@ -65,7 +67,7 @@ function App() {
         }
       })
     }
-  }, [voices, detectedLanguage])
+  }, [voices, detectedLanguage, defaultsLoaded])
 
   const saveAsDefault = () => {
     chrome.storage.local.set({
