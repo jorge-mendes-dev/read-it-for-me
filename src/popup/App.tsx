@@ -127,9 +127,9 @@ function App() {
     processed = processed.replace(/\(([^)]+)\)/g, ', $1,')
     processed = processed.replace(/\[([^\]]+)\]/g, ', $1,')
     
-    // Handle quotes more naturally
-    processed = processed.replace(/"([^"]+)"/g, ', quote, $1, unquote,')
-    processed = processed.replace(/'([^']+)'/g, ', $1,')
+    // Handle quotes with pauses (remove quote markers for multilingual support)
+    processed = processed.replace(/"([^"]+)"/g, ', $1,')
+    processed = processed.replace(/'([^']+)'/g, '$1')
 
     // Handle common abbreviations (expanded list)
     processed = processed.replace(/\bDr\./gi, 'Doctor')
