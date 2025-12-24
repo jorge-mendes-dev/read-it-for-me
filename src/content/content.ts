@@ -5,6 +5,52 @@ import { showPlayer, hidePlayer, updatePlayerState } from './floatingPlayer'
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let isReading = false
 let isPaused = false
+let currentMessages: any = {}
+
+// Load messages for selected locale
+async function loadLocaleMessages(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(['selectedLocale'], async (result) => {
+      const locale = result.selectedLocale || 'en'
+      
+      try {
+        const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`)
+        const response = await fetch(url)
+        currentMessages = await response.json()
+        resolve()
+      } catch (error) {
+        console.error('[ContentScript] Failed to load locale:', locale, error)
+        // Try loading English as absolute fallback
+        try {
+          const fallbackUrl = chrome.runtime.getURL('_locales/en/messages.json')
+          const fallbackResponse = await fetch(fallbackUrl)
+          currentMessages = await fallbackResponse.json()
+          resolve()
+        } catch (fallbackError) {
+          console.error('[ContentScript] Failed to load fallback locale:', fallbackError)
+          reject(fallbackError)
+        }
+      }
+    })
+  })
+}
+
+// Get translated text
+function getMessage(key: string): string {
+  if (currentMessages[key]) {
+    return currentMessages[key].message
+  }
+  console.warn(`[ContentScript] Translation missing for key: ${key}`);
+  return key
+}
+
+// Initialize locale on load
+loadLocaleMessages().then(() => {
+  // Create tooltip after locale is loaded
+  createSelectionTooltip()
+  // Ensure tooltip has correct text
+  updateTooltipText()
+})
 
 // Preprocess text for natural speech
 function preprocessText(text: string): string {
@@ -125,7 +171,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     isReading = true
     isPaused = false
     updateState()
-    showPlayer() // Show player immediately when starting
+    showPlayer().catch(console.error) // Show player immediately when starting
     sendResponse({ success: true })
     return true
   }
@@ -213,16 +259,23 @@ function createSelectionTooltip() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
     </svg>
-    <span>Read This</span>
+    <span id="rifm-tooltip-text">${getMessage('readThis')}</span>
   `
 
   selectionTooltip.addEventListener('click', handleSelectionRead)
   document.body.appendChild(selectionTooltip)
 }
 
-function showSelectionTooltip(x: number, y: number) {
-  if (!selectionTooltip) createSelectionTooltip()
+function updateTooltipText() {
   if (!selectionTooltip) return
+  const textSpan = selectionTooltip.querySelector('#rifm-tooltip-text')
+  if (textSpan) {
+    textSpan.textContent = getMessage('readThis')
+  }
+}
+
+function showSelectionTooltip(x: number, y: number) {
+  if (!selectionTooltip) return // Don't auto-create, wait for locale to load
 
   // Position tooltip above the selection
   selectionTooltip.style.left = `${x}px`
@@ -281,7 +334,7 @@ function handleSelectionRead() {
     isReading = true
     isPaused = false
     updateState()
-    showPlayer()
+    showPlayer().catch(console.error)
   })
 }
 
@@ -318,5 +371,15 @@ document.addEventListener('mousedown', (e: MouseEvent) => {
     if (!selection || selection.toString().trim().length === 0) {
       hideSelectionTooltip()
     }
+  }
+})
+
+// Listen for language changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.selectedLocale) {
+    // Reload locale messages and update UI
+    loadLocaleMessages().then(() => {
+      updateTooltipText()
+    })
   }
 })

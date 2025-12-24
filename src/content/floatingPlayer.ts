@@ -1,9 +1,59 @@
 // Floating player injected into web pages
 
 let floatingPlayer: HTMLDivElement | null = null
+let currentMessages: Record<string, { message: string; description?: string }> = {}
+
+// Load messages for selected locale
+async function loadLocaleMessages(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(['selectedLocale'], async (result) => {
+      const locale = result.selectedLocale || 'en'
+      
+      try {
+        const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`)
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+        currentMessages = await response.json()
+        resolve()
+      } catch (error) {
+        console.error('[FloatingPlayer] Failed to load locale:', locale, error)
+        // Try loading English as absolute fallback
+        try {
+          const fallbackUrl = chrome.runtime.getURL('_locales/en/messages.json')
+          const fallbackResponse = await fetch(fallbackUrl)
+          currentMessages = await fallbackResponse.json()
+          resolve()
+        } catch (fallbackError) {
+          console.error('[FloatingPlayer] Failed to load fallback locale:', fallbackError)
+          reject(fallbackError)
+        }
+      }
+    })
+  })
+}
+
+// Get translated text
+function getMessage(key: string): string {
+  if (currentMessages[key]) {
+    return currentMessages[key].message
+  }
+  console.warn(`[FloatingPlayer] Translation missing for key: ${key}`);
+  return key
+}
+
+// Don't create player on load - only when needed via showPlayer()
+// This ensures we always use the current selected locale
 
 function createFloatingPlayer() {
   if (floatingPlayer) return
+  
+  // Verify messages are loaded before creating UI
+  if (Object.keys(currentMessages).length === 0) {
+    console.error('[FloatingPlayer] Cannot create player - no messages loaded!')
+    return
+  }
 
   floatingPlayer = document.createElement('div')
   floatingPlayer.id = 'read-it-for-me-player'
@@ -151,7 +201,7 @@ function createFloatingPlayer() {
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
         </svg>
-        Read It For Me
+        ${getMessage('readItForMe')}
       </div>
       <button class="rifm-close" id="rifm-close">×</button>
     </div>
@@ -159,20 +209,20 @@ function createFloatingPlayer() {
       <div class="rifm-pulse"></div>
       <div class="rifm-pulse"></div>
       <div class="rifm-pulse"></div>
-      <span id="rifm-status-text">Reading...</span>
+      <span id="rifm-status-text">${getMessage('reading')}</span>
     </div>
     <div class="rifm-controls">
       <button class="rifm-btn" id="rifm-play-pause">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" id="rifm-icon">
           <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
         </svg>
-        <span id="rifm-btn-text">Pause</span>
+        <span id="rifm-btn-text">${getMessage('pause')}</span>
       </button>
       <button class="rifm-btn rifm-btn-stop" id="rifm-stop">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 6h12v12H6z"/>
         </svg>
-        Stop
+        ${getMessage('stop')}
       </button>
     </div>
   `
@@ -189,9 +239,24 @@ function createFloatingPlayer() {
   floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', togglePlayPause)
 }
 
-export function showPlayer() {
-  if (!floatingPlayer) createFloatingPlayer()
-  floatingPlayer?.classList.add('show')
+export async function showPlayer() {
+  // Always load latest locale from storage
+  await loadLocaleMessages()
+  
+  // Recreate player to ensure it has latest translations
+  if (floatingPlayer) {
+    floatingPlayer.remove()
+    floatingPlayer = null
+  }
+  
+  // Create player with current locale
+  createFloatingPlayer()
+  
+  // Show the player
+  const player = document.getElementById('read-it-for-me-player') as HTMLDivElement
+  if (player) {
+    player.classList.add('show')
+  }
 }
 
 export function hidePlayer() {
@@ -207,12 +272,12 @@ export function updatePlayerState(isPaused: boolean) {
 
   if (isPaused) {
     if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>'
-    if (btnText) btnText.textContent = 'Resume'
-    if (statusText) statusText.textContent = 'Paused'
+    if (btnText) btnText.textContent = getMessage('resume')
+    if (statusText) statusText.textContent = getMessage('paused')
   } else {
     if (icon) icon.innerHTML = '<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>'
-    if (btnText) btnText.textContent = 'Pause'
-    if (statusText) statusText.textContent = 'Reading...'
+    if (btnText) btnText.textContent = getMessage('pause')
+    if (statusText) statusText.textContent = getMessage('reading')
   }
 }
 
@@ -232,8 +297,7 @@ chrome.runtime.onMessage.addListener((message) => {
     const { isReading, isPaused } = message.state
     
     if (isReading) {
-      showPlayer()
-      updatePlayerState(isPaused)
+      showPlayer().then(() => updatePlayerState(isPaused)).catch(console.error)
     } else {
       hidePlayer()
     }
@@ -245,12 +309,18 @@ window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
   const { isReading, isPaused } = event.detail
   
   if (isReading) {
-    showPlayer()
-    updatePlayerState(isPaused)
+    showPlayer().then(() => updatePlayerState(isPaused)).catch(console.error)
   } else {
     hidePlayer()
   }
 }) as EventListener)
 
-// Initialize
-createFloatingPlayer()
+// Listen for language changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.selectedLocale) {
+    // If player is showing, recreate it with new locale
+    if (floatingPlayer?.classList.contains('show')) {
+      showPlayer().catch(console.error)
+    }
+  }
+})
