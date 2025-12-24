@@ -74,6 +74,7 @@ function createFloatingPlayer() {
         color: white;
         display: none;
         animation: slideIn 0.3s ease-out;
+        transition: all 0.3s ease;
       }
 
       @keyframes slideIn {
@@ -195,6 +196,100 @@ function createFloatingPlayer() {
       .rifm-btn-stop:hover {
         background: rgba(220, 38, 38, 0.9);
       }
+
+      .rifm-settings-toggle {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 8px;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        color: white;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        margin-left: 4px;
+      }
+
+      .rifm-settings-toggle:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+      }
+
+      .rifm-settings-toggle.active {
+        background: rgba(255, 255, 255, 0.4);
+        transform: rotate(180deg);
+      }
+
+      .rifm-config-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, margin-top 0.3s ease-out;
+        margin-top: 0;
+      }
+
+      .rifm-config-panel.open {
+        max-height: 250px;
+        margin-top: 12px;
+      }
+
+      .rifm-slider-group {
+        margin-bottom: 12px;
+      }
+
+      .rifm-slider-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .rifm-slider-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        margin-bottom: 6px;
+        opacity: 0.95;
+      }
+
+      .rifm-slider-value {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 10px;
+      }
+
+      .rifm-slider {
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.3);
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .rifm-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .rifm-slider::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
     </style>
     <div class="rifm-header">
       <div class="rifm-title">
@@ -203,7 +298,14 @@ function createFloatingPlayer() {
         </svg>
         ${getMessage('readItForMe')}
       </div>
-      <button class="rifm-close" id="rifm-close">×</button>
+      <div style="display: flex; gap: 4px;">
+        <button class="rifm-settings-toggle" id="rifm-settings-toggle">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+          </svg>
+        </button>
+        <button class="rifm-close" id="rifm-close">×</button>
+      </div>
     </div>
     <div class="rifm-status" id="rifm-status">
       <div class="rifm-pulse"></div>
@@ -225,9 +327,52 @@ function createFloatingPlayer() {
         ${getMessage('stop')}
       </button>
     </div>
+    <div class="rifm-config-panel" id="rifm-config-panel">
+      <div class="rifm-slider-group">
+        <div class="rifm-slider-label">
+          <span>${getMessage('speed')}</span>
+          <span class="rifm-slider-value" id="rifm-speed-value">0.9x</span>
+        </div>
+        <input type="range" min="0.5" max="2" step="0.1" value="0.9" class="rifm-slider" id="rifm-speed-slider">
+      </div>
+      <div class="rifm-slider-group">
+        <div class="rifm-slider-label">
+          <span>${getMessage('pitch')}</span>
+          <span class="rifm-slider-value" id="rifm-pitch-value">1.0x</span>
+        </div>
+        <input type="range" min="0.5" max="2" step="0.1" value="1" class="rifm-slider" id="rifm-pitch-slider">
+      </div>
+      <div class="rifm-slider-group">
+        <div class="rifm-slider-label">
+          <span>${getMessage('volume')}</span>
+          <span class="rifm-slider-value" id="rifm-volume-value">100%</span>
+        </div>
+        <input type="range" min="0" max="1" step="0.1" value="1" class="rifm-slider" id="rifm-volume-slider">
+      </div>
+    </div>
   `
 
   document.body.appendChild(floatingPlayer)
+
+  // Load saved settings
+  chrome.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+    const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
+    const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
+    const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
+    
+    if (speedSlider && result.defaultRate !== undefined) {
+      speedSlider.value = result.defaultRate.toString()
+      updateSliderValue('speed', result.defaultRate)
+    }
+    if (pitchSlider && result.defaultPitch !== undefined) {
+      pitchSlider.value = result.defaultPitch.toString()
+      updateSliderValue('pitch', result.defaultPitch)
+    }
+    if (volumeSlider && result.defaultVolume !== undefined) {
+      volumeSlider.value = result.defaultVolume.toString()
+      updateSliderValue('volume', result.defaultVolume)
+    }
+  })
 
   // Event listeners
   floatingPlayer.querySelector('#rifm-close')?.addEventListener('click', hidePlayer)
@@ -237,6 +382,48 @@ function createFloatingPlayer() {
   })
   
   floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', togglePlayPause)
+  
+  // Settings toggle
+  floatingPlayer.querySelector('#rifm-settings-toggle')?.addEventListener('click', () => {
+    const panel = floatingPlayer?.querySelector('#rifm-config-panel')
+    const toggle = floatingPlayer?.querySelector('#rifm-settings-toggle')
+    panel?.classList.toggle('open')
+    toggle?.classList.toggle('active')
+  })
+
+  // Slider controls with real-time updates
+  const speedSlider = floatingPlayer.querySelector('#rifm-speed-slider')
+  const pitchSlider = floatingPlayer.querySelector('#rifm-pitch-slider')
+  const volumeSlider = floatingPlayer.querySelector('#rifm-volume-slider')
+
+  speedSlider?.addEventListener('input', (e) => {
+    const value = parseFloat((e.target as HTMLInputElement).value)
+    updateSliderValue('speed', value)
+    chrome.runtime.sendMessage({ action: 'updateSettings', rate: value })
+  })
+
+  pitchSlider?.addEventListener('input', (e) => {
+    const value = parseFloat((e.target as HTMLInputElement).value)
+    updateSliderValue('pitch', value)
+    chrome.runtime.sendMessage({ action: 'updateSettings', pitch: value })
+  })
+
+  volumeSlider?.addEventListener('input', (e) => {
+    const value = parseFloat((e.target as HTMLInputElement).value)
+    updateSliderValue('volume', value)
+    chrome.runtime.sendMessage({ action: 'updateSettings', volume: value })
+  })
+}
+
+function updateSliderValue(type: 'speed' | 'pitch' | 'volume', value: number) {
+  const valueElement = floatingPlayer?.querySelector(`#rifm-${type}-value`)
+  if (valueElement) {
+    if (type === 'volume') {
+      valueElement.textContent = `${Math.round(value * 100)}%`
+    } else {
+      valueElement.textContent = `${value.toFixed(1)}x`
+    }
+  }
 }
 
 export async function showPlayer() {

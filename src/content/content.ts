@@ -255,6 +255,17 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true
   }
 
+  if (request.action === 'updateSettings') {
+    // Update current utterance settings in real-time if reading
+    if (currentUtterance && isReading) {
+      if (request.rate !== undefined) currentUtterance.rate = request.rate
+      if (request.pitch !== undefined) currentUtterance.pitch = request.pitch
+      if (request.volume !== undefined) currentUtterance.volume = request.volume
+    }
+    sendResponse({ success: true })
+    return true
+  }
+
   return true
 });
 

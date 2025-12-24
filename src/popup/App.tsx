@@ -2,18 +2,12 @@ import { useState, useEffect } from 'react'
 import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
 
 function App() {
-  const [selectedText, setSelectedText] = useState('')
-  const [isReading, setIsReading] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
-  const [rate, setRate] = useState(0.9) // Slightly slower for more natural sound
+  const [rate, setRate] = useState(0.9)
   const [pitch, setPitch] = useState(1)
   const [volume, setVolume] = useState(1)
-  const [detectedLanguage, setDetectedLanguage] = useState<string>('')
-  const [_currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [defaultsLoaded, setDefaultsLoaded] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
   const [logoUrl, setLogoUrl] = useState('')
@@ -45,46 +39,14 @@ function App() {
         if (result.defaultRate !== undefined) setRate(result.defaultRate)
         if (result.defaultPitch !== undefined) setPitch(result.defaultPitch)
         if (result.defaultVolume !== undefined) setVolume(result.defaultVolume)
-        setDefaultsLoaded(true)
       })
     }
 
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
-
-    // Get selected text from active tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'getSelectedText' },
-          (response) => {
-            if (response?.text) {
-              setSelectedText(response.text)
-            }
-            if (response?.language) {
-              setDetectedLanguage(response.language)
-            }
-          }
-        )
-      }
-    })
   }, [localeReady])
 
-  // Auto-select best voice when language is detected or voices change (only if no defaults saved)
-  useEffect(() => {
-    if (voices.length > 0 && detectedLanguage && defaultsLoaded) {
-      // Only auto-select if user hasn't manually chosen a default voice
-      chrome.storage.local.get(['defaultVoiceIndex'], (result) => {
-        if (result.defaultVoiceIndex === undefined) {
-          const bestVoice = findBestVoice(voices, detectedLanguage)
-          if (bestVoice !== -1) {
-            setSelectedVoice(bestVoice)
-          }
-        }
-      })
-    }
-  }, [voices, detectedLanguage, defaultsLoaded])
+
 
   const saveAsDefault = () => {
     chrome.storage.local.set({
@@ -104,132 +66,13 @@ function App() {
     }
   }
 
-  // Function to find the best voice for a given language
-  const findBestVoice = (availableVoices: SpeechSynthesisVoice[], language: string): number => {
-    // Extract language code (e.g., 'en' from 'en-US')
-    const langCode = language.split('-')[0].toLowerCase()
-    
-    // Filter voices that match the language
-    const matchingVoices = availableVoices
-      .map((voice, index) => ({ voice, index }))
-      .filter(({ voice }) => voice.lang.toLowerCase().startsWith(langCode))
-    
-    if (matchingVoices.length === 0) return -1
-    
-    // Rank voices by quality (prioritize neural, premium, Google voices)
-    const rankedVoices = matchingVoices.sort((a, b) => {
-      const aName = a.voice.name.toLowerCase()
-      const bName = b.voice.name.toLowerCase()
-      
-      // Priority scoring
-      const getScore = (name: string, voice: SpeechSynthesisVoice) => {
-        let score = 0
-        if (name.includes('neural')) score += 100
-        if (name.includes('premium')) score += 80
-        if (name.includes('google')) score += 60
-        if (name.includes('natural')) score += 50
-        if (name.includes('enhanced')) score += 40
-        if (voice.localService === false) score += 30 // Cloud voices often better
-        if (name.includes('wavenet')) score += 90
-        if (name.includes('studio')) score += 85
-        if (name.includes('journey')) score += 85
-        if (name.includes('polyglot')) score += 70
-        return score
-      }
-      
-      return getScore(bName, b.voice) - getScore(aName, a.voice)
-    })
-    
-    return rankedVoices[0].index
-  }
 
-  // Detect language from text (fallback)
-  const detectLanguageFromText = (text: string): string => {
-    // Simple heuristic-based detection
-    const chineseRegex = /[\u4e00-\u9fa5]/
-    const japaneseRegex = /[\u3040-\u309f\u30a0-\u30ff]/
-    const koreanRegex = /[\uac00-\ud7af]/
-    const arabicRegex = /[\u0600-\u06ff]/
-    const cyrillicRegex = /[\u0400-\u04ff]/
-    
-    if (chineseRegex.test(text)) return 'zh-CN'
-    if (japaneseRegex.test(text)) return 'ja-JP'
-    if (koreanRegex.test(text)) return 'ko-KR'
-    if (arabicRegex.test(text)) return 'ar-SA'
-    if (cyrillicRegex.test(text)) return 'ru-RU'
-    
-    return 'en-US' // Default to English
-  }
-
-  // Update detected language when text changes
-  useEffect(() => {
-    if (selectedText && !detectedLanguage) {
-      const detected = detectLanguageFromText(selectedText)
-      setDetectedLanguage(detected)
-    }
-  }, [selectedText, detectedLanguage])
-
-  // Listen for state updates from background
-  useEffect(() => {
-    const messageListener = (message: any) => {
-      if (message.action === 'stateUpdate') {
-        setIsReading(message.state.isReading)
-        setIsPaused(message.state.isPaused)
-      }
-    }
-    
-    chrome.runtime.onMessage.addListener(messageListener)
-    
-    return () => {
-      chrome.runtime.onMessage.removeListener(messageListener)
-    }
-  }, [])
 
   const handleLanguageChange = async (locale: string) => {
     await setLocale(locale)
     setCurrentLocale(locale)
     // Force re-render
     window.location.reload()
-  }
-
-  const handleReadText = () => {
-    if (!selectedText) return
-
-    if (isReading) {
-      if (isPaused) {
-        // Send resume command to background
-        chrome.runtime.sendMessage({ action: 'resumeReading' })
-        setIsPaused(false)
-      } else {
-        // Send pause command to background
-        chrome.runtime.sendMessage({ action: 'pauseReading' })
-        setIsPaused(true)
-      }
-      return
-    }
-
-    // Send start reading command to background/content script
-    chrome.runtime.sendMessage({
-      action: 'startReading',
-      text: selectedText,
-      voiceIndex: selectedVoice,
-      rate,
-      pitch,
-      volume
-    }, (response) => {
-      if (response?.success) {
-        setIsReading(true)
-        setIsPaused(false)
-      }
-    })
-  }
-
-  const handleStop = () => {
-    // Send stop command to background
-    chrome.runtime.sendMessage({ action: 'stopReading' })
-    setIsReading(false)
-    setIsPaused(false)
-    setCurrentUtterance(null)
   }
 
   if (!localeReady) {
@@ -263,39 +106,6 @@ function App() {
             {t('readItForMe')}
           </h1>
           <p className="text-sm text-gray-600 mt-1">{t('selectTextPrompt')}</p>
-        </div>
-
-        {/* Text Input Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-5 mb-4 hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {t('yourText')}
-            </label>
-            <span className="text-xs text-gray-500 font-medium">
-              {selectedText.length} {t('characters')}
-            </span>
-          </div>
-          <textarea
-            className="w-full h-36 p-3 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
-            value={selectedText}
-            onChange={(e) => setSelectedText(e.target.value)}
-            placeholder={t('textPlaceholder')}
-          />
-          {isReading && (
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              <div className="flex gap-1">
-                <div className="w-1 h-4 bg-indigo-600 rounded-full animate-pulse"></div>
-                <div className="w-1 h-4 bg-purple-600 rounded-full animate-pulse delay-75"></div>
-                <div className="w-1 h-4 bg-pink-600 rounded-full animate-pulse delay-150"></div>
-              </div>
-              <span className="text-indigo-600 font-medium">
-                {isPaused ? t('paused') : t('reading')}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Voice Settings Card - Collapsible */}
@@ -342,19 +152,9 @@ function App() {
 
               {/* Voice Selection */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-gray-600">
-                    {t('voice')}
-                  </label>
-                  {detectedLanguage && (
-                    <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                      </svg>
-                      {detectedLanguage.split('-')[0].toUpperCase()}
-                    </span>
-                  )}
-                </div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  {t('voice')}
+                </label>
                 <select
                   className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
                   value={selectedVoice}
@@ -487,66 +287,6 @@ function App() {
               </button>
             </div>
           )}
-        </div>
-
-        {/* Control Buttons */}
-        <div className="flex gap-3 mb-4">
-          <button
-            onClick={handleReadText}
-            disabled={!selectedText}
-            className={`flex-1 py-3.5 px-4 rounded-xl font-semibold text-white transition-all transform active:scale-95 shadow-lg flex items-center justify-center gap-2 ${
-              !selectedText
-                ? 'bg-gray-300 cursor-not-allowed shadow-none'
-                : isReading && !isPaused
-                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
-            }`}
-          >
-            {isReading && !isPaused ? (
-              <>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                </svg>
-                Pause
-              </>
-            ) : isReading && isPaused ? (
-              <>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Resume
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                {t('readText')}
-              </>
-            )}
-          </button>
-          
-          {isReading && (
-            <button
-              onClick={handleStop}
-              className="px-5 py-3.5 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all transform active:scale-95 shadow-lg flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 6h12v12H6z" />
-              </svg>
-              {t('stop')}
-            </button>
-          )}
-        </div>
-
-        {/* Help Text */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {t('helpText')}
-          </p>
         </div>
       </div>
     </div>
