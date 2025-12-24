@@ -400,18 +400,24 @@ function createFloatingPlayer() {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('speed', value)
     chrome.runtime.sendMessage({ action: 'updateSettings', rate: value })
+    // Auto-save to storage
+    chrome.storage.local.set({ defaultRate: value })
   })
 
   pitchSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('pitch', value)
     chrome.runtime.sendMessage({ action: 'updateSettings', pitch: value })
+    // Auto-save to storage
+    chrome.storage.local.set({ defaultPitch: value })
   })
 
   volumeSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('volume', value)
     chrome.runtime.sendMessage({ action: 'updateSettings', volume: value })
+    // Auto-save to storage
+    chrome.storage.local.set({ defaultVolume: value })
   })
 }
 

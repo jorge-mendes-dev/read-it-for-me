@@ -4,9 +4,6 @@ import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
 function App() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
-  const [rate, setRate] = useState(0.9)
-  const [pitch, setPitch] = useState(1)
-  const [volume, setVolume] = useState(1)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
@@ -32,13 +29,10 @@ function App() {
       setVoices(availableVoices)
       
       // Load saved default voice settings
-      chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+      chrome.storage.local.get(['defaultVoiceIndex'], (result) => {
         if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
           setSelectedVoice(result.defaultVoiceIndex)
         }
-        if (result.defaultRate !== undefined) setRate(result.defaultRate)
-        if (result.defaultPitch !== undefined) setPitch(result.defaultPitch)
-        if (result.defaultVolume !== undefined) setVolume(result.defaultVolume)
       })
     }
 
@@ -50,10 +44,7 @@ function App() {
 
   const saveAsDefault = () => {
     chrome.storage.local.set({
-      defaultVoiceIndex: selectedVoice,
-      defaultRate: rate,
-      defaultPitch: pitch,
-      defaultVolume: volume
+      defaultVoiceIndex: selectedVoice
     })
     // Visual feedback
     const button = document.querySelector('#save-default-btn')
@@ -190,91 +181,7 @@ function App() {
                 </select>
               </div>
 
-              {/* Speed Control */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    {t('speed')}
-                  </label>
-                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                    {rate.toFixed(1)}x
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2"
-                  step="0.1"
-                  value={rate}
-                  onChange={(e) => setRate(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>0.5x</span>
-                  <span>2.0x</span>
-                </div>
-              </div>
-
-              {/* Pitch Control */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    {t('pitch')}
-                  </label>
-                  <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
-                    {pitch.toFixed(1)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2"
-                  step="0.1"
-                  value={pitch}
-                  onChange={(e) => setPitch(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>{t('low')}</span>
-                  <span>{t('high')}</span>
-                </div>
-              </div>
-
-              {/* Volume Control */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    </svg>
-                    {t('volume')}
-                  </label>
-                  <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-1 rounded-lg">
-                    {Math.round(volume * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>0%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              {/* Save Default Button */}
+              {/* Save Default Voice Button */}
               <button
                 id="save-default-btn"
                 onClick={saveAsDefault}
