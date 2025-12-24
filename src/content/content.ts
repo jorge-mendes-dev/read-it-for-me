@@ -7,6 +7,71 @@ let isReading = false
 let isPaused = false
 let currentMessages: any = {}
 
+// Queue system for reading requests
+interface ReadingRequest {
+  text: string
+  voiceIndex?: number
+  rate: number
+  pitch: number
+  volume: number
+}
+let readingQueue: ReadingRequest[] = []
+
+// Function to process next item in queue
+function processNextInQueue() {
+  if (readingQueue.length === 0) {
+    isReading = false
+    isPaused = false
+    currentUtterance = null
+    hidePlayer()
+    updateState()
+    return
+  }
+  
+  const request = readingQueue.shift()!
+  startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume)
+}
+
+// Function to start reading (used by both queue and direct calls)
+function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number) {
+  const processedText = preprocessText(text)
+  const utterance = new SpeechSynthesisUtterance(processedText)
+  
+  const voices = window.speechSynthesis.getVoices()
+  
+  if (voiceIndex !== undefined && voices[voiceIndex]) {
+    utterance.voice = voices[voiceIndex]
+  } else {
+    // Fallback to auto-detection if no voice specified
+    const detectedLanguage = detectLanguageFromText(text)
+    const bestVoice = getBestVoiceForLanguage(detectedLanguage)
+    if (bestVoice) {
+      utterance.voice = bestVoice
+    } else if (voices.length > 0) {
+      utterance.voice = voices[0]
+    }
+  }
+  
+  utterance.rate = rate
+  utterance.pitch = pitch
+  utterance.volume = volume
+
+  utterance.onend = () => {
+    processNextInQueue()
+  }
+
+  utterance.onerror = () => {
+    processNextInQueue()
+  }
+
+  currentUtterance = utterance
+  window.speechSynthesis.speak(utterance)
+  isReading = true
+  isPaused = false
+  updateState()
+  showPlayer().catch(console.error)
+}
+
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -138,41 +203,22 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.action === 'startReading') {
     const { text, voiceIndex, rate, pitch, volume } = request
-    const processedText = preprocessText(text)
-    const utterance = new SpeechSynthesisUtterance(processedText)
     
-    const voices = window.speechSynthesis.getVoices()
-    if (voices[voiceIndex]) {
-      utterance.voice = voices[voiceIndex]
+    // Add to queue if already reading, otherwise start immediately
+    if (isReading && !isPaused) {
+      readingQueue.push({ text, voiceIndex, rate, pitch, volume })
+      sendResponse({ success: true, queued: true })
+    } else {
+      // Stop current if paused and start new one
+      if (currentUtterance) {
+        currentUtterance.onend = null
+        currentUtterance.onerror = null
+        window.speechSynthesis.cancel()
+      }
+      readingQueue = [] // Clear queue
+      startReading(text, voiceIndex, rate, pitch, volume)
+      sendResponse({ success: true, queued: false })
     }
-    
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = volume
-
-    utterance.onend = () => {
-      isReading = false
-      isPaused = false
-      currentUtterance = null
-      hidePlayer() // Hide player when speech ends
-      updateState()
-    }
-
-    utterance.onerror = () => {
-      isReading = false
-      isPaused = false
-      currentUtterance = null
-      hidePlayer() // Hide player on error
-      updateState()
-    }
-
-    currentUtterance = utterance
-    window.speechSynthesis.speak(utterance)
-    isReading = true
-    isPaused = false
-    updateState()
-    showPlayer().catch(console.error) // Show player immediately when starting
-    sendResponse({ success: true })
     return true
   }
 
@@ -200,6 +246,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.action === 'stopReading') {
     window.speechSynthesis.cancel()
+    readingQueue = [] // Clear the queue
     isReading = false
     isPaused = false
     currentUtterance = null
@@ -336,56 +383,24 @@ function handleSelectionRead() {
 
   // Get saved voice settings
   chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+    const voiceIndex = result.defaultVoiceIndex
     const rate = result.defaultRate ?? 0.9
     const pitch = result.defaultPitch ?? 1
     const volume = result.defaultVolume ?? 1
 
-    // Start reading with saved or detected voice
-    const processedText = preprocessText(selectedText)
-    const utterance = new SpeechSynthesisUtterance(processedText)
-    
-    const voices = window.speechSynthesis.getVoices()
-    
-    // Use saved voice if available, otherwise auto-detect from text
-    if (result.defaultVoiceIndex !== undefined && voices[result.defaultVoiceIndex]) {
-      utterance.voice = voices[result.defaultVoiceIndex]
+    // Add to queue if already reading, otherwise start immediately
+    if (isReading && !isPaused) {
+      readingQueue.push({ text: selectedText, voiceIndex, rate, pitch, volume })
     } else {
-      // Fallback to auto-detection if no saved voice
-      const detectedLanguage = detectLanguageFromText(selectedText)
-      const bestVoice = getBestVoiceForLanguage(detectedLanguage)
-      if (bestVoice) {
-        utterance.voice = bestVoice
-      } else if (voices.length > 0) {
-        utterance.voice = voices[0]
+      // Stop current if paused and start new one
+      if (currentUtterance) {
+        currentUtterance.onend = null
+        currentUtterance.onerror = null
+        window.speechSynthesis.cancel()
       }
+      readingQueue = [] // Clear queue
+      startReading(selectedText, voiceIndex, rate, pitch, volume)
     }
-    
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = volume
-
-    utterance.onend = () => {
-      isReading = false
-      isPaused = false
-      currentUtterance = null
-      hidePlayer()
-      updateState()
-    }
-
-    utterance.onerror = () => {
-      isReading = false
-      isPaused = false
-      currentUtterance = null
-      hidePlayer()
-      updateState()
-    }
-
-    currentUtterance = utterance
-    window.speechSynthesis.speak(utterance)
-    isReading = true
-    isPaused = false
-    updateState()
-    showPlayer().catch(console.error)
   })
 }
 

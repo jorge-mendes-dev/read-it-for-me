@@ -240,22 +240,15 @@ function createFloatingPlayer() {
 }
 
 export async function showPlayer() {
-  // Always load latest locale from storage
-  await loadLocaleMessages()
-  
-  // Recreate player to ensure it has latest translations
-  if (floatingPlayer) {
-    floatingPlayer.remove()
-    floatingPlayer = null
+  // Create player if it doesn't exist
+  if (!floatingPlayer) {
+    await loadLocaleMessages()
+    createFloatingPlayer()
   }
   
-  // Create player with current locale
-  createFloatingPlayer()
-  
   // Show the player
-  const player = document.getElementById('read-it-for-me-player') as HTMLDivElement
-  if (player) {
-    player.classList.add('show')
+  if (floatingPlayer) {
+    floatingPlayer.classList.add('show')
   }
 }
 
@@ -318,9 +311,19 @@ window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
 // Listen for language changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.selectedLocale) {
-    // If player is showing, recreate it with new locale
-    if (floatingPlayer?.classList.contains('show')) {
-      showPlayer().catch(console.error)
+    // Recreate player with new locale if it exists
+    if (floatingPlayer) {
+      const wasShowing = floatingPlayer.classList.contains('show')
+      floatingPlayer.remove()
+      floatingPlayer = null
+      
+      // Reload messages and recreate
+      loadLocaleMessages().then(() => {
+        createFloatingPlayer()
+        if (wasShowing && floatingPlayer) {
+          floatingPlayer.classList.add('show')
+        }
+      }).catch(console.error)
     }
   }
 })
