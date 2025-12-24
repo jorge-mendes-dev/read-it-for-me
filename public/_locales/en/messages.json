@@ -1,0 +1,150 @@
+{
+  "extName": {
+    "message": "Read It For Me",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Natural text-to-speech with smart language detection and premium voice selection for accessibility and productivity",
+    "description": "Extension description"
+  },
+  "readItForMe": {
+    "message": "Read It For Me",
+    "description": "Main title"
+  },
+  "selectTextPrompt": {
+    "message": "Select text on any webpage to read it aloud",
+    "description": "Prompt to select text"
+  },
+  "noTextSelected": {
+    "message": "No text selected",
+    "description": "Message when no text is selected"
+  },
+  "detectedLanguage": {
+    "message": "Detected Language",
+    "description": "Label for detected language"
+  },
+  "voice": {
+    "message": "Voice",
+    "description": "Label for voice selection"
+  },
+  "speed": {
+    "message": "Speed",
+    "description": "Label for speed control"
+  },
+  "pitch": {
+    "message": "Pitch",
+    "description": "Label for pitch control"
+  },
+  "volume": {
+    "message": "Volume",
+    "description": "Label for volume control"
+  },
+  "readAloud": {
+    "message": "Read Aloud",
+    "description": "Button to start reading"
+  },
+  "pause": {
+    "message": "Pause",
+    "description": "Button to pause reading"
+  },
+  "resume": {
+    "message": "Resume",
+    "description": "Button to resume reading"
+  },
+  "stop": {
+    "message": "Stop",
+    "description": "Button to stop reading"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings label"
+  },
+  "saveAsDefault": {
+    "message": "Save as Default",
+    "description": "Button to save current settings as default"
+  },
+  "saved": {
+    "message": "✓ Saved!",
+    "description": "Confirmation message when settings are saved"
+  },
+  "advancedSettings": {
+    "message": "Advanced Settings",
+    "description": "Advanced settings section title"
+  },
+  "closeSettings": {
+    "message": "Close Settings",
+    "description": "Button to close settings"
+  },
+  "tooltipReadText": {
+    "message": "Read selected text",
+    "description": "Tooltip for read button"
+  },
+  "reading": {
+    "message": "Reading...",
+    "description": "Status when reading"
+  },
+  "paused": {
+    "message": "Paused",
+    "description": "Status when paused"
+  },
+  "language": {
+    "message": "Language",
+    "description": "Language selector label"
+  },
+  "langEnglish": {
+    "message": "English",
+    "description": "English language option"
+  },
+  "langPortuguese": {
+    "message": "Portuguese (Brazil)",
+    "description": "Portuguese language option"
+  },
+  "langSpanish": {
+    "message": "Spanish",
+    "description": "Spanish language option"
+  },
+  "langFrench": {
+    "message": "French",
+    "description": "French language option"
+  },
+  "langGerman": {
+    "message": "German",
+    "description": "German language option"
+  },
+  "langJapanese": {
+    "message": "Japanese",
+    "description": "Japanese language option"
+  },
+  "langChinese": {
+    "message": "Chinese (Simplified)",
+    "description": "Chinese language option"
+  },
+  "yourText": {
+    "message": "Your Text",
+    "description": "Label for text input"
+  },
+  "characters": {
+    "message": "characters",
+    "description": "Character count label"
+  },
+  "textPlaceholder": {
+    "message": "Select text on the webpage or type here...",
+    "description": "Placeholder for text input"
+  },
+  "voiceSettings": {
+    "message": "Voice Settings",
+    "description": "Voice settings section title"
+  },
+  "low": {
+    "message": "Low",
+    "description": "Low pitch label"
+  },
+  "high": {
+    "message": "High",
+    "description": "High pitch label"
+  },
+  "helpText": {
+    "message": "Select text on any webpage and click the extension icon",
+    "description": "Help text at bottom"
+  }
+}

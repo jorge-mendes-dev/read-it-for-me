@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
-import { copyFileSync, mkdirSync } from 'fs'
+import { copyFileSync, mkdirSync, cpSync } from 'fs'
 
 export default defineConfig({
   plugins: [
@@ -18,6 +18,12 @@ export default defineConfig({
           copyFileSync('public/icons/icon128.png', 'dist/icons/icon128.png')
         } catch (e) {
           console.log('Icon files not found, skipping...')
+        }
+        // Copy _locales folder
+        try {
+          cpSync('public/_locales', 'dist/_locales', { recursive: true })
+        } catch (e) {
+          console.log('Locales folder not found, skipping...')
         }
       }
     }

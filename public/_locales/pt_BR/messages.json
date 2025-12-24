@@ -1,0 +1,150 @@
+{
+  "extName": {
+    "message": "Leia Para Mim",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Texto em voz natural com detecção inteligente de idioma e seleção de voz premium para acessibilidade e produtividade",
+    "description": "Extension description"
+  },
+  "readItForMe": {
+    "message": "Leia Para Mim",
+    "description": "Main title"
+  },
+  "selectTextPrompt": {
+    "message": "Selecione texto em qualquer página da web para ler em voz alta",
+    "description": "Prompt to select text"
+  },
+  "noTextSelected": {
+    "message": "Nenhum texto selecionado",
+    "description": "Message when no text is selected"
+  },
+  "detectedLanguage": {
+    "message": "Idioma Detectado",
+    "description": "Label for detected language"
+  },
+  "voice": {
+    "message": "Voz",
+    "description": "Label for voice selection"
+  },
+  "speed": {
+    "message": "Velocidade",
+    "description": "Label for speed control"
+  },
+  "pitch": {
+    "message": "Tom",
+    "description": "Label for pitch control"
+  },
+  "volume": {
+    "message": "Volume",
+    "description": "Label for volume control"
+  },
+  "readAloud": {
+    "message": "Ler em Voz Alta",
+    "description": "Button to start reading"
+  },
+  "pause": {
+    "message": "Pausar",
+    "description": "Button to pause reading"
+  },
+  "resume": {
+    "message": "Retomar",
+    "description": "Button to resume reading"
+  },
+  "stop": {
+    "message": "Parar",
+    "description": "Button to stop reading"
+  },
+  "settings": {
+    "message": "Configurações",
+    "description": "Settings label"
+  },
+  "saveAsDefault": {
+    "message": "Salvar como Padrão",
+    "description": "Button to save current settings as default"
+  },
+  "saved": {
+    "message": "✓ Salvo!",
+    "description": "Confirmation message when settings are saved"
+  },
+  "advancedSettings": {
+    "message": "Configurações Avançadas",
+    "description": "Advanced settings section title"
+  },
+  "closeSettings": {
+    "message": "Fechar Configurações",
+    "description": "Button to close settings"
+  },
+  "tooltipReadText": {
+    "message": "Ler texto selecionado",
+    "description": "Tooltip for read button"
+  },
+  "reading": {
+    "message": "Lendo...",
+    "description": "Status when reading"
+  },
+  "paused": {
+    "message": "Pausado",
+    "description": "Status when paused"
+  },
+  "language": {
+    "message": "Idioma",
+    "description": "Language selector label"
+  },
+  "langEnglish": {
+    "message": "Inglês",
+    "description": "English language option"
+  },
+  "langPortuguese": {
+    "message": "Português (Brasil)",
+    "description": "Portuguese language option"
+  },
+  "langSpanish": {
+    "message": "Espanhol",
+    "description": "Spanish language option"
+  },
+  "langFrench": {
+    "message": "Francês",
+    "description": "French language option"
+  },
+  "langGerman": {
+    "message": "Alemão",
+    "description": "German language option"
+  },
+  "langJapanese": {
+    "message": "Japonês",
+    "description": "Japanese language option"
+  },
+  "langChinese": {
+    "message": "Chinês (Simplificado)",
+    "description": "Chinese language option"
+  },
+  "yourText": {
+    "message": "Seu Texto",
+    "description": "Label for text input"
+  },
+  "characters": {
+    "message": "caracteres",
+    "description": "Character count label"
+  },
+  "textPlaceholder": {
+    "message": "Selecione o texto na página ou digite aqui...",
+    "description": "Placeholder for text input"
+  },
+  "voiceSettings": {
+    "message": "Configurações de Voz",
+    "description": "Voice settings section title"
+  },
+  "low": {
+    "message": "Baixo",
+    "description": "Low pitch label"
+  },
+  "high": {
+    "message": "Alto",
+    "description": "High pitch label"
+  },
+  "helpText": {
+    "message": "Selecione o texto em qualquer página e clique no ícone da extensão",
+    "description": "Help text at bottom"
+  }
+}

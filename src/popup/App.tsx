@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
 
 function App() {
   const [selectedText, setSelectedText] = useState('')
@@ -13,8 +14,20 @@ function App() {
   const [_currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [defaultsLoaded, setDefaultsLoaded] = useState(false)
+  const [currentLocale, setCurrentLocale] = useState('en')
+  const [localeReady, setLocaleReady] = useState(false)
 
   useEffect(() => {
+    // Initialize locale first
+    initializeLocale().then(locale => {
+      setCurrentLocale(locale)
+      setLocaleReady(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!localeReady) return
+
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices()
@@ -52,7 +65,7 @@ function App() {
         )
       }
     })
-  }, [])
+  }, [localeReady])
 
   // Auto-select best voice when language is detected or voices change (only if no defaults saved)
   useEffect(() => {
@@ -80,7 +93,7 @@ function App() {
     const button = document.querySelector('#save-default-btn')
     if (button) {
       const originalText = button.textContent
-      button.textContent = '✓ Saved!'
+      button.textContent = t('saved')
       setTimeout(() => {
         button.textContent = originalText
       }, 2000)
@@ -168,6 +181,13 @@ function App() {
     }
   }, [])
 
+  const handleLanguageChange = async (locale: string) => {
+    await setLocale(locale)
+    setCurrentLocale(locale)
+    // Force re-render
+    window.location.reload()
+  }
+
   const handleReadText = () => {
     if (!selectedText) return
 
@@ -208,6 +228,17 @@ function App() {
     setCurrentUtterance(null)
   }
 
+  if (!localeReady) {
+    return (
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-3"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6">
       <div className="max-w-md mx-auto">
@@ -219,9 +250,9 @@ function App() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Read It For Me
+            {t('readItForMe')}
           </h1>
-          <p className="text-sm text-gray-600 mt-1">Natural speech for any web content</p>
+          <p className="text-sm text-gray-600 mt-1">{t('selectTextPrompt')}</p>
         </div>
 
         {/* Text Input Card */}
@@ -231,17 +262,17 @@ function App() {
               <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Your Text
+              {t('yourText')}
             </label>
             <span className="text-xs text-gray-500 font-medium">
-              {selectedText.length} characters
+              {selectedText.length} {t('characters')}
             </span>
           </div>
           <textarea
             className="w-full h-36 p-3 border-2 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
             value={selectedText}
             onChange={(e) => setSelectedText(e.target.value)}
-            placeholder="Select text on the webpage or type here..."
+            placeholder={t('textPlaceholder')}
           />
           {isReading && (
             <div className="mt-3 flex items-center gap-2 text-sm">
@@ -251,7 +282,7 @@ function App() {
                 <div className="w-1 h-4 bg-pink-600 rounded-full animate-pulse delay-150"></div>
               </div>
               <span className="text-indigo-600 font-medium">
-                {isPaused ? 'Paused' : 'Reading...'}
+                {isPaused ? t('paused') : t('reading')}
               </span>
             </div>
           )}
@@ -267,7 +298,7 @@ function App() {
               <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
-              Voice Settings
+              {t('voiceSettings')}
             </h2>
             <svg 
               className={`w-5 h-5 text-gray-600 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`}
@@ -281,11 +312,29 @@ function App() {
 
           {isSettingsOpen && (
             <div className="p-5 pt-0 space-y-4">
+              {/* Language Selection */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  {t('language')}
+                </label>
+                <select
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
+                  value={currentLocale}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                >
+                  {availableLocales.map((locale) => (
+                    <option key={locale.code} value={locale.code}>
+                      {t(locale.name)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Voice Selection */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-medium text-gray-600">
-                    Voice
+                    {t('voice')}
                   </label>
                   {detectedLanguage && (
                     <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg font-medium flex items-center gap-1">
@@ -338,7 +387,7 @@ function App() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    Speed
+                    {t('speed')}
                   </label>
                   <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
                     {rate.toFixed(1)}x
@@ -366,7 +415,7 @@ function App() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>
-                    Pitch
+                    {t('pitch')}
                   </label>
                   <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
                     {pitch.toFixed(1)}
@@ -382,8 +431,8 @@ function App() {
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>Low</span>
-                  <span>High</span>
+                  <span>{t('low')}</span>
+                  <span>{t('high')}</span>
                 </div>
               </div>
 
@@ -394,7 +443,7 @@ function App() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     </svg>
-                    Volume
+                    {t('volume')}
                   </label>
                   <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-1 rounded-lg">
                     {Math.round(volume * 100)}%
@@ -424,7 +473,7 @@ function App() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                Save as Default
+                {t('saveAsDefault')}
               </button>
             </div>
           )}
@@ -475,7 +524,7 @@ function App() {
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 6h12v12H6z" />
               </svg>
-              Stop
+              {t('stop')}
             </button>
           )}
         </div>
@@ -486,7 +535,7 @@ function App() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Select text on any webpage and click the extension icon
+            {t('helpText')}
           </p>
         </div>
       </div>

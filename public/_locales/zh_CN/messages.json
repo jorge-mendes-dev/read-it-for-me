@@ -1,0 +1,150 @@
+{
+  "extName": {
+    "message": "为我朗读",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "具有智能语言检测和高级语音选择的自然文本转语音，提高可访问性和生产力",
+    "description": "Extension description"
+  },
+  "readItForMe": {
+    "message": "为我朗读",
+    "description": "Main title"
+  },
+  "selectTextPrompt": {
+    "message": "在任何网页上选择文本以大声朗读",
+    "description": "Prompt to select text"
+  },
+  "noTextSelected": {
+    "message": "未选择文本",
+    "description": "Message when no text is selected"
+  },
+  "detectedLanguage": {
+    "message": "检测到的语言",
+    "description": "Label for detected language"
+  },
+  "voice": {
+    "message": "语音",
+    "description": "Label for voice selection"
+  },
+  "speed": {
+    "message": "速度",
+    "description": "Label for speed control"
+  },
+  "pitch": {
+    "message": "音调",
+    "description": "Label for pitch control"
+  },
+  "volume": {
+    "message": "音量",
+    "description": "Label for volume control"
+  },
+  "readAloud": {
+    "message": "朗读",
+    "description": "Button to start reading"
+  },
+  "pause": {
+    "message": "暂停",
+    "description": "Button to pause reading"
+  },
+  "resume": {
+    "message": "继续",
+    "description": "Button to resume reading"
+  },
+  "stop": {
+    "message": "停止",
+    "description": "Button to stop reading"
+  },
+  "settings": {
+    "message": "设置",
+    "description": "Settings label"
+  },
+  "saveAsDefault": {
+    "message": "保存为默认",
+    "description": "Button to save current settings as default"
+  },
+  "saved": {
+    "message": "✓ 已保存！",
+    "description": "Confirmation message when settings are saved"
+  },
+  "advancedSettings": {
+    "message": "高级设置",
+    "description": "Advanced settings section title"
+  },
+  "closeSettings": {
+    "message": "关闭设置",
+    "description": "Button to close settings"
+  },
+  "tooltipReadText": {
+    "message": "朗读选定的文本",
+    "description": "Tooltip for read button"
+  },
+  "reading": {
+    "message": "朗读中...",
+    "description": "Status when reading"
+  },
+  "paused": {
+    "message": "已暂停",
+    "description": "Status when paused"
+  },
+  "language": {
+    "message": "语言",
+    "description": "Language selector label"
+  },
+  "langEnglish": {
+    "message": "英语",
+    "description": "English language option"
+  },
+  "langPortuguese": {
+    "message": "葡萄牙语（巴西）",
+    "description": "Portuguese language option"
+  },
+  "langSpanish": {
+    "message": "西班牙语",
+    "description": "Spanish language option"
+  },
+  "langFrench": {
+    "message": "法语",
+    "description": "French language option"
+  },
+  "langGerman": {
+    "message": "德语",
+    "description": "German language option"
+  },
+  "langJapanese": {
+    "message": "日语",
+    "description": "Japanese language option"
+  },
+  "langChinese": {
+    "message": "中文（简体）",
+    "description": "Chinese language option"
+  },
+  "yourText": {
+    "message": "您的文本",
+    "description": "Label for text input"
+  },
+  "characters": {
+    "message": "字符",
+    "description": "Character count label"
+  },
+  "textPlaceholder": {
+    "message": "在网页上选择文本或在此处输入...",
+    "description": "Placeholder for text input"
+  },
+  "voiceSettings": {
+    "message": "语音设置",
+    "description": "Voice settings section title"
+  },
+  "low": {
+    "message": "低",
+    "description": "Low pitch label"
+  },
+  "high": {
+    "message": "高",
+    "description": "High pitch label"
+  },
+  "helpText": {
+    "message": "在任何网页上选择文本并点击扩展图标",
+    "description": "Help text at bottom"
+  }
+}

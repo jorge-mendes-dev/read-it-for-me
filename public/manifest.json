@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Read It For Me",
+  "name": "__MSG_extName__",
   "version": "1.0.0",
-  "description": "Natural text-to-speech with smart language detection and premium voice selection for accessibility and productivity",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "permissions": [
     "activeTab",
     "storage"
