@@ -1,5 +1,6 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
+import { showPlayer, hidePlayer, updatePlayerState } from './floatingPlayer'
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let isReading = false
@@ -107,7 +108,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       isReading = false
       isPaused = false
       currentUtterance = null
-      hideFloatingPlayer() // Hide player when speech ends
+      hidePlayer() // Hide player when speech ends
       updateState()
     }
 
@@ -115,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       isReading = false
       isPaused = false
       currentUtterance = null
-      hideFloatingPlayer() // Hide player on error
+      hidePlayer() // Hide player on error
       updateState()
     }
 
@@ -124,7 +125,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     isReading = true
     isPaused = false
     updateState()
-    showFloatingPlayer() // Show player immediately when starting
+    showPlayer() // Show player immediately when starting
     sendResponse({ success: true })
     return true
   }
@@ -133,7 +134,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (isReading && !isPaused) {
       window.speechSynthesis.pause()
       isPaused = true
-      updateFloatingPlayerState(true) // Update player immediately
+      updatePlayerState(true) // Update player immediately
       updateState()
     }
     sendResponse({ success: true })
@@ -144,7 +145,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (isReading && isPaused) {
       window.speechSynthesis.resume()
       isPaused = false
-      updateFloatingPlayerState(false) // Update player immediately
+      updatePlayerState(false) // Update player immediately
       updateState()
     }
     sendResponse({ success: true })
@@ -263,7 +264,7 @@ function handleSelectionRead() {
       isReading = false
       isPaused = false
       currentUtterance = null
-      hideFloatingPlayer()
+      hidePlayer()
       updateState()
     }
 
@@ -271,7 +272,7 @@ function handleSelectionRead() {
       isReading = false
       isPaused = false
       currentUtterance = null
-      hideFloatingPlayer()
+      hidePlayer()
       updateState()
     }
 
@@ -280,12 +281,12 @@ function handleSelectionRead() {
     isReading = true
     isPaused = false
     updateState()
-    showFloatingPlayer()
+    showPlayer()
   })
 }
 
 // Store selected text and show tooltip
-document.addEventListener('mouseup', (e: MouseEvent) => {
+document.addEventListener('mouseup', () => {
   // Small delay to ensure selection is complete
   setTimeout(() => {
     const selection = window.getSelection()
@@ -319,251 +320,3 @@ document.addEventListener('mousedown', (e: MouseEvent) => {
     }
   }
 })
-
-// Floating Player Code - Inline to ensure it loads
-let floatingPlayer: HTMLDivElement | null = null
-
-function createFloatingPlayer() {
-  if (floatingPlayer) return
-
-  floatingPlayer = document.createElement('div')
-  floatingPlayer.id = 'read-it-for-me-player'
-  floatingPlayer.innerHTML = `
-    <style>
-      #read-it-for-me-player {
-        position: fixed !important;
-        bottom: 20px !important;
-        right: 20px !important;
-        width: 300px !important;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%) !important;
-        backdrop-filter: blur(10px) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
-        padding: 16px !important;
-        z-index: 2147483647 !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: white !important;
-        display: none !important;
-        animation: slideIn 0.3s ease-out !important;
-      }
-
-      @keyframes slideIn {
-        from {
-          transform: translateY(100px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
-      }
-
-      #read-it-for-me-player.show {
-        display: block !important;
-      }
-
-      .rifm-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 12px !important;
-      }
-
-      .rifm-title {
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-      }
-
-      .rifm-close {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border: none !important;
-        border-radius: 8px !important;
-        width: 24px !important;
-        height: 24px !important;
-        cursor: pointer !important;
-        color: white !important;
-        font-size: 16px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: background 0.2s !important;
-      }
-
-      .rifm-close:hover {
-        background: rgba(255, 255, 255, 0.3) !important;
-      }
-
-      .rifm-status {
-        font-size: 12px !important;
-        opacity: 0.9 !important;
-        margin-bottom: 12px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-      }
-
-      .rifm-pulse {
-        width: 4px !important;
-        height: 12px !important;
-        background: white !important;
-        border-radius: 2px !important;
-        animation: pulse 1s ease-in-out infinite !important;
-      }
-
-      .rifm-pulse:nth-child(2) {
-        animation-delay: 0.2s !important;
-      }
-
-      .rifm-pulse:nth-child(3) {
-        animation-delay: 0.4s !important;
-      }
-
-      @keyframes pulse {
-        0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
-        50% { transform: scaleY(1); opacity: 1; }
-      }
-
-      .rifm-controls {
-        display: flex !important;
-        gap: 8px !important;
-        justify-content: center !important;
-      }
-
-      .rifm-btn {
-        background: rgba(255, 255, 255, 0.25) !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 10px 16px !important;
-        color: white !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-        flex: 1 !important;
-        justify-content: center !important;
-      }
-
-      .rifm-btn:hover {
-        background: rgba(255, 255, 255, 0.35) !important;
-        transform: translateY(-1px) !important;
-      }
-
-      .rifm-btn:active {
-        transform: translateY(0) !important;
-      }
-
-      .rifm-btn-stop {
-        background: rgba(239, 68, 68, 0.9) !important;
-        flex: 0.8 !important;
-      }
-
-      .rifm-btn-stop:hover {
-        background: rgba(220, 38, 38, 0.9) !important;
-      }
-    </style>
-    <div class="rifm-header">
-      <div class="rifm-title">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-        </svg>
-        Read It For Me
-      </div>
-      <button class="rifm-close" id="rifm-close">×</button>
-    </div>
-    <div class="rifm-status" id="rifm-status">
-      <div class="rifm-pulse"></div>
-      <div class="rifm-pulse"></div>
-      <div class="rifm-pulse"></div>
-      <span id="rifm-status-text">Reading...</span>
-    </div>
-    <div class="rifm-controls">
-      <button class="rifm-btn" id="rifm-play-pause">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" id="rifm-icon">
-          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-        </svg>
-        <span id="rifm-btn-text">Pause</span>
-      </button>
-      <button class="rifm-btn rifm-btn-stop" id="rifm-stop">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6 6h12v12H6z"/>
-        </svg>
-        Stop
-      </button>
-    </div>
-  `
-
-  document.body.appendChild(floatingPlayer)
-
-  // Event listeners
-  floatingPlayer.querySelector('#rifm-close')?.addEventListener('click', hideFloatingPlayer)
-  floatingPlayer.querySelector('#rifm-stop')?.addEventListener('click', () => {
-    window.speechSynthesis.cancel()
-    isReading = false
-    isPaused = false
-    currentUtterance = null
-    updateState()
-    hideFloatingPlayer()
-  })
-  
-  floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', toggleFloatingPlayPause)
-}
-
-function showFloatingPlayer() {
-  if (!floatingPlayer) createFloatingPlayer()
-  floatingPlayer?.classList.add('show')
-}
-
-function hideFloatingPlayer() {
-  floatingPlayer?.classList.remove('show')
-}
-
-function updateFloatingPlayerState(isPaused: boolean) {
-  if (!floatingPlayer) return
-
-  const icon = floatingPlayer.querySelector('#rifm-icon')
-  const btnText = floatingPlayer.querySelector('#rifm-btn-text')
-  const statusText = floatingPlayer.querySelector('#rifm-status-text')
-
-  if (isPaused) {
-    if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>'
-    if (btnText) btnText.textContent = 'Resume'
-    if (statusText) statusText.textContent = 'Paused'
-  } else {
-    if (icon) icon.innerHTML = '<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>'
-    if (btnText) btnText.textContent = 'Pause'
-    if (statusText) statusText.textContent = 'Reading...'
-  }
-}
-
-function toggleFloatingPlayPause() {
-  if (isPaused) {
-    chrome.runtime.sendMessage({ action: 'resumeReading' })
-  } else {
-    chrome.runtime.sendMessage({ action: 'pauseReading' })
-  }
-}
-
-// Listen for state updates via custom events
-window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
-  const { isReading, isPaused } = event.detail
-  
-  if (isReading) {
-    showFloatingPlayer()
-    updateFloatingPlayerState(isPaused)
-  } else {
-    hideFloatingPlayer()
-  }
-}) as EventListener)
-
-// Initialize player when content script loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', createFloatingPlayer)
-} else {
-  createFloatingPlayer()
-}

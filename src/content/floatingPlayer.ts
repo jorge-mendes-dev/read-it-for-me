@@ -189,16 +189,16 @@ function createFloatingPlayer() {
   floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', togglePlayPause)
 }
 
-function showPlayer() {
+export function showPlayer() {
   if (!floatingPlayer) createFloatingPlayer()
   floatingPlayer?.classList.add('show')
 }
 
-function hidePlayer() {
+export function hidePlayer() {
   floatingPlayer?.classList.remove('show')
 }
 
-function updatePlayerState(isPaused: boolean) {
+export function updatePlayerState(isPaused: boolean) {
   if (!floatingPlayer) return
 
   const icon = floatingPlayer.querySelector('#rifm-icon')

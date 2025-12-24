@@ -11,11 +11,11 @@ export default defineConfig({
       closeBundle() {
         mkdirSync('dist/icons', { recursive: true })
         copyFileSync('public/manifest.json', 'dist/manifest.json')
-        // For now, copy the SVG as a placeholder for all icon sizes
+        // Copy the actual PNG icon files
         try {
-          copyFileSync('public/icons/icon128.svg', 'dist/icons/icon16.png')
-          copyFileSync('public/icons/icon128.svg', 'dist/icons/icon48.png')
-          copyFileSync('public/icons/icon128.svg', 'dist/icons/icon128.png')
+          copyFileSync('public/icons/icon16.png', 'dist/icons/icon16.png')
+          copyFileSync('public/icons/icon48.png', 'dist/icons/icon48.png')
+          copyFileSync('public/icons/icon128.png', 'dist/icons/icon128.png')
         } catch (e) {
           console.log('Icon files not found, skipping...')
         }
