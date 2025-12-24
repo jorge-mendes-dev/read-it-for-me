@@ -146,5 +146,13 @@
   "helpText": {
     "message": "在任何网页上选择文本并点击扩展图标",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "阅读此内容",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "阅读文本",
+    "description": "Main read button text"
   }
 }

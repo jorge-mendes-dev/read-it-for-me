@@ -146,5 +146,13 @@
   "helpText": {
     "message": "Wählen Sie Text auf einer beliebigen Webseite aus und klicken Sie auf das Erweiterungssymbol",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "Dies Vorlesen",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "Text Vorlesen",
+    "description": "Main read button text"
   }
 }

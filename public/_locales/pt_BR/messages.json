@@ -146,5 +146,13 @@
   "helpText": {
     "message": "Selecione o texto em qualquer página e clique no ícone da extensão",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "Ler Isto",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "Ler Texto",
+    "description": "Main read button text"
   }
 }

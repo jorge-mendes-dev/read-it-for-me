@@ -146,5 +146,13 @@
   "helpText": {
     "message": "Sélectionnez du texte sur n'importe quelle page Web et cliquez sur l'icône de l'extension",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "Lire Ceci",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "Lire le Texte",
+    "description": "Main read button text"
   }
 }

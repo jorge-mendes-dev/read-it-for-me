@@ -146,5 +146,13 @@
   "helpText": {
     "message": "任意のウェブページでテキストを選択し、拡張機能アイコンをクリックしてください",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "これを読む",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "テキストを読む",
+    "description": "Main read button text"
   }
 }

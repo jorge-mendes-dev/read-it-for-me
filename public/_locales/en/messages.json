@@ -146,5 +146,13 @@
   "helpText": {
     "message": "Select text on any webpage and click the extension icon",
     "description": "Help text at bottom"
+  },
+  "readThis": {
+    "message": "Read This",
+    "description": "Tooltip button text"
+  },
+  "readText": {
+    "message": "Read Text",
+    "description": "Main read button text"
   }
 }
