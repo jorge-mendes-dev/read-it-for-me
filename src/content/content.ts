@@ -287,26 +287,77 @@ function hideSelectionTooltip() {
   selectionTooltip?.classList.remove('show')
 }
 
+// Detect language from text
+function detectLanguageFromText(text: string): string {
+  // Simple heuristic-based detection
+  const chineseRegex = /[\u4e00-\u9fa5]/
+  const japaneseRegex = /[\u3040-\u309f\u30a0-\u30ff]/
+  const koreanRegex = /[\uac00-\ud7af]/
+  const arabicRegex = /[\u0600-\u06ff]/
+  const cyrillicRegex = /[\u0400-\u04ff]/
+  
+  if (chineseRegex.test(text)) return 'zh-CN'
+  if (japaneseRegex.test(text)) return 'ja-JP'
+  if (koreanRegex.test(text)) return 'ko-KR'
+  if (arabicRegex.test(text)) return 'ar-SA'
+  if (cyrillicRegex.test(text)) return 'ru-RU'
+  
+  return 'en-US' // Default to English
+}
+
+// Get best voice for detected language
+function getBestVoiceForLanguage(language: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices()
+  const langCode = language.split('-')[0].toLowerCase()
+  
+  // Find voices matching the language
+  const matchingVoices = voices.filter(voice => 
+    voice.lang.toLowerCase().startsWith(langCode)
+  )
+  
+  if (matchingVoices.length === 0) return null
+  
+  // Prefer premium/high-quality voices
+  const premiumVoice = matchingVoices.find(v => 
+    v.name.includes('Premium') || 
+    v.name.includes('Enhanced') ||
+    v.name.includes('Neural') ||
+    !v.name.includes('Google')
+  )
+  
+  return premiumVoice || matchingVoices[0]
+}
+
 function handleSelectionRead() {
   const selectedText = window.getSelection()?.toString()
   if (!selectedText) return
 
   hideSelectionTooltip()
 
-  // Get default settings or use defaults
+  // Get saved voice settings
   chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
-    const voiceIndex = result.defaultVoiceIndex ?? 0
     const rate = result.defaultRate ?? 0.9
     const pitch = result.defaultPitch ?? 1
     const volume = result.defaultVolume ?? 1
 
-    // Start reading with stored settings
+    // Start reading with saved or detected voice
     const processedText = preprocessText(selectedText)
     const utterance = new SpeechSynthesisUtterance(processedText)
     
     const voices = window.speechSynthesis.getVoices()
-    if (voices[voiceIndex]) {
-      utterance.voice = voices[voiceIndex]
+    
+    // Use saved voice if available, otherwise auto-detect from text
+    if (result.defaultVoiceIndex !== undefined && voices[result.defaultVoiceIndex]) {
+      utterance.voice = voices[result.defaultVoiceIndex]
+    } else {
+      // Fallback to auto-detection if no saved voice
+      const detectedLanguage = detectLanguageFromText(selectedText)
+      const bestVoice = getBestVoiceForLanguage(detectedLanguage)
+      if (bestVoice) {
+        utterance.voice = bestVoice
+      } else if (voices.length > 0) {
+        utterance.voice = voices[0]
+      }
     }
     
     utterance.rate = rate
