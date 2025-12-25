@@ -153,6 +153,32 @@
   },
   "readText": {
     "message": "阅读文本",
-    "description": "Main read button text"
-  }
+    "description": "Main read button text"  },
+  "clearQueue": {
+    "message": "清除队列",
+    "description": "Clear queue button text"
+  },
+  "speedPresets": {
+    "message": "速度预设",
+    "description": "Speed presets section label"
+  },
+  "presetSlow": {
+    "message": "慢速",
+    "description": "Slow speed preset"
+  },
+  "presetNormal": {
+    "message": "正常",
+    "description": "Normal speed preset"
+  },
+  "presetFast": {
+    "message": "快速",
+    "description": "Fast speed preset"
+  },
+  "resetDefaults": {
+    "message": "恢复默认",
+    "description": "Reset settings button text"
+  },
+  "showProgressBar": {
+    "message": "显示进度条",
+    "description": "Toggle for progress bar visibility"  }
 }

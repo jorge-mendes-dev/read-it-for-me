@@ -1,11 +1,13 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
-import { showPlayer, hidePlayer, updatePlayerState } from './floatingPlayer'
+import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate } from './floatingPlayer'
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let isReading = false
 let isPaused = false
 let currentMessages: any = {}
+let progressInterval: number | null = null
+let startTime = 0
 
 // Queue system for reading requests
 interface ReadingRequest {
@@ -23,11 +25,13 @@ function processNextInQueue() {
     isReading = false
     isPaused = false
     currentUtterance = null
+    if (progressInterval) clearInterval(progressInterval)
     hidePlayer()
     updateState()
     return
   }
   
+  updateQueueCount(readingQueue.length)
   const request = readingQueue.shift()!
   startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume)
 }
@@ -36,6 +40,12 @@ function processNextInQueue() {
 function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number) {
   const processedText = preprocessText(text)
   const utterance = new SpeechSynthesisUtterance(processedText)
+  
+  // Calculate estimated time
+  const wordsPerMinute = 150 * (rate || 1) // Average speaking rate
+  const words = processedText.split(/\s+/).length
+  const estimatedSeconds = (words / wordsPerMinute) * 60
+  updateTimeEstimate(estimatedSeconds)
   
   const voices = window.speechSynthesis.getVoices()
   
@@ -56,11 +66,24 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   utterance.pitch = pitch
   utterance.volume = volume
 
+  // Track progress
+  startTime = Date.now()
+  if (progressInterval) clearInterval(progressInterval)
+  progressInterval = window.setInterval(() => {
+    if (!isReading || isPaused) return
+    const elapsed = (Date.now() - startTime) / 1000
+    const estimated = estimatedSeconds
+    updateProgress(elapsed, estimated)
+  }, 100)
+
   utterance.onend = () => {
+    if (progressInterval) clearInterval(progressInterval)
+    updateProgress(100, 100)
     processNextInQueue()
   }
 
   utterance.onerror = () => {
+    if (progressInterval) clearInterval(progressInterval)
     processNextInQueue()
   }
 
@@ -69,6 +92,7 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   isReading = true
   isPaused = false
   updateState()
+  updateQueueCount(readingQueue.length)
   showPlayer().catch(console.error)
 }
 
@@ -250,7 +274,16 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     isReading = false
     isPaused = false
     currentUtterance = null
+    if (progressInterval) clearInterval(progressInterval)
+    updateQueueCount(0)
     updateState()
+    sendResponse({ success: true })
+    return true
+  }
+
+  if (request.action === 'clearQueue') {
+    readingQueue = []
+    updateQueueCount(0)
     sendResponse({ success: true })
     return true
   }
@@ -268,6 +301,42 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   return true
 });
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  // Space - Pause/Resume (when not in input fields)
+  if (e.code === 'Space' && isReading && !isInputFocused()) {
+    e.preventDefault()
+    if (isPaused) {
+      chrome.runtime.sendMessage({ action: 'resumeReading' })
+    } else {
+      chrome.runtime.sendMessage({ action: 'pauseReading' })
+    }
+  }
+  
+  // Escape - Stop reading
+  if (e.code === 'Escape' && isReading) {
+    chrome.runtime.sendMessage({ action: 'stopReading' })
+  }
+  
+  // Ctrl+Shift+R - Read selected text
+  if (e.ctrlKey && e.shiftKey && e.code === 'KeyR') {
+    e.preventDefault()
+    const selection = window.getSelection()
+    const selectedText = selection?.toString().trim()
+    if (selectedText) {
+      handleSelectionRead()
+    }
+  }
+})
+
+function isInputFocused(): boolean {
+  const active = document.activeElement
+  return active instanceof HTMLInputElement || 
+         active instanceof HTMLTextAreaElement || 
+         active instanceof HTMLSelectElement ||
+         (active as HTMLElement)?.isContentEditable
+}
 
 // Selection Tooltip Button
 let selectionTooltip: HTMLDivElement | null = null
@@ -297,6 +366,14 @@ function createSelectionTooltip() {
         transition: all 0.2s !important;
         user-select: none !important;
         backdrop-filter: blur(10px) !important;
+        white-space: nowrap !important;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #rifm-selection-tooltip {
+          background: linear-gradient(135deg, #4f52dd 0%, #7748e2 100%) !important;
+          box-shadow: 0 4px 12px rgba(79, 82, 221, 0.5) !important;
+        }
       }
 
       #rifm-selection-tooltip:hover {
@@ -335,9 +412,36 @@ function updateTooltipText() {
 function showSelectionTooltip(x: number, y: number) {
   if (!selectionTooltip) return // Don't auto-create, wait for locale to load
 
+  updateTooltipText()
+  
+  // Smart positioning to avoid edges
+  const tooltipWidth = 150 // approximate
+  const tooltipHeight = 40
+  const margin = 10
+  
+  let finalX = x
+  let finalY = y - tooltipHeight - margin // Default: above selection
+  
+  // Adjust horizontal position if too close to edges
+  if (finalX + tooltipWidth > window.innerWidth) {
+    finalX = window.innerWidth - tooltipWidth - margin
+  }
+  if (finalX < margin) {
+    finalX = margin
+  }
+  
+  // If too close to top, show below selection instead
+  if (finalY < margin) {
+    const range = window.getSelection()?.getRangeAt(0)
+    const rect = range?.getBoundingClientRect()
+    if (rect) {
+      finalY = rect.bottom + window.scrollY + margin
+    }
+  }
+  
   // Position tooltip above the selection
-  selectionTooltip.style.left = `${x}px`
-  selectionTooltip.style.top = `${y - 45}px`
+  selectionTooltip.style.left = `${finalX}px`
+  selectionTooltip.style.top = `${finalY}px`
   selectionTooltip.classList.add('show')
 }
 

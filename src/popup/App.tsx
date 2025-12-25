@@ -8,6 +8,8 @@ function App() {
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
   const [logoUrl, setLogoUrl] = useState('')
+  const [recentVoices, setRecentVoices] = useState<number[]>([])
+  const [showProgressBar, setShowProgressBar] = useState(true)
 
   useEffect(() => {
     // Get the proper URL for the logo
@@ -28,10 +30,16 @@ function App() {
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
       
-      // Load saved default voice settings
-      chrome.storage.local.get(['defaultVoiceIndex'], (result) => {
+      // Load saved default voice settings and recent voices
+      chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar'], (result) => {
         if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
           setSelectedVoice(result.defaultVoiceIndex)
+        }
+        if (result.recentVoices) {
+          setRecentVoices(result.recentVoices)
+        }
+        if (result.showProgressBar !== undefined) {
+          setShowProgressBar(result.showProgressBar)
         }
       })
     }
@@ -46,6 +54,12 @@ function App() {
     chrome.storage.local.set({
       defaultVoiceIndex: selectedVoice
     })
+    
+    // Update recent voices
+    const updated = [selectedVoice, ...recentVoices.filter(v => v !== selectedVoice)].slice(0, 5)
+    setRecentVoices(updated)
+    chrome.storage.local.set({ recentVoices: updated })
+    
     // Visual feedback
     const button = document.querySelector('#save-default-btn')
     if (button) {
@@ -55,6 +69,19 @@ function App() {
         button.textContent = originalText
       }, 2000)
     }
+  }
+
+  const testVoice = () => {
+    const voice = voices[selectedVoice]
+    if (!voice) return
+    
+    const utterance = new SpeechSynthesisUtterance('Hello! This is a voice preview.')
+    utterance.voice = voice
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.volume = 1
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
   }
 
 
@@ -143,14 +170,35 @@ function App() {
 
               {/* Voice Selection */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">
-                  {t('voice')}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-gray-600">
+                    {t('voice')}
+                  </label>
+                  <button
+                    onClick={testVoice}
+                    className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                  >
+                    🔊 Test
+                  </button>
+                </div>
                 <select
                   className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
                   value={selectedVoice}
                   onChange={(e) => setSelectedVoice(Number(e.target.value))}
                 >
+                  {recentVoices.length > 0 && (
+                    <optgroup label="⭐ Recent">
+                      {recentVoices.map(idx => {
+                        const voice = voices[idx]
+                        if (!voice) return null
+                        return (
+                          <option key={`recent-${idx}`} value={idx}>
+                            {voice.name}
+                          </option>
+                        )
+                      })}
+                    </optgroup>
+                  )}
                   {(() => {
                     // Group voices by language
                     const voicesByLang: { [key: string]: { voice: SpeechSynthesisVoice; index: number }[] } = {}
@@ -179,6 +227,31 @@ function App() {
                     ))
                   })()}
                 </select>
+              </div>
+
+              {/* Progress Bar Toggle */}
+              <div>
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {t('showProgressBar')}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={showProgressBar}
+                      onChange={(e) => {
+                        const value = e.target.checked
+                        setShowProgressBar(value)
+                        chrome.storage.local.set({ showProgressBar: value })
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </div>
+                </label>
               </div>
 
               {/* Save Default Voice Button */}

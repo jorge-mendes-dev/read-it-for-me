@@ -154,5 +154,33 @@
   "readText": {
     "message": "Read Text",
     "description": "Main read button text"
+  },
+  "clearQueue": {
+    "message": "Clear Queue",
+    "description": "Clear queue button text"
+  },
+  "speedPresets": {
+    "message": "SPEED PRESETS",
+    "description": "Speed presets section label"
+  },
+  "presetSlow": {
+    "message": "Slow",
+    "description": "Slow speed preset"
+  },
+  "presetNormal": {
+    "message": "Normal",
+    "description": "Normal speed preset"
+  },
+  "presetFast": {
+    "message": "Fast",
+    "description": "Fast speed preset"
+  },
+  "resetDefaults": {
+    "message": "Reset to Defaults",
+    "description": "Reset settings button text"
+  },
+  "showProgressBar": {
+    "message": "Show Progress Bar",
+    "description": "Toggle for progress bar visibility"
   }
 }

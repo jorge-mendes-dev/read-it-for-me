@@ -1,6 +1,5 @@
 // i18n utility for Chrome extension
 let messagesCache: { [key: string]: any } = {}
-let currentLocale = ''
 
 // Available locales
 export const availableLocales = [
@@ -18,7 +17,6 @@ async function loadMessages(locale: string): Promise<void> {
   try {
     const response = await fetch(chrome.runtime.getURL(`_locales/${locale}/messages.json`))
     messagesCache = await response.json()
-    currentLocale = locale
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error)
     // Fallback to English

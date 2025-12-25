@@ -154,5 +154,33 @@
   "readText": {
     "message": "テキストを読む",
     "description": "Main read button text"
+  },
+  "clearQueue": {
+    "message": "キューをクリア",
+    "description": "Clear queue button text"
+  },
+  "speedPresets": {
+    "message": "速度プリセット",
+    "description": "Speed presets section label"
+  },
+  "presetSlow": {
+    "message": "遅い",
+    "description": "Slow speed preset"
+  },
+  "presetNormal": {
+    "message": "通常",
+    "description": "Normal speed preset"
+  },
+  "presetFast": {
+    "message": "速い",
+    "description": "Fast speed preset"
+  },
+  "resetDefaults": {
+    "message": "デフォルトに戻す",
+    "description": "Reset settings button text"
+  },
+  "showProgressBar": {
+    "message": "進行状況バーを表示",
+    "description": "Toggle for progress bar visibility"
   }
 }

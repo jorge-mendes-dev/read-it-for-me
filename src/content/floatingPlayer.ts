@@ -2,6 +2,9 @@
 
 let floatingPlayer: HTMLDivElement | null = null
 let currentMessages: Record<string, { message: string; description?: string }> = {}
+let isDragging = false
+let dragOffset = { x: 0, y: 0 }
+let isMiniMode = false
 
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
@@ -75,6 +78,19 @@ function createFloatingPlayer() {
         display: none;
         animation: slideIn 0.3s ease-out;
         transition: all 0.3s ease;
+        cursor: move;
+      }
+
+      #read-it-for-me-player.mini-mode {
+        width: 180px;
+        padding: 12px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #read-it-for-me-player {
+          background: linear-gradient(135deg, rgba(79, 82, 221, 0.98) 0%, rgba(119, 72, 226, 0.98) 100%);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
       }
 
       @keyframes slideIn {
@@ -107,6 +123,15 @@ function createFloatingPlayer() {
         gap: 8px;
       }
 
+      .rifm-queue-badge {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 4px;
+      }
+
       .rifm-close {
         background: rgba(255, 255, 255, 0.2);
         border: none;
@@ -126,10 +151,31 @@ function createFloatingPlayer() {
         background: rgba(255, 255, 255, 0.3);
       }
 
+      .rifm-progress-bar {
+        height: 3px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+
+      .rifm-progress-fill {
+        height: 100%;
+        background: white;
+        width: 0%;
+        transition: width 0.1s linear;
+      }
+
       .rifm-status {
         font-size: 12px;
         opacity: 0.9;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .rifm-status-left {
         display: flex;
         align-items: center;
         gap: 6px;
@@ -197,6 +243,97 @@ function createFloatingPlayer() {
         background: rgba(220, 38, 38, 0.9);
       }
 
+      .rifm-speed-presets {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+        justify-content: center;
+      }
+
+      .rifm-presets-label {
+        font-size: 10px;
+        opacity: 0.8;
+        margin-bottom: 6px;
+        text-align: center;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .rifm-preset-btn {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 4px 8px;
+        color: white;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .rifm-preset-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .rifm-preset-btn.active {
+        background: rgba(255, 255, 255, 0.4);
+        border-color: white;
+      }
+
+      .rifm-clear-queue {
+        background: rgba(255, 165, 0, 0.8);
+        border: none;
+        border-radius: 6px;
+        padding: 4px 8px;
+        color: white;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+        width: 100%;
+      }
+
+      .rifm-clear-queue:hover {
+        background: rgba(255, 140, 0, 0.9);
+      }
+
+      .rifm-reset-btn {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 12px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        padding-top: 12px;
+      }
+
+      .rifm-reset-btn:hover {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: rgba(239, 68, 68, 0.5);
+        transform: translateY(-1px);
+      }
+
+      .mini-mode .rifm-config-panel,
+      .mini-mode .rifm-progress-bar,
+      .mini-mode .rifm-clear-queue {
+        display: none !important;
+      }
+
+      .mini-mode .rifm-status {
+        margin-bottom: 8px;
+      }
+
       .rifm-settings-toggle {
         background: rgba(255, 255, 255, 0.2);
         border: none;
@@ -221,6 +358,26 @@ function createFloatingPlayer() {
       .rifm-settings-toggle.active {
         background: rgba(255, 255, 255, 0.4);
         transform: rotate(180deg);
+      }
+
+      .rifm-mini-toggle {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 8px;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        color: white;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        margin-left: 4px;
+      }
+
+      .rifm-mini-toggle:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
 
       .rifm-config-panel {
@@ -297,22 +454,35 @@ function createFloatingPlayer() {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
         </svg>
         ${getMessage('readItForMe')}
+        <span class="rifm-queue-badge" id="rifm-queue-badge" style="display: none;">0</span>
       </div>
       <div style="display: flex; gap: 4px;">
-        <button class="rifm-settings-toggle" id="rifm-settings-toggle">
+        <button class="rifm-mini-toggle" id="rifm-mini-toggle" title="Mini Mode">
+          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 13H5v-2h14v2z"/>
+          </svg>
+        </button>
+        <button class="rifm-settings-toggle" id="rifm-settings-toggle" title="Settings">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
           </svg>
         </button>
-        <button class="rifm-close" id="rifm-close">×</button>
+        <button class="rifm-close" id="rifm-close" title="Close">×</button>
       </div>
     </div>
-    <div class="rifm-status" id="rifm-status">
-      <div class="rifm-pulse"></div>
-      <div class="rifm-pulse"></div>
-      <div class="rifm-pulse"></div>
-      <span id="rifm-status-text">${getMessage('reading')}</span>
+    <div class="rifm-progress-bar">
+      <div class="rifm-progress-fill" id="rifm-progress-fill"></div>
     </div>
+    <div class="rifm-status" id="rifm-status">
+      <div class="rifm-status-left">
+        <div class="rifm-pulse"></div>
+        <div class="rifm-pulse"></div>
+        <div class="rifm-pulse"></div>
+        <span id="rifm-status-text">${getMessage('reading')}</span>
+      </div>
+      <span id="rifm-time-estimate" style="font-size: 10px; opacity: 0.8;"></span>
+    </div>
+    <button class="rifm-clear-queue" id="rifm-clear-queue" style="display: none;">${getMessage('clearQueue')}</button>
     <div class="rifm-controls">
       <button class="rifm-btn" id="rifm-play-pause">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" id="rifm-icon">
@@ -328,7 +498,14 @@ function createFloatingPlayer() {
       </button>
     </div>
     <div class="rifm-config-panel" id="rifm-config-panel">
-      <div class="rifm-slider-group">
+      <div class="rifm-presets-label">${getMessage('speedPresets')}</div>
+      <div class="rifm-speed-presets" id="rifm-speed-presets">
+        <button class="rifm-preset-btn" data-speed="0.7">${getMessage('presetSlow')}</button>
+        <button class="rifm-preset-btn active" data-speed="1.0">${getMessage('presetNormal')}</button>
+        <button class="rifm-preset-btn" data-speed="1.5">${getMessage('presetFast')}</button>
+        <button class="rifm-preset-btn" data-speed="2.0">x2</button>
+      </div>
+      <div class="rifm-slider-group" style="margin-top: 12px;">
         <div class="rifm-slider-label">
           <span>${getMessage('speed')}</span>
           <span class="rifm-slider-value" id="rifm-speed-value">0.9x</span>
@@ -349,20 +526,42 @@ function createFloatingPlayer() {
         </div>
         <input type="range" min="0" max="1" step="0.1" value="1" class="rifm-slider" id="rifm-volume-slider">
       </div>
+      <button class="rifm-reset-btn" id="rifm-reset-btn">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        ${getMessage('resetDefaults')}
+      </button>
     </div>
   `
 
   document.body.appendChild(floatingPlayer)
 
   // Load saved settings
-  chrome.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
+  chrome.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar'], (result) => {
     const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
     const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
     const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
+    const progressBar = floatingPlayer?.querySelector('.rifm-progress-bar') as HTMLElement
+    
+    // Show/hide progress bar based on setting (default: true)
+    if (progressBar) {
+      progressBar.style.display = result.showProgressBar !== false ? 'block' : 'none'
+    }
     
     if (speedSlider && result.defaultRate !== undefined) {
       speedSlider.value = result.defaultRate.toString()
       updateSliderValue('speed', result.defaultRate)
+      
+      // Update active preset button
+      floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(btn => {
+        const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
+        if (Math.abs(speed - result.defaultRate) < 0.01) {
+          btn.classList.add('active')
+        } else {
+          btn.classList.remove('active')
+        }
+      })
     }
     if (pitchSlider && result.defaultPitch !== undefined) {
       pitchSlider.value = result.defaultPitch.toString()
@@ -383,6 +582,81 @@ function createFloatingPlayer() {
   
   floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', togglePlayPause)
   
+  // Mini mode toggle
+  floatingPlayer.querySelector('#rifm-mini-toggle')?.addEventListener('click', () => {
+    isMiniMode = !isMiniMode
+    floatingPlayer?.classList.toggle('mini-mode', isMiniMode)
+    const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg')
+    if (icon) {
+      icon.innerHTML = isMiniMode 
+        ? '<path d="M19 13H5v-2h14v2z M5 6h14v2H5V6z"/>' 
+        : '<path d="M19 13H5v-2h14v2z"/>'
+    }
+  })
+
+  // Clear queue button
+  floatingPlayer.querySelector('#rifm-clear-queue')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'clearQueue' })
+  })
+
+  // Speed presets
+  floatingPlayer.querySelectorAll('.rifm-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
+      const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
+      if (speedSlider) {
+        speedSlider.value = speed.toString()
+        updateSliderValue('speed', speed)
+        chrome.runtime.sendMessage({ action: 'updateSettings', rate: speed })
+        chrome.storage.local.set({ defaultRate: speed })
+      }
+      // Update active state
+      floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+    })
+  })
+
+  // Reset to defaults button
+  floatingPlayer.querySelector('#rifm-reset-btn')?.addEventListener('click', () => {
+    const defaults = { rate: 0.9, pitch: 1.0, volume: 1.0 }
+    
+    const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
+    const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
+    const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
+    
+    if (speedSlider) {
+      speedSlider.value = defaults.rate.toString()
+      updateSliderValue('speed', defaults.rate)
+    }
+    if (pitchSlider) {
+      pitchSlider.value = defaults.pitch.toString()
+      updateSliderValue('pitch', defaults.pitch)
+    }
+    if (volumeSlider) {
+      volumeSlider.value = defaults.volume.toString()
+      updateSliderValue('volume', defaults.volume)
+    }
+    
+    // Update active preset button
+    floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
+    floatingPlayer?.querySelector('.rifm-preset-btn[data-speed="1.0"]')?.classList.add('active')
+    
+    // Save to storage
+    chrome.storage.local.set({
+      defaultRate: defaults.rate,
+      defaultPitch: defaults.pitch,
+      defaultVolume: defaults.volume
+    })
+    
+    // Update current playback if reading
+    chrome.runtime.sendMessage({ 
+      action: 'updateSettings', 
+      rate: defaults.rate, 
+      pitch: defaults.pitch, 
+      volume: defaults.volume 
+    })
+  })
+  
   // Settings toggle
   floatingPlayer.querySelector('#rifm-settings-toggle')?.addEventListener('click', () => {
     const panel = floatingPlayer?.querySelector('#rifm-config-panel')
@@ -390,6 +664,45 @@ function createFloatingPlayer() {
     panel?.classList.toggle('open')
     toggle?.classList.toggle('active')
   })
+
+  // Draggable functionality
+  let headerElement = floatingPlayer.querySelector('.rifm-header') as HTMLElement
+  headerElement?.addEventListener('mousedown', startDrag)
+  
+  function startDrag(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('button')) return // Don't drag when clicking buttons
+    isDragging = true
+    const rect = floatingPlayer!.getBoundingClientRect()
+    dragOffset.x = e.clientX - rect.left
+    dragOffset.y = e.clientY - rect.top
+    
+    document.addEventListener('mousemove', drag)
+    document.addEventListener('mouseup', stopDrag)
+    e.preventDefault()
+  }
+  
+  function drag(e: MouseEvent) {
+    if (!isDragging || !floatingPlayer) return
+    
+    let newX = e.clientX - dragOffset.x
+    let newY = e.clientY - dragOffset.y
+    
+    // Keep within viewport
+    const rect = floatingPlayer.getBoundingClientRect()
+    newX = Math.max(0, Math.min(newX, window.innerWidth - rect.width))
+    newY = Math.max(0, Math.min(newY, window.innerHeight - rect.height))
+    
+    floatingPlayer.style.left = newX + 'px'
+    floatingPlayer.style.top = newY + 'px'
+    floatingPlayer.style.bottom = 'auto'
+    floatingPlayer.style.right = 'auto'
+  }
+  
+  function stopDrag() {
+    isDragging = false
+    document.removeEventListener('mousemove', drag)
+    document.removeEventListener('mouseup', stopDrag)
+  }
 
   // Slider controls with real-time updates
   const speedSlider = floatingPlayer.querySelector('#rifm-speed-slider')
@@ -467,6 +780,44 @@ export function updatePlayerState(isPaused: boolean) {
   }
 }
 
+export function updateQueueCount(count: number) {
+  const badge = floatingPlayer?.querySelector('#rifm-queue-badge')
+  const clearBtn = floatingPlayer?.querySelector('#rifm-clear-queue')
+  
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count.toString()
+      badge.setAttribute('style', 'display: inline-block;')
+    } else {
+      badge.setAttribute('style', 'display: none;')
+    }
+  }
+  
+  if (clearBtn) {
+    clearBtn.setAttribute('style', count > 0 ? 'display: block;' : 'display: none;')
+  }
+}
+
+export function updateProgress(current: number, total: number) {
+  const progressFill = floatingPlayer?.querySelector('#rifm-progress-fill') as HTMLElement
+  if (progressFill && total > 0) {
+    const percentage = (current / total) * 100
+    progressFill.style.width = `${percentage}%`
+  }
+}
+
+export function updateTimeEstimate(seconds: number) {
+  const timeEstimate = floatingPlayer?.querySelector('#rifm-time-estimate')
+  if (timeEstimate) {
+    if (seconds > 60) {
+      const mins = Math.ceil(seconds / 60)
+      timeEstimate.textContent = `~${mins}min`
+    } else {
+      timeEstimate.textContent = `~${Math.ceil(seconds)}s`
+    }
+  }
+}
+
 function togglePlayPause() {
   chrome.runtime.sendMessage({ action: 'getState' }, (response) => {
     if (response.isPaused) {
@@ -517,6 +868,14 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
           floatingPlayer.classList.add('show')
         }
       }).catch(console.error)
+    }
+  }
+  
+  // Listen for progress bar visibility toggle
+  if (namespace === 'local' && changes.showProgressBar && floatingPlayer) {
+    const progressBar = floatingPlayer.querySelector('.rifm-progress-bar') as HTMLElement
+    if (progressBar) {
+      progressBar.style.display = changes.showProgressBar.newValue !== false ? 'block' : 'none'
     }
   }
 })
