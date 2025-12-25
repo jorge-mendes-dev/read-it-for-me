@@ -1,18 +1,18 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "__MSG_extName__",
   "version": "1.0.0",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "scripts": ["background.js"]
   },
-  "action": {
+  "browser_action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -32,16 +32,11 @@
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": ["_locales/*/messages.json"],
-      "matches": ["<all_urls>"]
-    }
-  ],
+  "web_accessible_resources": ["_locales/*/messages.json"],
   "browser_specific_settings": {
     "gecko": {
       "id": "read-it-for-me@extension.local",
-      "strict_min_version": "109.0"
+      "strict_min_version": "57.0"
     }
   }
 }

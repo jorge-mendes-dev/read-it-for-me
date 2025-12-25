@@ -78,3 +78,4 @@ export function getMessage(messageName: string, substitutions?: string | string[
 
 // Shorthand alias
 export const t = getMessage
+
