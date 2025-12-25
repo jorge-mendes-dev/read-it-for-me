@@ -82,8 +82,93 @@ function createFloatingPlayer() {
       }
 
       #read-it-for-me-player.mini-mode {
-        width: 180px;
-        padding: 12px;
+        width: 60px;
+        padding: 12px 10px;
+        border-radius: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-settings-toggle {
+        display: none;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-header {
+        margin-bottom: 8px;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-header > div:first-child {
+        order: 2;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-header > div:last-child {
+        order: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        width: 100%;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-progress-bar {
+        height: 2px;
+        margin-bottom: 8px;
+        border-radius: 1px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-status {
+        margin-bottom: 8px;
+        justify-content: center;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-status-left {
+        gap: 3px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-status-left span {
+        display: none;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-pulse {
+        width: 2.5px;
+        height: 10px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-controls {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-close {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+        border-radius: 12px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-mini-toggle {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        margin-left: 0;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-mini-toggle svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-clear-queue {
+        padding: 4px;
+        font-size: 10px;
+        margin-bottom: 4px;
       }
 
       @media (prefers-color-scheme: dark) {
@@ -123,6 +208,19 @@ function createFloatingPlayer() {
         gap: 8px;
       }
 
+      #read-it-for-me-player.mini-mode .rifm-title {
+        font-size: 0;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-title svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-title {
+        margin-bottom: 0;
+      }
+
       .rifm-queue-badge {
         background: rgba(255, 255, 255, 0.3);
         padding: 2px 6px;
@@ -130,6 +228,10 @@ function createFloatingPlayer() {
         font-size: 10px;
         font-weight: 700;
         margin-left: 4px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-queue-badge {
+        margin-left: 0;
       }
 
       .rifm-close {
@@ -211,7 +313,7 @@ function createFloatingPlayer() {
       .rifm-btn {
         background: rgba(255, 255, 255, 0.25);
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         padding: 10px 16px;
         color: white;
         font-size: 13px;
@@ -220,9 +322,27 @@ function createFloatingPlayer() {
         transition: all 0.2s;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         flex: 1;
-        justify-content: center;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-btn {
+        width: 40px;
+        height: 40px;
+        padding: 10px;
+        flex: none;
+        border-radius: 12px;
+        margin: 0;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      #read-it-for-me-player.mini-mode .rifm-btn span {
+        display: none;
       }
 
       .rifm-btn:hover {
@@ -458,7 +578,7 @@ function createFloatingPlayer() {
       </div>
       <div style="display: flex; gap: 4px;">
         <button class="rifm-mini-toggle" id="rifm-mini-toggle" title="Mini Mode">
-          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
             <path d="M19 13H5v-2h14v2z"/>
           </svg>
         </button>
@@ -494,7 +614,7 @@ function createFloatingPlayer() {
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 6h12v12H6z"/>
         </svg>
-        ${getMessage('stop')}
+        <span>${getMessage('stop')}</span>
       </button>
     </div>
     <div class="rifm-config-panel" id="rifm-config-panel">
@@ -589,7 +709,7 @@ function createFloatingPlayer() {
     const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg')
     if (icon) {
       icon.innerHTML = isMiniMode 
-        ? '<path d="M19 13H5v-2h14v2z M5 6h14v2H5V6z"/>' 
+        ? '<path d="M4 8h16M4 16h16"/>' 
         : '<path d="M19 13H5v-2h14v2z"/>'
     }
   })
