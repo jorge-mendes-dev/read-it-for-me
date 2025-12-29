@@ -42,7 +42,7 @@
       "id": "read-it-for-me@extension.local",
       "strict_min_version": "109.0",
       "data_collection_permissions": {
-        "require": false
+        "required": ["none"]
       }
     }
   }
