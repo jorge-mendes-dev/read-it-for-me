@@ -9,6 +9,21 @@ let currentMessages: any = {}
 let progressInterval: number | null = null
 let startTime = 0
 
+// Ensure voices are loaded
+function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
+  return new Promise((resolve) => {
+    const voices = window.speechSynthesis.getVoices()
+    if (voices.length > 0) {
+      resolve(voices)
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        const loadedVoices = window.speechSynthesis.getVoices()
+        resolve(loadedVoices)
+      }
+    }
+  })
+}
+
 // Queue system for reading requests
 interface ReadingRequest {
   text: string
@@ -548,7 +563,7 @@ function handleSelectionRead() {
   }
 
   // Get saved voice settings
-  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'], (result) => {
+  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'], async (result) => {
     let voiceIndex = result.defaultVoiceIndex
     const rate = result.defaultRate ?? 0.9
     const pitch = result.defaultPitch ?? 1
@@ -557,8 +572,9 @@ function handleSelectionRead() {
 
     // Auto-select voice based on page language if enabled
     if (autoSelect) {
+      // Wait for voices to be loaded
+      const voices = await ensureVoicesLoaded()
       const pageLang = getPageLanguage()
-      const voices = window.speechSynthesis.getVoices()
       const langCode = pageLang.split('-')[0].toLowerCase()
       const fullLangCode = pageLang.toLowerCase()
       
