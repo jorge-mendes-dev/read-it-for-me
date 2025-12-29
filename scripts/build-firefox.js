@@ -102,6 +102,14 @@ function copyDir(src, dest) {
 copyDir(path.join(path.dirname(__dirname), 'dist'), firefoxDist);
 console.log('✅ Firefox distribution created in dist-firefox/\n');
 
+// Step 6: Restore Chrome manifest in dist
+console.log('🔄 Restoring Chrome manifest in dist...');
+const chromeManifestSrc = path.join(path.dirname(__dirname), 'public', 'manifest.json');
+const chromeManifestDest = path.join(path.dirname(__dirname), 'dist', 'manifest.json');
+fs.copyFileSync(chromeManifestSrc, chromeManifestDest);
+console.log('✅ Chrome manifest restored in dist/\n');
+
 console.log('🎉 Firefox build complete!\n');
-console.log('📂 Output: dist-firefox/');
+console.log('📂 Chrome/Edge: dist/');
+console.log('📂 Firefox: dist-firefox/');
 console.log('🔧 Load in Firefox: about:debugging#/runtime/this-firefox\n');

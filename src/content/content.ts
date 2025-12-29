@@ -130,7 +130,15 @@ function getMessage(key: string): string {
     return currentMessages[key].message
   }
   console.warn(`[ContentScript] Translation missing for key: ${key}`);
-  return key
+  // Fallback values for common keys
+  const fallbacks: { [key: string]: string } = {
+    'readThis': 'Read This',
+    'pause': 'Pause',
+    'resume': 'Resume',
+    'stop': 'Stop',
+    'clearQueue': 'Clear Queue'
+  }
+  return fallbacks[key] || key
 }
 
 // Initialize locale on load
@@ -139,6 +147,10 @@ loadLocaleMessages().then(() => {
   createSelectionTooltip()
   // Ensure tooltip has correct text
   updateTooltipText()
+}).catch((error) => {
+  console.error('[ContentScript] Failed to load locale, creating tooltip with defaults:', error)
+  // Create tooltip anyway with fallback text
+  createSelectionTooltip()
 })
 
 // Preprocess text for natural speech

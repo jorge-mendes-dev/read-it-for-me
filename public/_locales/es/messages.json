@@ -182,5 +182,13 @@
   "showProgressBar": {
     "message": "Mostrar Barra de Progreso",
     "description": "Toggle for progress bar visibility"
+  },
+  "buyMeACoffee": {
+    "message": "Invítame un Café ☕",
+    "description": "Donation link text"
+  },
+  "developedBy": {
+    "message": "Desarrollado por",
+    "description": "Developer credit label"
   }
 }

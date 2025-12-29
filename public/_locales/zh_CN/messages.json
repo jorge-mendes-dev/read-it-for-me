@@ -180,5 +180,14 @@
   },
   "showProgressBar": {
     "message": "显示进度条",
-    "description": "Toggle for progress bar visibility"  }
+    "description": "Toggle for progress bar visibility"
+  },
+  "buyMeACoffee": {
+    "message": "请我喝咖啡 ☕",
+    "description": "Donation link text"
+  },
+  "developedBy": {
+    "message": "开发者",
+    "description": "Developer credit label"
+  }
 }

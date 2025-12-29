@@ -181,6 +181,13 @@
   },
   "showProgressBar": {
     "message": "Fortschrittsbalken Anzeigen",
-    "description": "Toggle for progress bar visibility"
+    "description": "Toggle for progress bar visibility"  },
+  "buyMeACoffee": {
+    "message": "Spendier mir einen Kaffee ☕",
+    "description": "Donation link text"
+  },
+  "developedBy": {
+    "message": "Entwickelt von",
+    "description": "Developer credit label"
   }
 }

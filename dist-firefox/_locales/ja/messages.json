@@ -182,5 +182,13 @@
   "showProgressBar": {
     "message": "進行状況バーを表示",
     "description": "Toggle for progress bar visibility"
+  },
+  "buyMeACoffee": {
+    "message": "コーヒーをおごる ☕",
+    "description": "Donation link text"
+  },
+  "developedBy": {
+    "message": "開発者",
+    "description": "Developer credit label"
   }
 }
