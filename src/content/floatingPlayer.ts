@@ -706,11 +706,12 @@ function createFloatingPlayer() {
   floatingPlayer.querySelector('#rifm-mini-toggle')?.addEventListener('click', () => {
     isMiniMode = !isMiniMode
     floatingPlayer?.classList.toggle('mini-mode', isMiniMode)
-    const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg')
+    const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
     if (icon) {
-      icon.innerHTML = isMiniMode 
-        ? '<path d="M4 8h16M4 16h16"/>' 
-        : '<path d="M19 13H5v-2h14v2z"/>'
+      const pathData = isMiniMode 
+        ? 'M4 8h16M4 16h16' 
+        : 'M19 13H5v-2h14v2z'
+      icon.setAttribute('d', pathData)
     }
   })
 
@@ -897,16 +898,16 @@ export function hidePlayer() {
 export function updatePlayerState(isPaused: boolean) {
   if (!floatingPlayer) return
 
-  const icon = floatingPlayer.querySelector('#rifm-icon')
+  const iconPath = floatingPlayer.querySelector('#rifm-icon path')
   const btnText = floatingPlayer.querySelector('#rifm-btn-text')
   const statusText = floatingPlayer.querySelector('#rifm-status-text')
 
   if (isPaused) {
-    if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>'
+    if (iconPath) iconPath.setAttribute('d', 'M8 5v14l11-7z')
     if (btnText) btnText.textContent = getMessage('resume')
     if (statusText) statusText.textContent = getMessage('paused')
   } else {
-    if (icon) icon.innerHTML = '<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>'
+    if (iconPath) iconPath.setAttribute('d', 'M6 4h4v16H6V4zm8 0h4v16h-4V4z')
     if (btnText) btnText.textContent = getMessage('pause')
     if (statusText) statusText.textContent = getMessage('reading')
   }
