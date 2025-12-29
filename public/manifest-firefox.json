@@ -38,5 +38,9 @@
       "id": "read-it-for-me@extension.local",
       "strict_min_version": "57.0"
     }
+  },
+  "data_collection_permissions": {
+    "user_data": false,
+    "technical_data": false
   }
 }
