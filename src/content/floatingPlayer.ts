@@ -819,9 +819,21 @@ function createFloatingPlayer() {
   }
   
   function stopDrag() {
+    if (!isDragging) return
     isDragging = false
     document.removeEventListener('mousemove', drag)
     document.removeEventListener('mouseup', stopDrag)
+    
+    // Save position
+    if (floatingPlayer) {
+      const rect = floatingPlayer.getBoundingClientRect()
+      chrome.storage.local.set({
+        playerPosition: {
+          left: rect.left,
+          top: rect.top
+        }
+      })
+    }
   }
 
   // Slider controls with real-time updates

@@ -25,7 +25,10 @@ function processNextInQueue() {
     isReading = false
     isPaused = false
     currentUtterance = null
-    if (progressInterval) clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
     hidePlayer()
     updateState()
     return
@@ -68,7 +71,10 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
 
   // Track progress
   startTime = Date.now()
-  if (progressInterval) clearInterval(progressInterval)
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
   progressInterval = window.setInterval(() => {
     if (!isReading || isPaused) return
     const elapsed = (Date.now() - startTime) / 1000
@@ -77,13 +83,19 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   }, 100)
 
   utterance.onend = () => {
-    if (progressInterval) clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
     updateProgress(100, 100)
     processNextInQueue()
   }
 
   utterance.onerror = () => {
-    if (progressInterval) clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
     processNextInQueue()
   }
 
