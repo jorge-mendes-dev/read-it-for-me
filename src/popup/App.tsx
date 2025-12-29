@@ -9,6 +9,7 @@ function App() {
   const [logoUrl, setLogoUrl] = useState('')
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(true)
+  const [autoSelectVoice, setAutoSelectVoice] = useState(false)
 
   useEffect(() => {
     // Get the proper URL for the logo
@@ -30,8 +31,11 @@ function App() {
       setVoices(availableVoices)
       
       // Load saved default voice settings and recent voices
-      chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar'], (result) => {
-        if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
+      chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice'], (result) => {
+        // If auto-select is enabled and we have an auto-selected voice, use that
+        if (result.autoSelectVoice && result.autoSelectedVoice !== undefined && availableVoices[result.autoSelectedVoice]) {
+          setSelectedVoice(result.autoSelectedVoice)
+        } else if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
           setSelectedVoice(result.defaultVoiceIndex)
         }
         if (result.recentVoices) {
@@ -40,11 +44,30 @@ function App() {
         if (result.showProgressBar !== undefined) {
           setShowProgressBar(result.showProgressBar)
         }
+        if (result.autoSelectVoice !== undefined) {
+          setAutoSelectVoice(result.autoSelectVoice)
+        }
       })
     }
 
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
+
+    // Listen for auto-selected voice changes
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, namespace: string) => {
+      if (namespace === 'local' && changes.autoSelectedVoice) {
+        const newVoiceIndex = changes.autoSelectedVoice.newValue
+        if (newVoiceIndex !== undefined) {
+          setSelectedVoice(newVoiceIndex)
+        }
+      }
+    }
+
+    chrome.storage.onChanged.addListener(handleStorageChange)
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
   }, [localeReady])
 
 
@@ -165,7 +188,7 @@ function App() {
                     onClick={testVoice}
                     className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
                   >
-                    🔊 Test
+                    🔊 {t('test')}
                   </button>
                 </div>
                 <select
@@ -239,6 +262,32 @@ function App() {
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </div>
                 </label>
+              </div>
+
+              {/* Auto-Select Voice Toggle */}
+              <div>
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    {t('autoDetectLanguage')}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={autoSelectVoice}
+                      onChange={(e) => {
+                        const value = e.target.checked
+                        setAutoSelectVoice(value)
+                        chrome.storage.local.set({ autoSelectVoice: value })
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </div>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
               </div>
 
               {/* Save Default Voice Button */}

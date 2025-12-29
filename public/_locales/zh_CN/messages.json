@@ -189,5 +189,17 @@
   "developedBy": {
     "message": "开发者",
     "description": "Developer credit label"
+  },
+  "autoDetectLanguage": {
+    "message": "自动检测页面语言",
+    "description": "Toggle label for auto language detection"
+  },
+  "autoDetectLanguageDesc": {
+    "message": "根据页面语言自动选择语音",
+    "description": "Description for auto language detection"
+  },
+  "test": {
+    "message": "测试",
+    "description": "Test voice button"
   }
 }

@@ -373,7 +373,7 @@ function createSelectionTooltip() {
   selectionTooltip.innerHTML = `
     <style>
       #rifm-selection-tooltip {
-        position: absolute !important;
+        position: fixed !important;
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
         color: white !important;
         padding: 8px 16px !important;
@@ -433,21 +433,29 @@ function updateTooltipText() {
   }
 }
 
-function showSelectionTooltip(x: number, y: number) {
+function showSelectionTooltip() {
   if (!selectionTooltip) return // Don't auto-create, wait for locale to load
 
   updateTooltipText()
   
-  // Smart positioning to avoid edges
-  const tooltipWidth = 150 // approximate
-  const tooltipHeight = 40
-  const margin = 10
+  // Get the current selection
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return
   
-  let finalX = x
-  let finalY = y - tooltipHeight - margin // Default: above selection
+  const range = selection.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+  
+  // Tooltip dimensions
+  const tooltipWidth = 150
+  const tooltipHeight = 40
+  const margin = 5 // Reduced margin for closer positioning
+  
+  // Calculate position centered above the selection
+  let finalX = rect.left + (rect.width / 2) - (tooltipWidth / 2)
+  let finalY = rect.top - tooltipHeight - margin
   
   // Adjust horizontal position if too close to edges
-  if (finalX + tooltipWidth > window.innerWidth) {
+  if (finalX + tooltipWidth > window.innerWidth - margin) {
     finalX = window.innerWidth - tooltipWidth - margin
   }
   if (finalX < margin) {
@@ -456,14 +464,15 @@ function showSelectionTooltip(x: number, y: number) {
   
   // If too close to top, show below selection instead
   if (finalY < margin) {
-    const range = window.getSelection()?.getRangeAt(0)
-    const rect = range?.getBoundingClientRect()
-    if (rect) {
-      finalY = rect.bottom + window.scrollY + margin
-    }
+    finalY = rect.bottom + margin
   }
   
-  // Position tooltip above the selection
+  // Ensure tooltip stays within viewport vertically
+  if (finalY + tooltipHeight > window.innerHeight - margin) {
+    finalY = window.innerHeight - tooltipHeight - margin
+  }
+  
+  // Position tooltip
   selectionTooltip.style.left = `${finalX}px`
   selectionTooltip.style.top = `${finalY}px`
   selectionTooltip.classList.add('show')
@@ -520,12 +529,99 @@ function handleSelectionRead() {
 
   hideSelectionTooltip()
 
+  // Get page language from various sources
+  const getPageLanguage = (): string => {
+    // Try document lang attribute first
+    const htmlLang = document.documentElement.lang
+    if (htmlLang) return htmlLang
+    
+    // Try meta content-language
+    const metaLang = document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content')
+    if (metaLang) return metaLang
+    
+    // Try meta language
+    const metaLang2 = document.querySelector('meta[name="language"]')?.getAttribute('content')
+    if (metaLang2) return metaLang2
+    
+    // Fallback to text detection
+    return detectLanguageFromText(selectedText)
+  }
+
   // Get saved voice settings
-  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume'], (result) => {
-    const voiceIndex = result.defaultVoiceIndex
+  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'], (result) => {
+    let voiceIndex = result.defaultVoiceIndex
     const rate = result.defaultRate ?? 0.9
     const pitch = result.defaultPitch ?? 1
     const volume = result.defaultVolume ?? 1
+    const autoSelect = result.autoSelectVoice ?? false
+
+    // Auto-select voice based on page language if enabled
+    if (autoSelect) {
+      const pageLang = getPageLanguage()
+      const voices = window.speechSynthesis.getVoices()
+      const langCode = pageLang.split('-')[0].toLowerCase()
+      const fullLangCode = pageLang.toLowerCase()
+      
+      // Find matching voices for page language
+      const matchingVoices = voices.filter(voice => {
+        const voiceLang = voice.lang.toLowerCase()
+        return voiceLang.startsWith(langCode) || 
+               voiceLang === fullLangCode ||
+               voiceLang.startsWith(fullLangCode)
+      })
+      
+      if (matchingVoices.length > 0) {
+        // Score each voice based on quality indicators
+        const scoreVoice = (voice: SpeechSynthesisVoice): number => {
+          let score = 0
+          const name = voice.name.toLowerCase()
+          const lang = voice.lang.toLowerCase()
+          
+          // Exact language match bonus
+          if (lang === fullLangCode) score += 50
+          else if (lang.startsWith(fullLangCode)) score += 30
+          
+          // Premium quality indicators
+          if (name.includes('neural')) score += 100
+          if (name.includes('premium')) score += 90
+          if (name.includes('enhanced')) score += 80
+          if (name.includes('natural')) score += 70
+          
+          // Prefer Microsoft/Edge voices (usually higher quality)
+          if (name.includes('microsoft')) score += 40
+          if (name.includes('edge')) score += 40
+          
+          // Google voices are generally good
+          if (name.includes('google')) score += 30
+          
+          // Avoid robotic/poor quality voices
+          if (name.includes('espeak')) score -= 50
+          if (name.includes('festival')) score -= 50
+          
+          // Prefer local voices (usually faster and more reliable)
+          if (voice.localService) score += 20
+          
+          // Female voices often sound more natural
+          if (name.includes('female') || name.includes('aria') || name.includes('zira') || 
+              name.includes('heera') || name.includes('susan') || name.includes('samantha')) {
+            score += 15
+          }
+          
+          return score
+        }
+        
+        // Sort voices by score and pick the best
+        const rankedVoices = matchingVoices
+          .map(voice => ({ voice, score: scoreVoice(voice) }))
+          .sort((a, b) => b.score - a.score)
+        
+        const bestVoice = rankedVoices[0].voice
+        voiceIndex = voices.indexOf(bestVoice)
+        
+        // Save the auto-selected voice so the popup can update
+        chrome.storage.local.set({ autoSelectedVoice: voiceIndex })
+      }
+    }
 
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
@@ -552,16 +648,7 @@ document.addEventListener('mouseup', () => {
     
     if (selectedText && selectedText.trim().length > 0) {
       chrome.storage.local.set({ lastSelectedText: selectedText })
-      
-      // Get selection position
-      const range = selection?.getRangeAt(0)
-      const rect = range?.getBoundingClientRect()
-      
-      if (rect) {
-        const x = rect.left + (rect.width / 2) - 50 // Center tooltip
-        const y = rect.top + window.scrollY
-        showSelectionTooltip(x, y)
-      }
+      showSelectionTooltip()
     } else {
       hideSelectionTooltip()
     }

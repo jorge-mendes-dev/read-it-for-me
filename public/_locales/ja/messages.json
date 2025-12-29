@@ -190,5 +190,17 @@
   "developedBy": {
     "message": "開発者",
     "description": "Developer credit label"
+  },
+  "autoDetectLanguage": {
+    "message": "ページの言語を自動検出",
+    "description": "Toggle label for auto language detection"
+  },
+  "autoDetectLanguageDesc": {
+    "message": "ページの言語に基づいて音声を自動選択",
+    "description": "Description for auto language detection"
+  },
+  "test": {
+    "message": "テスト",
+    "description": "Test voice button"
   }
 }
