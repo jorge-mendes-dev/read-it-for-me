@@ -202,5 +202,49 @@
   "test": {
     "message": "Test",
     "description": "Test voice button"
+  },
+  "selectVoice": {
+    "message": "Select Voice",
+    "description": "Label for voice selector"
+  },
+  "playback": {
+    "message": "Playback",
+    "description": "Playback settings section"
+  },
+  "advanced": {
+    "message": "Advanced",
+    "description": "Advanced settings section"
+  },
+  "help": {
+    "message": "Help",
+    "description": "Help button text"
+  },
+  "welcomeTitle": {
+    "message": "Welcome to Read It For Me! 👋",
+    "description": "Welcome modal title"
+  },
+  "welcomeDescription": {
+    "message": "Select any text on a webpage and a button will appear. Click it to hear the text read aloud with natural voices.",
+    "description": "Welcome modal description"
+  },
+  "quickTips": {
+    "message": "Quick Tips:",
+    "description": "Quick tips section title"
+  },
+  "tipAutoDetect": {
+    "message": "Enable auto-detect for multilingual pages",
+    "description": "Tip about auto-detect feature"
+  },
+  "tipPause": {
+    "message": "Use Space to pause/resume",
+    "description": "Tip about pause/resume"
+  },
+  "tipStop": {
+    "message": "Press Esc to stop reading",
+    "description": "Tip about stopping"
+  },
+  "gotIt": {
+    "message": "Got it!",
+    "description": "Button to close welcome modal"
   }
 }

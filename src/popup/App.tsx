@@ -1,6 +1,123 @@
 import { useState, useEffect } from 'react'
 import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
 
+// Helper function to get flag emoji from language code
+function getFlagEmoji(langCode: string): string {
+  if (!langCode) return '🌐'
+  
+  // Normalize the language code (handle both - and _ separators)
+  const normalized = langCode.replace('_', '-')
+  const parts = normalized.split('-')
+  const countryCode = parts.length > 1 ? parts[1] : parts[0]
+  
+  const flagMap: { [key: string]: string } = {
+    'US': '🇺🇸', 'GB': '🇬🇧', 'AU': '🇦🇺', 'CA': '🇨🇦', 'IN': '🇮🇳', 'IE': '🇮🇪', 'ZA': '🇿🇦',
+    'BR': '🇧🇷', 'PT': '🇵🇹',
+    'ES': '🇪🇸', 'MX': '🇲🇽', 'AR': '🇦🇷', 'CO': '🇨🇴', 'CL': '🇨🇱',
+    'FR': '🇫🇷', 'BE': '🇧🇪', 'CH': '🇨🇭',
+    'DE': '🇩🇪', 'AT': '🇦🇹',
+    'IT': '🇮🇹',
+    'JP': '🇯🇵',
+    'CN': '🇨🇳', 'TW': '🇹🇼', 'HK': '🇭🇰', 'SG': '🇸🇬',
+    'KR': '🇰🇷',
+    'RU': '🇷🇺',
+    'NL': '🇳🇱',
+    'SE': '🇸🇪', 'NO': '🇳🇴', 'DK': '🇩🇰', 'FI': '🇫🇮',
+    'PL': '🇵🇱', 'CZ': '🇨🇿',
+    'TR': '🇹🇷',
+    'SA': '🇸🇦', 'AE': '🇦🇪',
+    'IL': '🇮🇱',
+    'GR': '🇬🇷',
+    'TH': '🇹🇭',
+    'ID': '🇮🇩',
+    'VN': '🇻🇳',
+    'PH': '🇵🇭',
+    'RO': '🇷🇴', 'HU': '🇭🇺', 'SK': '🇸🇰',
+    // Language-only codes - default flags
+    'en': '🇺🇸', 'pt': '🇵🇹', 'es': '🇪🇸', 'fr': '🇫🇷',
+    'de': '🇩🇪', 'it': '🇮🇹', 'ja': '🇯🇵', 'zh': '🇨🇳',
+    'ko': '🇰🇷', 'ru': '🇷🇺', 'nl': '🇳🇱', 'sv': '🇸🇪',
+    'no': '🇳🇴', 'da': '🇩🇰', 'fi': '🇫🇮', 'pl': '🇵🇱',
+    'cs': '🇨🇿', 'tr': '🇹🇷', 'ar': '🇸🇦', 'he': '🇮🇱',
+    'el': '🇬🇷', 'th': '🇹🇭', 'id': '🇮🇩', 'vi': '🇻🇳',
+    'ro': '🇷🇴', 'hu': '🇭🇺', 'sk': '🇸🇰'
+  }
+  
+  return flagMap[countryCode.toUpperCase()] || flagMap[countryCode.toLowerCase()] || '🌐'
+}
+
+// Helper function to get language/country name
+function getLanguageName(langCode: string): string {
+  const nameMap: { [key: string]: string } = {
+    'en-US': 'English (United States)',
+    'en-GB': 'English (United Kingdom)',
+    'en-AU': 'English (Australia)',
+    'en-CA': 'English (Canada)',
+    'en-IN': 'English (India)',
+    'en-IE': 'English (Ireland)',
+    'en-ZA': 'English (South Africa)',
+    'pt-BR': 'Portuguese (Brazil)',
+    'pt-PT': 'Portuguese (Portugal)',
+    'es-ES': 'Spanish (Spain)',
+    'es-MX': 'Spanish (Mexico)',
+    'es-AR': 'Spanish (Argentina)',
+    'es-CO': 'Spanish (Colombia)',
+    'es-CL': 'Spanish (Chile)',
+    'fr-FR': 'French (France)',
+    'fr-BE': 'French (Belgium)',
+    'fr-CH': 'French (Switzerland)',
+    'fr-CA': 'French (Canada)',
+    'de-DE': 'German (Germany)',
+    'de-AT': 'German (Austria)',
+    'de-CH': 'German (Switzerland)',
+    'it-IT': 'Italian (Italy)',
+    'ja-JP': 'Japanese (Japan)',
+    'zh-CN': 'Chinese (China)',
+    'zh-TW': 'Chinese (Taiwan)',
+    'zh-HK': 'Chinese (Hong Kong)',
+    'ko-KR': 'Korean (South Korea)',
+    'ru-RU': 'Russian (Russia)',
+    'nl-NL': 'Dutch (Netherlands)',
+    'nl-BE': 'Dutch (Belgium)',
+    'sv-SE': 'Swedish (Sweden)',
+    'no-NO': 'Norwegian (Norway)',
+    'da-DK': 'Danish (Denmark)',
+    'fi-FI': 'Finnish (Finland)',
+    'pl-PL': 'Polish (Poland)',
+    'cs-CZ': 'Czech (Czech Republic)',
+    'tr-TR': 'Turkish (Turkey)',
+    'ar-SA': 'Arabic (Saudi Arabia)',
+    'ar-AE': 'Arabic (UAE)',
+    'he-IL': 'Hebrew (Israel)',
+    'el-GR': 'Greek (Greece)',
+    'th-TH': 'Thai (Thailand)',
+    'id-ID': 'Indonesian (Indonesia)',
+    'vi-VN': 'Vietnamese (Vietnam)',
+    'ro-RO': 'Romanian (Romania)',
+    'hu-HU': 'Hungarian (Hungary)',
+    'sk-SK': 'Slovak (Slovakia)'
+  }
+  
+  // Try exact match first
+  if (nameMap[langCode]) {
+    return nameMap[langCode]
+  }
+  
+  // Fallback to basic language name
+  const baseLang = langCode.split('-')[0]
+  const basicNames: { [key: string]: string } = {
+    'en': 'English', 'pt': 'Portuguese', 'es': 'Spanish', 'fr': 'French',
+    'de': 'German', 'it': 'Italian', 'ja': 'Japanese', 'zh': 'Chinese',
+    'ko': 'Korean', 'ru': 'Russian', 'nl': 'Dutch', 'sv': 'Swedish',
+    'no': 'Norwegian', 'da': 'Danish', 'fi': 'Finnish', 'pl': 'Polish',
+    'cs': 'Czech', 'tr': 'Turkish', 'ar': 'Arabic', 'he': 'Hebrew',
+    'el': 'Greek', 'th': 'Thai', 'id': 'Indonesian', 'vi': 'Vietnamese',
+    'ro': 'Romanian', 'hu': 'Hungarian', 'sk': 'Slovak'
+  }
+  
+  return basicNames[baseLang] || langCode
+}
+
 function App() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
@@ -10,10 +127,19 @@ function App() {
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(true)
   const [autoSelectVoice, setAutoSelectVoice] = useState(false)
+  const [showFirstRun, setShowFirstRun] = useState(false)
+  const [expandedSection, setExpandedSection] = useState<string>('voice')
 
   useEffect(() => {
     // Get the proper URL for the logo
     setLogoUrl(chrome.runtime.getURL('icons/icon128.png'))
+    
+    // Check if first run
+    chrome.storage.local.get(['hasSeenWelcome'], (result) => {
+      if (!result.hasSeenWelcome) {
+        setShowFirstRun(true)
+      }
+    })
     
     // Initialize locale first
     initializeLocale().then(locale => {
@@ -115,6 +241,26 @@ function App() {
     window.location.reload()
   }
 
+  const closeWelcome = () => {
+    setShowFirstRun(false)
+    chrome.storage.local.set({ hasSeenWelcome: true })
+  }
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? '' : section)
+  }
+
+  // Score voice for sorting (premium voices first)
+  const getVoiceScore = (voice: SpeechSynthesisVoice): number => {
+    let score = 0
+    const name = voice.name.toLowerCase()
+    if (name.includes('neural')) score += 100
+    if (name.includes('premium')) score += 90
+    if (name.includes('enhanced')) score += 80
+    if (name.includes('natural')) score += 70
+    return score
+  }
+
   if (!localeReady) {
     return (
       <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6 flex items-center justify-center">
@@ -129,6 +275,39 @@ function App() {
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6">
       <div className="max-w-md mx-auto">
+        {/* First Run Welcome */}
+        {showFirstRun && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeWelcome}>
+            <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full mb-3">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t('welcomeTitle')}</h2>
+                <p className="text-gray-600 text-sm mb-4">
+                  {t('welcomeDescription')}
+                </p>
+                <div className="bg-indigo-50 p-3 rounded-lg mb-4 text-left">
+                  <p className="text-xs font-medium text-indigo-900 mb-2">{t('quickTips')}</p>
+                  <ul className="text-xs text-indigo-700 space-y-1">
+                    <li>• {t('tipAutoDetect')}</li>
+                    <li>• {t('tipPause')}</li>
+                    <li>• {t('tipStop')}</li>
+                  </ul>
+                </div>
+              </div>
+              <button
+                onClick={closeWelcome}
+                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all"
+              >
+                {t('gotIt')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 mb-3">
@@ -146,162 +325,251 @@ function App() {
             {t('readItForMe')}
           </h1>
           <p className="text-sm text-gray-600 mt-1">{t('selectTextPrompt')}</p>
+          
+          {/* Help Button */}
+          <button
+            onClick={() => setShowFirstRun(true)}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="Show welcome guide"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {t('help')}
+          </button>
         </div>
 
-        {/* Voice Settings Card */}
+        {/* Settings Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 mb-4 overflow-hidden">
-          <div className="p-5 flex items-center gap-2 border-b border-gray-100">
-            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            <h2 className="text-sm font-semibold text-gray-700">
-              {t('voiceSettings')}
-            </h2>
+          {/* Language Selection - Always Visible */}
+          <div className="p-5 border-b border-gray-100">
+            <label className="block text-xs font-medium text-gray-600 mb-2">
+              {t('language')}
+            </label>
+            <select
+              className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
+              value={currentLocale}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+            >
+              {availableLocales.map((locale) => (
+                <option key={locale.code} value={locale.code}>
+                  {t(locale.name)}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="p-5 space-y-4">
-              {/* Language Selection */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">
-                  {t('language')}
-                </label>
-                <select
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
-                  value={currentLocale}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                >
-                  {availableLocales.map((locale) => (
-                    <option key={locale.code} value={locale.code}>
-                      {t(locale.name)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Voice Selection */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-gray-600">
-                    {t('voice')}
-                  </label>
-                  <button
-                    onClick={testVoice}
-                    className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
-                  >
-                    🔊 {t('test')}
-                  </button>
-                </div>
-                <select
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
-                  value={selectedVoice}
-                  onChange={(e) => setSelectedVoice(Number(e.target.value))}
-                >
-                  {recentVoices.length > 0 && (
-                    <optgroup label="⭐ Recent">
-                      {recentVoices.map(idx => {
-                        const voice = voices[idx]
-                        if (!voice) return null
-                        return (
-                          <option key={`recent-${idx}`} value={idx}>
-                            {voice.name}
-                          </option>
-                        )
-                      })}
-                    </optgroup>
-                  )}
-                  {(() => {
-                    // Group voices by language
-                    const voicesByLang: { [key: string]: { voice: SpeechSynthesisVoice; index: number }[] } = {}
-                    
-                    voices.forEach((voice, index) => {
-                      const lang = voice.lang
-                      if (!voicesByLang[lang]) {
-                        voicesByLang[lang] = []
-                      }
-                      voicesByLang[lang].push({ voice, index })
-                    })
-
-                    // Sort languages alphabetically
-                    const sortedLangs = Object.keys(voicesByLang).sort()
-
-                    return sortedLangs.map(lang => (
-                      <optgroup key={lang} label={lang}>
-                        {voicesByLang[lang].map(({ voice, index }) => (
-                          <option key={index} value={index}>
-                            {voice.name}
-                            {voice.name.toLowerCase().includes('neural') ? ' ⚡' : ''}
-                            {voice.name.toLowerCase().includes('premium') ? ' ⭐' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))
-                  })()}
-                </select>
-              </div>
-
-              {/* Progress Bar Toggle */}
-              <div>
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    {t('showProgressBar')}
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={showProgressBar}
-                      onChange={(e) => {
-                        const value = e.target.checked
-                        setShowProgressBar(value)
-                        chrome.storage.local.set({ showProgressBar: value })
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </div>
-                </label>
-              </div>
-
-              {/* Auto-Select Voice Toggle */}
-              <div>
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                    </svg>
-                    {t('autoDetectLanguage')}
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={autoSelectVoice}
-                      onChange={(e) => {
-                        const value = e.target.checked
-                        setAutoSelectVoice(value)
-                        chrome.storage.local.set({ autoSelectVoice: value })
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </div>
-                </label>
-                <p className="text-xs text-gray-500 mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
-              </div>
-
-              {/* Save Default Voice Button */}
-              <button
-                id="save-default-btn"
-                onClick={saveAsDefault}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          {/* Voice Settings - Collapsible */}
+          <div className="border-b border-gray-100">
+            <button
+              onClick={() => toggleSection('voice')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
-                {t('saveAsDefault')}
-              </button>
-            </div>
+                <h2 className="text-sm font-semibold text-gray-700">{t('voice')}</h2>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'voice' ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {expandedSection === 'voice' && (
+              <div className="p-5 pt-0 space-y-4">
+                {/* Voice Selection */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t('selectVoice')}
+                    </label>
+                    <button
+                      onClick={testVoice}
+                      className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                    >
+                      🔊 {t('test')}
+                    </button>
+                  </div>
+                  <select
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
+                    value={selectedVoice}
+                    onChange={(e) => setSelectedVoice(Number(e.target.value))}
+                  >
+                    {recentVoices.length > 0 && (
+                      <optgroup label="⭐ Recent">
+                        {recentVoices.map(idx => {
+                          const voice = voices[idx]
+                          if (!voice) return null
+                          const flag = getFlagEmoji(voice.lang)
+                          return (
+                            <option key={`recent-${idx}`} value={idx}>
+                              {flag} {voice.name}
+                            </option>
+                          )
+                        })}
+                      </optgroup>
+                    )}
+                    {(() => {
+                      // Group voices by language
+                      const voicesByLang: { [key: string]: { voice: SpeechSynthesisVoice; index: number; score: number }[] } = {}
+                      
+                      // Group all voices by language
+                      voices.forEach((voice, index) => {
+                        const lang = voice.lang
+                        if (!voicesByLang[lang]) {
+                          voicesByLang[lang] = []
+                        }
+                        voicesByLang[lang].push({ voice, index, score: getVoiceScore(voice) })
+                      })
+
+                      // Sort languages alphabetically
+                      const sortedLangs = Object.keys(voicesByLang).sort()
+
+                      return sortedLangs.map(lang => {
+                        const flag = getFlagEmoji(lang)
+                        const langName = getLanguageName(lang)
+                        
+                        // Sort voices within language by score (premium first)
+                        const sortedVoices = voicesByLang[lang].sort((a, b) => b.score - a.score)
+                        
+                        return (
+                          <optgroup key={lang} label={`${flag} ${langName}`}>
+                            {sortedVoices.map(({ voice, index, score }) => (
+                              <option key={index} value={index}>
+                                {flag} {voice.name}
+                                {score >= 70 ? ' ⚡' : ''}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      })
+                    })()}
+                  </select>
+                </div>
+
+                <button
+                  id="save-default-btn"
+                  onClick={saveAsDefault}
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {t('saveAsDefault')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Playback Settings - Collapsible */}
+          <div className="border-b border-gray-100">
+            <button
+              onClick={() => toggleSection('playback')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                <h2 className="text-sm font-semibold text-gray-700">{t('playback')}</h2>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'playback' ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {expandedSection === 'playback' && (
+              <div className="p-5 pt-0 space-y-4">
+                <div>
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      {t('showProgressBar')}
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={showProgressBar}
+                        onChange={(e) => {
+                          const value = e.target.checked
+                          setShowProgressBar(value)
+                          chrome.storage.local.set({ showProgressBar: value })
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Advanced Settings - Collapsible */}
+          <div>
+            <button
+              onClick={() => toggleSection('advanced')}
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <h2 className="text-sm font-semibold text-gray-700">{t('advanced')}</h2>
+              </div>
+              <svg 
+                className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'advanced' ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {expandedSection === 'advanced' && (
+              <div className="p-5 pt-0 space-y-4">
+                <div>
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                      </svg>
+                      {t('autoDetectLanguage')}
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={autoSelectVoice}
+                        onChange={(e) => {
+                          const value = e.target.checked
+                          setAutoSelectVoice(value)
+                          chrome.storage.local.set({ autoSelectVoice: value })
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </div>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Buy Me a Coffee Link */}

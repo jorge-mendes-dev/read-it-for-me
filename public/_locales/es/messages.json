@@ -202,5 +202,49 @@
   "test": {
     "message": "Probar",
     "description": "Test voice button"
+  },
+  "selectVoice": {
+    "message": "Seleccionar Voz",
+    "description": "Label for voice selector"
+  },
+  "playback": {
+    "message": "Reproducción",
+    "description": "Playback settings section"
+  },
+  "advanced": {
+    "message": "Avanzado",
+    "description": "Advanced settings section"
+  },
+  "help": {
+    "message": "Ayuda",
+    "description": "Help button text"
+  },
+  "welcomeTitle": {
+    "message": "¡Bienvenido a Read It For Me! 👋",
+    "description": "Welcome modal title"
+  },
+  "welcomeDescription": {
+    "message": "Selecciona cualquier texto en una página web y aparecerá un botón. Haz clic en él para escuchar el texto en voz alta con voces naturales.",
+    "description": "Welcome modal description"
+  },
+  "quickTips": {
+    "message": "Consejos Rápidos:",
+    "description": "Quick tips section title"
+  },
+  "tipAutoDetect": {
+    "message": "Activa la detección automática para páginas multilingües",
+    "description": "Tip about auto-detect feature"
+  },
+  "tipPause": {
+    "message": "Usa Espacio para pausar/reanudar",
+    "description": "Tip about pause/resume"
+  },
+  "tipStop": {
+    "message": "Presiona Esc para detener la lectura",
+    "description": "Tip about stopping"
+  },
+  "gotIt": {
+    "message": "¡Entendido!",
+    "description": "Button to close welcome modal"
   }
 }

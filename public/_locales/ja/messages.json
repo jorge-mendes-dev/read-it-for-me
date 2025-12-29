@@ -202,5 +202,49 @@
   "test": {
     "message": "テスト",
     "description": "Test voice button"
+  },
+  "selectVoice": {
+    "message": "音声を選択",
+    "description": "Label for voice selector"
+  },
+  "playback": {
+    "message": "再生",
+    "description": "Playback settings section"
+  },
+  "advanced": {
+    "message": "詳細設定",
+    "description": "Advanced settings section"
+  },
+  "help": {
+    "message": "ヘルプ",
+    "description": "Help button text"
+  },
+  "welcomeTitle": {
+    "message": "Read It For Meへようこそ！👋",
+    "description": "Welcome modal title"
+  },
+  "welcomeDescription": {
+    "message": "ウェブページ上の任意のテキストを選択すると、ボタンが表示されます。それをクリックすると、自然な音声でテキストを読み上げます。",
+    "description": "Welcome modal description"
+  },
+  "quickTips": {
+    "message": "クイックヒント：",
+    "description": "Quick tips section title"
+  },
+  "tipAutoDetect": {
+    "message": "多言語ページの自動検出を有効にする",
+    "description": "Tip about auto-detect feature"
+  },
+  "tipPause": {
+    "message": "スペースキーで一時停止/再開",
+    "description": "Tip about pause/resume"
+  },
+  "tipStop": {
+    "message": "Escキーで読み上げを停止",
+    "description": "Tip about stopping"
+  },
+  "gotIt": {
+    "message": "了解！",
+    "description": "Button to close welcome modal"
   }
 }

@@ -201,5 +201,49 @@
   "test": {
     "message": "Testen",
     "description": "Test voice button"
+  },
+  "selectVoice": {
+    "message": "Stimme Auswählen",
+    "description": "Label for voice selector"
+  },
+  "playback": {
+    "message": "Wiedergabe",
+    "description": "Playback settings section"
+  },
+  "advanced": {
+    "message": "Erweitert",
+    "description": "Advanced settings section"
+  },
+  "help": {
+    "message": "Hilfe",
+    "description": "Help button text"
+  },
+  "welcomeTitle": {
+    "message": "Willkommen bei Read It For Me! 👋",
+    "description": "Welcome modal title"
+  },
+  "welcomeDescription": {
+    "message": "Wählen Sie einen beliebigen Text auf einer Webseite aus und es erscheint eine Schaltfläche. Klicken Sie darauf, um den Text mit natürlichen Stimmen vorlesen zu lassen.",
+    "description": "Welcome modal description"
+  },
+  "quickTips": {
+    "message": "Schnelle Tipps:",
+    "description": "Quick tips section title"
+  },
+  "tipAutoDetect": {
+    "message": "Aktivieren Sie die automatische Erkennung für mehrsprachige Seiten",
+    "description": "Tip about auto-detect feature"
+  },
+  "tipPause": {
+    "message": "Verwenden Sie die Leertaste zum Pausieren/Fortsetzen",
+    "description": "Tip about pause/resume"
+  },
+  "tipStop": {
+    "message": "Drücken Sie Esc, um das Vorlesen zu stoppen",
+    "description": "Tip about stopping"
+  },
+  "gotIt": {
+    "message": "Verstanden!",
+    "description": "Button to close welcome modal"
   }
 }

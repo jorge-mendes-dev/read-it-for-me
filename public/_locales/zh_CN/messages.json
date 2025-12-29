@@ -201,5 +201,49 @@
   "test": {
     "message": "测试",
     "description": "Test voice button"
+  },
+  "selectVoice": {
+    "message": "选择语音",
+    "description": "Label for voice selector"
+  },
+  "playback": {
+    "message": "播放",
+    "description": "Playback settings section"
+  },
+  "advanced": {
+    "message": "高级",
+    "description": "Advanced settings section"
+  },
+  "help": {
+    "message": "帮助",
+    "description": "Help button text"
+  },
+  "welcomeTitle": {
+    "message": "欢迎使用 Read It For Me！👋",
+    "description": "Welcome modal title"
+  },
+  "welcomeDescription": {
+    "message": "在网页上选择任意文本，将出现一个按钮。点击它即可使用自然语音朗读文本。",
+    "description": "Welcome modal description"
+  },
+  "quickTips": {
+    "message": "快速提示：",
+    "description": "Quick tips section title"
+  },
+  "tipAutoDetect": {
+    "message": "为多语言页面启用自动检测",
+    "description": "Tip about auto-detect feature"
+  },
+  "tipPause": {
+    "message": "使用空格键暂停/继续",
+    "description": "Tip about pause/resume"
+  },
+  "tipStop": {
+    "message": "按Esc键停止朗读",
+    "description": "Tip about stopping"
+  },
+  "gotIt": {
+    "message": "知道了！",
+    "description": "Button to close welcome modal"
   }
 }

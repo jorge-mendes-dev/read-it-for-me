@@ -189,5 +189,17 @@
   "developedBy": {
     "message": "Entwickelt von",
     "description": "Developer credit label"
+  },
+  "autoDetectLanguage": {
+    "message": "Seitensprache automatisch erkennen",
+    "description": "Toggle label for auto language detection"
+  },
+  "autoDetectLanguageDesc": {
+    "message": "Stimme automatisch basierend auf der Seitensprache auswählen",
+    "description": "Description for auto language detection"
+  },
+  "test": {
+    "message": "Testen",
+    "description": "Test voice button"
   }
 }
