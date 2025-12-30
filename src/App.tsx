@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
-import { useTheme, useVoices } from './hooks'
-import { WelcomeModal, ThemeToggle, VoiceSelector, SettingsSection } from './components'
-import type { SettingsSection as SettingsSectionType } from '../types'
-import { UI_CONFIG } from '../constants'
+import { t, initializeLocale, setLocale, availableLocales } from './utils/i18n'
+import { useTheme, useVoices } from './popup/hooks'
+import { WelcomeModal, ThemeToggle, VoiceSelector, SettingsSection } from './popup/components'
+import type { SettingsSection as SettingsSectionType } from './types'
+import { UI_CONFIG } from './constants'
 
 function App() {
   const { voices, isLoadingVoices } = useVoices()
