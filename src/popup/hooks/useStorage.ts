@@ -41,13 +41,14 @@ export function useStorage<K extends keyof StorageData>(
 export function useMultipleStorage<K extends keyof StorageData>(keys: K[]) {
   const [values, setValues] = useState<Partial<StorageData>>({})
   const [isLoading, setIsLoading] = useState(true)
+  const keysString = keys.join(',')
 
   useEffect(() => {
     chrome.storage.local.get(keys, (result) => {
       setValues(result)
       setIsLoading(false)
     })
-  }, [keys.join(',')])
+  }, [keysString, keys])
 
   const updateValue = useCallback(<T extends K>(key: T, value: StorageData[T]) => {
     setValues(prev => ({ ...prev, [key]: value }))

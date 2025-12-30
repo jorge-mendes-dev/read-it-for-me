@@ -227,7 +227,7 @@ function preprocessText(text: string): string {
   processed = processed.replace(/\.{2,}/g, ',')
   processed = processed.replace(/!{2,}/g, '!')
   processed = processed.replace(/\?{2,}/g, '?')
-  processed = processed.replace(/[*_#`~\[\]]/g, '')
+  processed = processed.replace(/[*_#`~[\]]/g, '')
   processed = processed.replace(/^\s*[-•]\s*/gm, '')
   processed = processed.replace(/\b([A-Z]{2,})\b/g, (match) => {
     if (match.length <= 4) {

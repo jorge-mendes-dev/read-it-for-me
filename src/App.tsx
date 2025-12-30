@@ -11,7 +11,7 @@ function App() {
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
-  const [logoUrl, setLogoUrl] = useState('')
+  const [logoUrl] = useState(() => chrome.runtime.getURL('icons/icon128.png'))
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(true)
   const [autoSelectVoice, setAutoSelectVoice] = useState(false)
@@ -19,9 +19,6 @@ function App() {
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')
 
   useEffect(() => {
-    // Get the proper URL for the logo
-    setLogoUrl(chrome.runtime.getURL('icons/icon128.png'))
-    
     // Check if first run
     chrome.storage.local.get(['hasSeenWelcome'], (result) => {
       if (!result.hasSeenWelcome) {

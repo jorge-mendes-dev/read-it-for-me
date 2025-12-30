@@ -3,7 +3,7 @@
 let floatingPlayer: HTMLDivElement | null = null
 let currentMessages: Record<string, { message: string; description?: string }> = {}
 let isDragging = false
-let dragOffset = { x: 0, y: 0 }
+const dragOffset = { x: 0, y: 0 }
 let isMiniMode = false
 
 // Load messages for selected locale
@@ -787,7 +787,7 @@ function createFloatingPlayer() {
   })
 
   // Draggable functionality
-  let headerElement = floatingPlayer.querySelector('.rifm-header') as HTMLElement
+  const headerElement = floatingPlayer.querySelector('.rifm-header') as HTMLElement
   headerElement?.addEventListener('mousedown', startDrag)
   
   function startDrag(e: MouseEvent) {
