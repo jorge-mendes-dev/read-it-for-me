@@ -1,125 +1,14 @@
 import { useState, useEffect } from 'react'
 import { t, initializeLocale, setLocale, availableLocales } from '../utils/i18n'
-
-// Helper function to get flag emoji from language code
-function getFlagEmoji(langCode: string): string {
-  if (!langCode) return '🌐'
-  
-  // Normalize the language code (handle both - and _ separators)
-  const normalized = langCode.replace('_', '-')
-  const parts = normalized.split('-')
-  const countryCode = parts.length > 1 ? parts[1] : parts[0]
-  
-  const flagMap: { [key: string]: string } = {
-    'US': '🇺🇸', 'GB': '🇬🇧', 'AU': '🇦🇺', 'CA': '🇨🇦', 'IN': '🇮🇳', 'IE': '🇮🇪', 'ZA': '🇿🇦',
-    'BR': '🇧🇷', 'PT': '🇵🇹',
-    'ES': '🇪🇸', 'MX': '🇲🇽', 'AR': '🇦🇷', 'CO': '🇨🇴', 'CL': '🇨🇱',
-    'FR': '🇫🇷', 'BE': '🇧🇪', 'CH': '🇨🇭',
-    'DE': '🇩🇪', 'AT': '🇦🇹',
-    'IT': '🇮🇹',
-    'JP': '🇯🇵',
-    'CN': '🇨🇳', 'TW': '🇹🇼', 'HK': '🇭🇰', 'SG': '🇸🇬',
-    'KR': '🇰🇷',
-    'RU': '🇷🇺',
-    'NL': '🇳🇱',
-    'SE': '🇸🇪', 'NO': '🇳🇴', 'DK': '🇩🇰', 'FI': '🇫🇮',
-    'PL': '🇵🇱', 'CZ': '🇨🇿',
-    'TR': '🇹🇷',
-    'SA': '🇸🇦', 'AE': '🇦🇪',
-    'IL': '🇮🇱',
-    'GR': '🇬🇷',
-    'TH': '🇹🇭',
-    'ID': '🇮🇩',
-    'VN': '🇻🇳',
-    'PH': '🇵🇭',
-    'RO': '🇷🇴', 'HU': '🇭🇺', 'SK': '🇸🇰',
-    // Language-only codes - default flags
-    'en': '🇺🇸', 'pt': '🇵🇹', 'es': '🇪🇸', 'fr': '🇫🇷',
-    'de': '🇩🇪', 'it': '🇮🇹', 'ja': '🇯🇵', 'zh': '🇨🇳',
-    'ko': '🇰🇷', 'ru': '🇷🇺', 'nl': '🇳🇱', 'sv': '🇸🇪',
-    'no': '🇳🇴', 'da': '🇩🇰', 'fi': '🇫🇮', 'pl': '🇵🇱',
-    'cs': '🇨🇿', 'tr': '🇹🇷', 'ar': '🇸🇦', 'he': '🇮🇱',
-    'el': '🇬🇷', 'th': '🇹🇭', 'id': '🇮🇩', 'vi': '🇻🇳',
-    'ro': '🇷🇴', 'hu': '🇭🇺', 'sk': '🇸🇰'
-  }
-  
-  return flagMap[countryCode.toUpperCase()] || flagMap[countryCode.toLowerCase()] || '🌐'
-}
-
-// Helper function to get language/country name
-function getLanguageName(langCode: string): string {
-  const nameMap: { [key: string]: string } = {
-    'en-US': 'English (United States)',
-    'en-GB': 'English (United Kingdom)',
-    'en-AU': 'English (Australia)',
-    'en-CA': 'English (Canada)',
-    'en-IN': 'English (India)',
-    'en-IE': 'English (Ireland)',
-    'en-ZA': 'English (South Africa)',
-    'pt-BR': 'Portuguese (Brazil)',
-    'pt-PT': 'Portuguese (Portugal)',
-    'es-ES': 'Spanish (Spain)',
-    'es-MX': 'Spanish (Mexico)',
-    'es-AR': 'Spanish (Argentina)',
-    'es-CO': 'Spanish (Colombia)',
-    'es-CL': 'Spanish (Chile)',
-    'fr-FR': 'French (France)',
-    'fr-BE': 'French (Belgium)',
-    'fr-CH': 'French (Switzerland)',
-    'fr-CA': 'French (Canada)',
-    'de-DE': 'German (Germany)',
-    'de-AT': 'German (Austria)',
-    'de-CH': 'German (Switzerland)',
-    'it-IT': 'Italian (Italy)',
-    'ja-JP': 'Japanese (Japan)',
-    'zh-CN': 'Chinese (China)',
-    'zh-TW': 'Chinese (Taiwan)',
-    'zh-HK': 'Chinese (Hong Kong)',
-    'ko-KR': 'Korean (South Korea)',
-    'ru-RU': 'Russian (Russia)',
-    'nl-NL': 'Dutch (Netherlands)',
-    'nl-BE': 'Dutch (Belgium)',
-    'sv-SE': 'Swedish (Sweden)',
-    'no-NO': 'Norwegian (Norway)',
-    'da-DK': 'Danish (Denmark)',
-    'fi-FI': 'Finnish (Finland)',
-    'pl-PL': 'Polish (Poland)',
-    'cs-CZ': 'Czech (Czech Republic)',
-    'tr-TR': 'Turkish (Turkey)',
-    'ar-SA': 'Arabic (Saudi Arabia)',
-    'ar-AE': 'Arabic (UAE)',
-    'he-IL': 'Hebrew (Israel)',
-    'el-GR': 'Greek (Greece)',
-    'th-TH': 'Thai (Thailand)',
-    'id-ID': 'Indonesian (Indonesia)',
-    'vi-VN': 'Vietnamese (Vietnam)',
-    'ro-RO': 'Romanian (Romania)',
-    'hu-HU': 'Hungarian (Hungary)',
-    'sk-SK': 'Slovak (Slovakia)'
-  }
-  
-  // Try exact match first
-  if (nameMap[langCode]) {
-    return nameMap[langCode]
-  }
-  
-  // Fallback to basic language name
-  const baseLang = langCode.split('-')[0]
-  const basicNames: { [key: string]: string } = {
-    'en': 'English', 'pt': 'Portuguese', 'es': 'Spanish', 'fr': 'French',
-    'de': 'German', 'it': 'Italian', 'ja': 'Japanese', 'zh': 'Chinese',
-    'ko': 'Korean', 'ru': 'Russian', 'nl': 'Dutch', 'sv': 'Swedish',
-    'no': 'Norwegian', 'da': 'Danish', 'fi': 'Finnish', 'pl': 'Polish',
-    'cs': 'Czech', 'tr': 'Turkish', 'ar': 'Arabic', 'he': 'Hebrew',
-    'el': 'Greek', 'th': 'Thai', 'id': 'Indonesian', 'vi': 'Vietnamese',
-    'ro': 'Romanian', 'hu': 'Hungarian', 'sk': 'Slovak'
-  }
-  
-  return basicNames[baseLang] || langCode
-}
+import { getFlagEmoji } from '../utils/flags'
+import { getLanguageName } from '../utils/languages'
+import { getVoiceScore } from '../utils/voiceScoring'
+import { useTheme, useVoices } from './hooks'
+import type { SettingsSection, VoicesByLanguage, VoiceWithScore } from '../types'
 
 function App() {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const { voices, isLoadingVoices } = useVoices()
+  const [theme, setTheme] = useTheme()
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
@@ -128,31 +17,11 @@ function App() {
   const [showProgressBar, setShowProgressBar] = useState(true)
   const [autoSelectVoice, setAutoSelectVoice] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
-  const [expandedSection, setExpandedSection] = useState<string>('voice')
-  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('auto')
-  const [isLoadingVoices, setIsLoadingVoices] = useState(true)
-
-  // Apply theme
-  useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'auto') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.classList.toggle('dark', prefersDark)
-    } else {
-      root.classList.toggle('dark', theme === 'dark')
-    }
-  }, [theme])
+  const [expandedSection, setExpandedSection] = useState<SettingsSection>('voice')
 
   useEffect(() => {
     // Get the proper URL for the logo
     setLogoUrl(chrome.runtime.getURL('icons/icon128.png'))
-    
-    // Load theme preference
-    chrome.storage.local.get(['theme'], (result) => {
-      if (result.theme) {
-        setTheme(result.theme)
-      }
-    })
     
     // Check if first run
     chrome.storage.local.get(['hasSeenWelcome'], (result) => {
@@ -169,39 +38,30 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!localeReady) return
+    if (!localeReady || voices.length === 0) return
 
-    // Get available voices
-    const loadVoices = () => {
-      setIsLoadingVoices(true)
-      const availableVoices = window.speechSynthesis.getVoices()
-      setVoices(availableVoices)
-      setIsLoadingVoices(false)
-      
-      // Load saved default voice settings and recent voices
-      chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice'], (result) => {
-        // If auto-select is enabled and we have an auto-selected voice, use that
-        if (result.autoSelectVoice && result.autoSelectedVoice !== undefined && availableVoices[result.autoSelectedVoice]) {
-          setSelectedVoice(result.autoSelectedVoice)
-        } else if (result.defaultVoiceIndex !== undefined && availableVoices[result.defaultVoiceIndex]) {
-          setSelectedVoice(result.defaultVoiceIndex)
-        }
-        if (result.recentVoices) {
-          setRecentVoices(result.recentVoices)
-        }
-        if (result.showProgressBar !== undefined) {
-          setShowProgressBar(result.showProgressBar)
-        }
-        if (result.autoSelectVoice !== undefined) {
-          setAutoSelectVoice(result.autoSelectVoice)
-        }
-      })
-    }
+    // Load saved default voice settings and recent voices
+    chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice'], (result) => {
+      // If auto-select is enabled and we have an auto-selected voice, use that
+      if (result.autoSelectVoice && result.autoSelectedVoice !== undefined && voices[result.autoSelectedVoice]) {
+        setSelectedVoice(result.autoSelectedVoice)
+      } else if (result.defaultVoiceIndex !== undefined && voices[result.defaultVoiceIndex]) {
+        setSelectedVoice(result.defaultVoiceIndex)
+      }
+      if (result.recentVoices) {
+        setRecentVoices(result.recentVoices)
+      }
+      if (result.showProgressBar !== undefined) {
+        setShowProgressBar(result.showProgressBar)
+      }
+      if (result.autoSelectVoice !== undefined) {
+        setAutoSelectVoice(result.autoSelectVoice)
+      }
+    })
+  }, [localeReady, voices])
 
-    loadVoices()
-    window.speechSynthesis.onvoiceschanged = loadVoices
-
-    // Listen for auto-selected voice changes
+  // Listen for auto-selected voice changes
+  useEffect(() => {
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, namespace: string) => {
       if (namespace === 'local' && changes.autoSelectedVoice) {
         const newVoiceIndex = changes.autoSelectedVoice.newValue
@@ -216,9 +76,7 @@ function App() {
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange)
     }
-  }, [localeReady])
-
-
+  }, [])
 
   const saveAsDefault = () => {
     chrome.storage.local.set({
@@ -268,19 +126,8 @@ function App() {
     chrome.storage.local.set({ hasSeenWelcome: true })
   }
 
-  const toggleSection = (section: string) => {
+  const toggleSection = (section: SettingsSection) => {
     setExpandedSection(expandedSection === section ? '' : section)
-  }
-
-  // Score voice for sorting (premium voices first)
-  const getVoiceScore = (voice: SpeechSynthesisVoice): number => {
-    let score = 0
-    const name = voice.name.toLowerCase()
-    if (name.includes('neural')) score += 100
-    if (name.includes('premium')) score += 90
-    if (name.includes('enhanced')) score += 80
-    if (name.includes('natural')) score += 70
-    return score
   }
 
   if (!localeReady) {
@@ -356,7 +203,6 @@ function App() {
               onClick={() => {
                 const newTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light'
                 setTheme(newTheme)
-                chrome.storage.local.set({ theme: newTheme })
               }}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95"
               aria-label={`Current theme: ${theme}. Click to switch`}
@@ -485,7 +331,7 @@ function App() {
                     )}
                     {(() => {
                       // Group voices by language
-                      const voicesByLang: { [key: string]: { voice: SpeechSynthesisVoice; index: number; score: number }[] } = {}
+                      const voicesByLang: VoicesByLanguage = {}
                       
                       // Group all voices by language
                       voices.forEach((voice, index) => {
@@ -504,11 +350,11 @@ function App() {
                         const langName = getLanguageName(lang)
                         
                         // Sort voices within language by score (premium first)
-                        const sortedVoices = voicesByLang[lang].sort((a, b) => b.score - a.score)
+                        const sortedVoices = voicesByLang[lang].sort((a: VoiceWithScore, b: VoiceWithScore) => b.score - a.score)
                         
                         return (
                           <optgroup key={lang} label={`${flag} ${langName}`}>
-                            {sortedVoices.map(({ voice, index, score }) => (
+                            {sortedVoices.map(({ voice, index, score }: VoiceWithScore) => (
                               <option key={index} value={index}>
                                 {flag} {voice.name}
                                 {score >= 70 ? ' ⚡' : ''}

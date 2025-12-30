@@ -1,6 +1,7 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
 import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate } from './floatingPlayer'
+import type { ReadingRequest } from '../types'
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let isReading = false
@@ -25,13 +26,6 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
 }
 
 // Queue system for reading requests
-interface ReadingRequest {
-  text: string
-  voiceIndex?: number
-  rate: number
-  pitch: number
-  volume: number
-}
 let readingQueue: ReadingRequest[] = []
 
 // Function to process next item in queue
