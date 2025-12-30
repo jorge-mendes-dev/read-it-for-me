@@ -16,7 +16,7 @@ const files = [
   'src/background/background.ts',
   'src/content/content.ts',
   'src/content/floatingPlayer.ts',
-  'src/popup/App.tsx',
+  'src/App.tsx',
   'src/utils/i18n.ts'
 ];
 
