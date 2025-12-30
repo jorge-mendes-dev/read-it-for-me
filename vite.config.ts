@@ -11,6 +11,7 @@ export default defineConfig({
       closeBundle() {
         mkdirSync('dist/icons', { recursive: true })
         copyFileSync('public/manifest.json', 'dist/manifest.json')
+        copyFileSync('public/content-loader.js', 'dist/content-loader.js')
         // Copy the actual PNG icon files
         try {
           copyFileSync('public/icons/icon16.png', 'dist/icons/icon16.png')
@@ -37,9 +38,9 @@ export default defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
-      }
-    }
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        assetFileNames: '[name].[ext]',
+      },
+    },
   }
 })

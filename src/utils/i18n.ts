@@ -1,4 +1,6 @@
 // i18n utility for Chrome extension
+import browser from './browser'
+
 let messagesCache: { [key: string]: any } = {}
 
 // Available locales
@@ -15,7 +17,7 @@ export const availableLocales = [
 // Load messages for a specific locale
 async function loadMessages(locale: string): Promise<void> {
   try {
-    const response = await fetch(chrome.runtime.getURL(`_locales/${locale}/messages.json`))
+    const response = await fetch(browser.runtime.getURL(`_locales/${locale}/messages.json`))
     messagesCache = await response.json()
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error)
@@ -28,27 +30,30 @@ async function loadMessages(locale: string): Promise<void> {
 
 // Get current locale from storage or browser
 export async function initializeLocale(): Promise<string> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['selectedLocale'], async (result) => {
-      let locale = result.selectedLocale
-      
-      if (!locale) {
-        // Use browser's default language
-        const browserLang = chrome.i18n.getUILanguage().replace('-', '_')
-        // Check if we have this locale
-        locale = availableLocales.find(l => l.code === browserLang)?.code || 'en'
-      }
-      
-      await loadMessages(locale)
-      resolve(locale)
-    })
-  })
+  const result = await browser.storage.local.get(['selectedLocale'])
+  try {
+    let locale = result.selectedLocale as string | undefined
+    
+    if (!locale) {
+      // Use browser's default language
+      const browserLang = browser.i18n.getUILanguage().replace('-', '_')
+      // Check if we have this locale
+      locale = availableLocales.find(l => l.code === browserLang)?.code || 'en'
+    }
+    
+    await loadMessages(locale)
+    return locale
+  } catch (error) {
+    console.error('Failed to initialize locale:', error)
+    await loadMessages('en')
+    return 'en'
+  }
 }
 
 // Set and save locale
 export async function setLocale(locale: string): Promise<void> {
   await loadMessages(locale)
-  chrome.storage.local.set({ selectedLocale: locale })
+  await browser.storage.local.set({ selectedLocale: locale })
 }
 
 // Get translated message
@@ -68,9 +73,13 @@ export function getMessage(messageName: string, substitutions?: string | string[
     return message
   }
   
-  // Fallback to Chrome's i18n API
-  if (typeof chrome !== 'undefined' && chrome.i18n) {
-    return chrome.i18n.getMessage(messageName, substitutions) || messageName
+  // Fallback to browser's i18n API if available
+  try {
+    if (browser?.i18n) {
+      return browser.i18n.getMessage(messageName, substitutions) || messageName
+    }
+  } catch (e) {
+    // browser API might not be available in all contexts
   }
   
   return messageName

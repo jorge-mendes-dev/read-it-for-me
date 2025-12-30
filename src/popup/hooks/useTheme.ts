@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { ThemeMode } from '../../types'
+import browser from '../../utils/browser'
 
 /**
  * Custom hook to manage theme (light/dark/auto) with persistence
@@ -21,17 +22,19 @@ export function useTheme() {
 
   // Load theme from storage on mount
   useEffect(() => {
-    chrome.storage.local.get(['theme'], (result) => {
+    browser.storage.local.get(['theme']).then((result) => {
       if (result.theme) {
         setTheme(result.theme as ThemeMode)
       }
+    }).catch((error) => {
+      console.error('Failed to load theme from storage:', error)
     })
   }, [])
 
   // Persist theme when it changes
   const setThemeWithPersistence = (newTheme: ThemeMode) => {
     setTheme(newTheme)
-    chrome.storage.local.set({ theme: newTheme })
+    browser.storage.local.set({ theme: newTheme })
   }
 
   return [theme, setThemeWithPersistence] as const

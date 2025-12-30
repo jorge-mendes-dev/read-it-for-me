@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { StorageData } from '../../types'
+import browser from '../../utils/browser'
 
 /**
  * Custom hook to manage Chrome storage with type safety
@@ -16,10 +17,14 @@ export function useStorage<K extends keyof StorageData>(
 
   // Load value from storage on mount
   useEffect(() => {
-    chrome.storage.local.get([key], (result) => {
-      if (result[key] !== undefined) {
-        setValue(result[key])
+    browser.storage.local.get([key]).then((result) => {
+      const value = result[key]
+      if (value !== undefined) {
+        setValue(value as StorageData[K])
       }
+      setIsLoading(false)
+    }).catch((error) => {
+      console.error(`Failed to load ${String(key)} from storage:`, error)
       setIsLoading(false)
     })
   }, [key])
@@ -27,7 +32,7 @@ export function useStorage<K extends keyof StorageData>(
   // Update storage when value changes
   const setStoredValue = useCallback((newValue: StorageData[K]) => {
     setValue(newValue)
-    chrome.storage.local.set({ [key]: newValue })
+    browser.storage.local.set({ [key]: newValue })
   }, [key])
 
   return [value, setStoredValue, isLoading] as const
@@ -44,15 +49,18 @@ export function useMultipleStorage<K extends keyof StorageData>(keys: K[]) {
   const keysString = keys.join(',')
 
   useEffect(() => {
-    chrome.storage.local.get(keys, (result) => {
+    browser.storage.local.get(keys).then((result) => {
       setValues(result)
+      setIsLoading(false)
+    }).catch((error) => {
+      console.error('Failed to load multiple storage keys:', error)
       setIsLoading(false)
     })
   }, [keysString, keys])
 
   const updateValue = useCallback(<T extends K>(key: T, value: StorageData[T]) => {
     setValues(prev => ({ ...prev, [key]: value }))
-    chrome.storage.local.set({ [key]: value })
+    browser.storage.local.set({ [key]: value })
   }, [])
 
   return { values, updateValue, isLoading }

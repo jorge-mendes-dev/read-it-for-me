@@ -27,13 +27,13 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["content-loader.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["_locales/*/messages.json"],
+      "resources": ["_locales/*/messages.json", "chunks/*.js", "content.js"],
       "matches": ["<all_urls>"]
     }
   ],

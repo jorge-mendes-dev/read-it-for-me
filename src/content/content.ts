@@ -1,5 +1,6 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
+import browser from '../utils/browser'
 import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate } from './floatingPlayer'
 import type { ReadingRequest } from '../types'
 
@@ -128,30 +129,24 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
 
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['selectedLocale'], async (result) => {
-      const locale = result.selectedLocale || 'en'
-      
-      try {
-        const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`)
-        const response = await fetch(url)
-        currentMessages = await response.json()
-        resolve()
-      } catch (error) {
-        console.error('[ContentScript] Failed to load locale:', locale, error)
-        // Try loading English as absolute fallback
-        try {
-          const fallbackUrl = chrome.runtime.getURL('_locales/en/messages.json')
-          const fallbackResponse = await fetch(fallbackUrl)
-          currentMessages = await fallbackResponse.json()
-          resolve()
-        } catch (fallbackError) {
-          console.error('[ContentScript] Failed to load fallback locale:', fallbackError)
-          reject(fallbackError)
-        }
-      }
-    })
-  })
+  try {
+    const result = await browser.storage.local.get(['selectedLocale'])
+    const locale = (result.selectedLocale as string | undefined) || 'en'
+    
+    try {
+      const url = browser.runtime.getURL(`_locales/${locale}/messages.json`)
+      const response = await fetch(url)
+      currentMessages = await response.json()
+    } catch (error) {
+      console.error('[ContentScript] Failed to load locale:', locale, error)
+      // Try loading English as absolute fallback
+      const fallbackUrl = browser.runtime.getURL('_locales/en/messages.json')
+      const fallbackResponse = await fetch(fallbackUrl)
+      currentMessages = await fallbackResponse.json()
+    }
+  } catch (error) {
+    console.error('[ContentScript] Failed to load locale messages:', error)
+  }
 }
 
 // Get translated text
@@ -243,7 +238,7 @@ function preprocessText(text: string): string {
 
 function updateState() {
   // Send update to background
-  chrome.runtime.sendMessage({
+  browser.runtime.sendMessage({
     action: 'stateUpdate',
     state: { isReading, isPaused, currentText: currentUtterance?.text || '' }
   })
@@ -254,17 +249,16 @@ function updateState() {
   }))
 }
 
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'getSelectedText') {
     const selectedText = window.getSelection()?.toString() || '';
     const pageLang = document.documentElement.lang || 
                      document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
                      navigator.language;
-    sendResponse({ 
+    return Promise.resolve({ 
       text: selectedText,
       language: pageLang
     });
-    return true
   }
 
   if (request.action === 'startReading') {
@@ -273,7 +267,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
       readingQueue.push({ text, voiceIndex, rate, pitch, volume })
-      sendResponse({ success: true, queued: true })
+      return Promise.resolve({ success: true, queued: true })
     } else {
       // Stop current if paused and start new one
       if (currentUtterance) {
@@ -283,9 +277,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       }
       readingQueue = [] // Clear queue
       startReading(text, voiceIndex, rate, pitch, volume)
-      sendResponse({ success: true, queued: false })
+      return Promise.resolve({ success: true, queued: false })
     }
-    return true
   }
 
   if (request.action === 'pauseReading') {
@@ -295,8 +288,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       updatePlayerState(true) // Update player immediately
       updateState()
     }
-    sendResponse({ success: true })
-    return true
+    return Promise.resolve({ success: true })
   }
 
   if (request.action === 'resumeReading') {
@@ -306,8 +298,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       updatePlayerState(false) // Update player immediately
       updateState()
     }
-    sendResponse({ success: true })
-    return true
+    return Promise.resolve({ success: true })
   }
 
   if (request.action === 'stopReading') {
@@ -319,15 +310,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (progressInterval) clearInterval(progressInterval)
     updateQueueCount(0)
     updateState()
-    sendResponse({ success: true })
-    return true
+    return Promise.resolve({ success: true })
   }
 
   if (request.action === 'clearQueue') {
     readingQueue = []
     updateQueueCount(0)
-    sendResponse({ success: true })
-    return true
+    return Promise.resolve({ success: true })
   }
 
   if (request.action === 'updateSettings') {
@@ -337,11 +326,10 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       if (request.pitch !== undefined) currentUtterance.pitch = request.pitch
       if (request.volume !== undefined) currentUtterance.volume = request.volume
     }
-    sendResponse({ success: true })
-    return true
+    return Promise.resolve({ success: true })
   }
 
-  return true
+  return Promise.resolve(null)
 });
 
 // Selection Tooltip Button
@@ -530,12 +518,12 @@ function handleSelectionRead() {
   }
 
   // Get saved voice settings
-  chrome.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'], async (result) => {
-    let voiceIndex = result.defaultVoiceIndex
-    const rate = result.defaultRate ?? 0.9
-    const pitch = result.defaultPitch ?? 1
-    const volume = result.defaultVolume ?? 1
-    const autoSelect = result.autoSelectVoice ?? false
+  browser.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice']).then(async (result) => {
+    let voiceIndex = result.defaultVoiceIndex as number | undefined
+    const rate = (result.defaultRate as number | undefined) ?? 0.9
+    const pitch = (result.defaultPitch as number | undefined) ?? 1
+    const volume = (result.defaultVolume as number | undefined) ?? 1
+    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? false
 
     // Auto-select voice based on page language if enabled
     if (autoSelect) {
@@ -602,7 +590,7 @@ function handleSelectionRead() {
         voiceIndex = voices.indexOf(bestVoice)
         
         // Save the auto-selected voice so the popup can update
-        chrome.storage.local.set({ autoSelectedVoice: voiceIndex })
+        browser.storage.local.set({ autoSelectedVoice: voiceIndex })
       }
     }
 
@@ -619,6 +607,10 @@ function handleSelectionRead() {
       readingQueue = [] // Clear queue
       startReading(selectedText, voiceIndex, rate, pitch, volume)
     }
+  }).catch((error) => {
+    console.error('Failed to load voice settings for reading:', error)
+    // Fallback: start reading with default settings
+    startReading(selectedText, undefined, 0.9, 1, 1)
   })
 }
 
@@ -630,7 +622,7 @@ document.addEventListener('mouseup', () => {
     const selectedText = selection?.toString()
     
     if (selectedText && selectedText.trim().length > 0) {
-      chrome.storage.local.set({ lastSelectedText: selectedText })
+      browser.storage.local.set({ lastSelectedText: selectedText })
       showSelectionTooltip()
     } else {
       hideSelectionTooltip()
@@ -650,8 +642,8 @@ document.addEventListener('mousedown', (e: MouseEvent) => {
 })
 
 // Listen for language changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.selectedLocale) {
+browser.storage.local.onChanged.addListener((changes) => {
+  if (changes.selectedLocale) {
     // Reload locale messages and update UI
     loadLocaleMessages().then(() => {
       updateTooltipText()

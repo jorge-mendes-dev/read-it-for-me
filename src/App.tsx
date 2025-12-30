@@ -4,6 +4,7 @@ import { useTheme, useVoices } from './popup/hooks'
 import { WelcomeModal, ThemeToggle, VoiceSelector, SettingsSection } from './popup/components'
 import type { SettingsSection as SettingsSectionType } from './types'
 import { UI_CONFIG } from './constants'
+import browser from './utils/browser'
 
 function App() {
   const { voices, isLoadingVoices } = useVoices()
@@ -11,7 +12,7 @@ function App() {
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
-  const [logoUrl] = useState(() => chrome.runtime.getURL('icons/icon128.png'))
+  const [logoUrl] = useState(() => browser.runtime.getURL('icons/icon128.png'))
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(true)
   const [autoSelectVoice, setAutoSelectVoice] = useState(false)
@@ -20,10 +21,12 @@ function App() {
 
   useEffect(() => {
     // Check if first run
-    chrome.storage.local.get(['hasSeenWelcome'], (result) => {
+    browser.storage.local.get(['hasSeenWelcome']).then((result) => {
       if (!result.hasSeenWelcome) {
         setShowFirstRun(true)
       }
+    }).catch((error) => {
+      console.error('Failed to check first run status:', error)
     })
     
     // Initialize locale first
@@ -37,45 +40,53 @@ function App() {
     if (!localeReady || voices.length === 0) return
 
     // Load saved default voice settings and recent voices
-    chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice'], (result) => {
+    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice']).then((result) => {
+      const autoSelectedVoice = result.autoSelectedVoice as number | undefined
+      const defaultVoiceIndex = result.defaultVoiceIndex as number | undefined
+      const recentVoices = result.recentVoices as number[] | undefined
+      const showProgressBar = result.showProgressBar as boolean | undefined
+      const autoSelectVoice = result.autoSelectVoice as boolean | undefined
+
       // If auto-select is enabled and we have an auto-selected voice, use that
-      if (result.autoSelectVoice && result.autoSelectedVoice !== undefined && voices[result.autoSelectedVoice]) {
-        setSelectedVoice(result.autoSelectedVoice)
-      } else if (result.defaultVoiceIndex !== undefined && voices[result.defaultVoiceIndex]) {
-        setSelectedVoice(result.defaultVoiceIndex)
+      if (autoSelectVoice && autoSelectedVoice !== undefined && voices[autoSelectedVoice]) {
+        setSelectedVoice(autoSelectedVoice)
+      } else if (defaultVoiceIndex !== undefined && voices[defaultVoiceIndex]) {
+        setSelectedVoice(defaultVoiceIndex)
       }
-      if (result.recentVoices) {
-        setRecentVoices(result.recentVoices)
+      if (recentVoices) {
+        setRecentVoices(recentVoices)
       }
-      if (result.showProgressBar !== undefined) {
-        setShowProgressBar(result.showProgressBar)
+      if (showProgressBar !== undefined) {
+        setShowProgressBar(showProgressBar)
       }
-      if (result.autoSelectVoice !== undefined) {
-        setAutoSelectVoice(result.autoSelectVoice)
+      if (autoSelectVoice !== undefined) {
+        setAutoSelectVoice(autoSelectVoice)
       }
+    }).catch((error) => {
+      console.error('Failed to load voice settings:', error)
     })
   }, [localeReady, voices])
 
   // Listen for auto-selected voice changes
   useEffect(() => {
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, namespace: string) => {
-      if (namespace === 'local' && changes.autoSelectedVoice) {
-        const newVoiceIndex = changes.autoSelectedVoice.newValue
+    const handleStorageChange = (changes: Record<string, browser.Storage.StorageChange>) => {
+      if (changes.autoSelectedVoice) {
+        const newVoiceIndex = changes.autoSelectedVoice.newValue as number | undefined
         if (newVoiceIndex !== undefined) {
           setSelectedVoice(newVoiceIndex)
         }
       }
     }
 
-    chrome.storage.onChanged.addListener(handleStorageChange)
+    browser.storage.local.onChanged.addListener(handleStorageChange)
 
     return () => {
-      chrome.storage.onChanged.removeListener(handleStorageChange)
+      browser.storage.local.onChanged.removeListener(handleStorageChange)
     }
   }, [])
 
   const saveAsDefault = () => {
-    chrome.storage.local.set({
+    browser.storage.local.set({
       defaultVoiceIndex: selectedVoice,
     })
 
@@ -85,7 +96,7 @@ function App() {
       ...recentVoices.filter((v) => v !== selectedVoice),
     ].slice(0, UI_CONFIG.RECENT_VOICES_LIMIT)
     setRecentVoices(updated)
-    chrome.storage.local.set({ recentVoices: updated })
+    browser.storage.local.set({ recentVoices: updated })
 
     // Visual feedback
     const button = document.querySelector('#save-default-btn')
@@ -120,7 +131,7 @@ function App() {
 
   const closeWelcome = () => {
     setShowFirstRun(false)
-    chrome.storage.local.set({ hasSeenWelcome: true })
+    browser.storage.local.set({ hasSeenWelcome: true })
   }
 
   const toggleSection = (section: SettingsSectionType) => {
@@ -299,7 +310,7 @@ function App() {
                   onChange={(e) => {
                     const value = e.target.checked
                     setShowProgressBar(value)
-                    chrome.storage.local.set({ showProgressBar: value })
+                    browser.storage.local.set({ showProgressBar: value })
                   }}
                   className="sr-only peer"
                 />
@@ -357,7 +368,7 @@ function App() {
                     onChange={(e) => {
                       const value = e.target.checked
                       setAutoSelectVoice(value)
-                      chrome.storage.local.set({ autoSelectVoice: value })
+                      browser.storage.local.set({ autoSelectVoice: value })
                     }}
                     className="sr-only peer"
                   />

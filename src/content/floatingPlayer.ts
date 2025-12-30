@@ -1,4 +1,5 @@
 // Floating player injected into web pages
+import browser from '../utils/browser'
 
 let floatingPlayer: HTMLDivElement | null = null
 let currentMessages: Record<string, { message: string; description?: string }> = {}
@@ -8,33 +9,27 @@ let isMiniMode = false
 
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['selectedLocale'], async (result) => {
-      const locale = result.selectedLocale || 'en'
-      
-      try {
-        const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`)
-        const response = await fetch(url)
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-        currentMessages = await response.json()
-        resolve()
-      } catch (error) {
-        console.error('[FloatingPlayer] Failed to load locale:', locale, error)
-        // Try loading English as absolute fallback
-        try {
-          const fallbackUrl = chrome.runtime.getURL('_locales/en/messages.json')
-          const fallbackResponse = await fetch(fallbackUrl)
-          currentMessages = await fallbackResponse.json()
-          resolve()
-        } catch (fallbackError) {
-          console.error('[FloatingPlayer] Failed to load fallback locale:', fallbackError)
-          reject(fallbackError)
-        }
+  try {
+    const result = await browser.storage.local.get(['selectedLocale'])
+    const locale = (result.selectedLocale as string | undefined) || 'en'
+    
+    try {
+      const url = browser.runtime.getURL(`_locales/${locale}/messages.json`)
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
       }
-    })
-  })
+      currentMessages = await response.json()
+    } catch (error) {
+      console.error('[FloatingPlayer] Failed to load locale:', locale, error)
+      // Try loading English as absolute fallback
+      const fallbackUrl = browser.runtime.getURL('_locales/en/messages.json')
+      const fallbackResponse = await fetch(fallbackUrl)
+      currentMessages = await fallbackResponse.json()
+    }
+  } catch (error) {
+    console.error('[FloatingPlayer] Failed to load locale messages:', error)
+  }
 }
 
 // Get translated text
@@ -658,45 +653,52 @@ function createFloatingPlayer() {
   document.body.appendChild(floatingPlayer)
 
   // Load saved settings
-  chrome.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar'], (result) => {
+  browser.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar']).then((result) => {
     const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
     const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
     const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
     const progressBar = floatingPlayer?.querySelector('.rifm-progress-bar') as HTMLElement
     
+    const defaultRate = result.defaultRate as number | undefined
+    const defaultPitch = result.defaultPitch as number | undefined
+    const defaultVolume = result.defaultVolume as number | undefined
+    const showProgressBar = result.showProgressBar as boolean | undefined
+    
     // Show/hide progress bar based on setting (default: true)
     if (progressBar) {
-      progressBar.style.display = result.showProgressBar !== false ? 'block' : 'none'
+      progressBar.style.display = showProgressBar !== false ? 'block' : 'none'
     }
     
-    if (speedSlider && result.defaultRate !== undefined) {
-      speedSlider.value = result.defaultRate.toString()
-      updateSliderValue('speed', result.defaultRate)
+    if (speedSlider && defaultRate !== undefined) {
+      speedSlider.value = defaultRate.toString()
+      updateSliderValue('speed', defaultRate)
       
       // Update active preset button
       floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(btn => {
         const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
-        if (Math.abs(speed - result.defaultRate) < 0.01) {
+        if (Math.abs(speed - defaultRate) < 0.01) {
           btn.classList.add('active')
         } else {
           btn.classList.remove('active')
         }
       })
     }
-    if (pitchSlider && result.defaultPitch !== undefined) {
-      pitchSlider.value = result.defaultPitch.toString()
-      updateSliderValue('pitch', result.defaultPitch)
+    if (pitchSlider && defaultPitch !== undefined) {
+      pitchSlider.value = defaultPitch.toString()
+      updateSliderValue('pitch', defaultPitch)
     }
-    if (volumeSlider && result.defaultVolume !== undefined) {
-      volumeSlider.value = result.defaultVolume.toString()
-      updateSliderValue('volume', result.defaultVolume)
+    if (volumeSlider && defaultVolume !== undefined) {
+      volumeSlider.value = defaultVolume.toString()
+      updateSliderValue('volume', defaultVolume)
     }
+  }).catch((error) => {
+    console.error('Failed to load player settings:', error)
   })
 
   // Event listeners
   floatingPlayer.querySelector('#rifm-close')?.addEventListener('click', hidePlayer)
   floatingPlayer.querySelector('#rifm-stop')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'stopReading' })
+    browser.runtime.sendMessage({ action: 'stopReading' })
     hidePlayer()
   })
   
@@ -717,7 +719,7 @@ function createFloatingPlayer() {
 
   // Clear queue button
   floatingPlayer.querySelector('#rifm-clear-queue')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'clearQueue' })
+    browser.runtime.sendMessage({ action: 'clearQueue' })
   })
 
   // Speed presets
@@ -728,8 +730,8 @@ function createFloatingPlayer() {
       if (speedSlider) {
         speedSlider.value = speed.toString()
         updateSliderValue('speed', speed)
-        chrome.runtime.sendMessage({ action: 'updateSettings', rate: speed })
-        chrome.storage.local.set({ defaultRate: speed })
+        browser.runtime.sendMessage({ action: 'updateSettings', rate: speed })
+        browser.storage.local.set({ defaultRate: speed })
       }
       // Update active state
       floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
@@ -763,14 +765,14 @@ function createFloatingPlayer() {
     floatingPlayer?.querySelector('.rifm-preset-btn[data-speed="1.0"]')?.classList.add('active')
     
     // Save to storage
-    chrome.storage.local.set({
+    browser.storage.local.set({
       defaultRate: defaults.rate,
       defaultPitch: defaults.pitch,
       defaultVolume: defaults.volume
     })
     
     // Update current playback if reading
-    chrome.runtime.sendMessage({ 
+    browser.runtime.sendMessage({ 
       action: 'updateSettings', 
       rate: defaults.rate, 
       pitch: defaults.pitch, 
@@ -828,7 +830,7 @@ function createFloatingPlayer() {
     // Save position
     if (floatingPlayer) {
       const rect = floatingPlayer.getBoundingClientRect()
-      chrome.storage.local.set({
+      browser.storage.local.set({
         playerPosition: {
           left: rect.left,
           top: rect.top
@@ -845,25 +847,25 @@ function createFloatingPlayer() {
   speedSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('speed', value)
-    chrome.runtime.sendMessage({ action: 'updateSettings', rate: value })
+    browser.runtime.sendMessage({ action: 'updateSettings', rate: value })
     // Auto-save to storage
-    chrome.storage.local.set({ defaultRate: value })
+    browser.storage.local.set({ defaultRate: value })
   })
 
   pitchSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('pitch', value)
-    chrome.runtime.sendMessage({ action: 'updateSettings', pitch: value })
+    browser.runtime.sendMessage({ action: 'updateSettings', pitch: value })
     // Auto-save to storage
-    chrome.storage.local.set({ defaultPitch: value })
+    browser.storage.local.set({ defaultPitch: value })
   })
 
   volumeSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('volume', value)
-    chrome.runtime.sendMessage({ action: 'updateSettings', volume: value })
+    browser.runtime.sendMessage({ action: 'updateSettings', volume: value })
     // Auto-save to storage
-    chrome.storage.local.set({ defaultVolume: value })
+    browser.storage.local.set({ defaultVolume: value })
   })
 }
 
@@ -951,18 +953,17 @@ export function updateTimeEstimate(seconds: number) {
   }
 }
 
-function togglePlayPause() {
-  chrome.runtime.sendMessage({ action: 'getState' }, (response) => {
-    if (response.isPaused) {
-      chrome.runtime.sendMessage({ action: 'resumeReading' })
-    } else {
-      chrome.runtime.sendMessage({ action: 'pauseReading' })
-    }
-  })
+async function togglePlayPause() {
+  const response: any = await browser.runtime.sendMessage({ action: 'getState' })
+  if (response?.isPaused) {
+    browser.runtime.sendMessage({ action: 'resumeReading' })
+  } else {
+    browser.runtime.sendMessage({ action: 'pauseReading' })
+  }
 }
 
 // Listen for state updates from background
-chrome.runtime.onMessage.addListener((message) => {
+browser.runtime.onMessage.addListener((message: any) => {
   if (message.action === 'stateUpdate') {
     const { isReading, isPaused } = message.state
     
@@ -986,8 +987,8 @@ window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
 }) as EventListener)
 
 // Listen for language changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.selectedLocale) {
+browser.storage.local.onChanged.addListener((changes) => {
+  if (changes.selectedLocale) {
     // Recreate player with new locale if it exists
     if (floatingPlayer) {
       const wasShowing = floatingPlayer.classList.contains('show')
@@ -1005,10 +1006,11 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
   
   // Listen for progress bar visibility toggle
-  if (namespace === 'local' && changes.showProgressBar && floatingPlayer) {
+  if (changes.showProgressBar && floatingPlayer) {
     const progressBar = floatingPlayer.querySelector('.rifm-progress-bar') as HTMLElement
     if (progressBar) {
-      progressBar.style.display = changes.showProgressBar.newValue !== false ? 'block' : 'none'
+      const newValue = changes.showProgressBar.newValue as boolean | undefined
+      progressBar.style.display = newValue !== false ? 'block' : 'none'
     }
   }
 })

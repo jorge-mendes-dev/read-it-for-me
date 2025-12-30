@@ -1,10 +1,18 @@
 // Background service worker for Read It For Me
 // Coordinates between popup and content script
+import browser from '../utils/browser'
+import type { Runtime } from 'webextension-polyfill'
 
 interface SpeechState {
   isReading: boolean
   isPaused: boolean
   currentText: string
+}
+
+interface Message {
+  action: string
+  state?: SpeechState
+  [key: string]: unknown
 }
 
 let speechState: SpeechState = {
@@ -14,37 +22,38 @@ let speechState: SpeechState = {
 }
 
 // Forward messages to active tab
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  switch (message.action) {
+browser.runtime.onMessage.addListener((message: unknown, _sender: Runtime.MessageSender) => {
+  const msg = message as Message
+  switch (msg.action) {
     case 'startReading':
     case 'pauseReading':
     case 'resumeReading':
-    case 'stopReading':
+    case 'stopReading': {
       // Forward to content script of active tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      return browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
         if (tabs[0]?.id) {
-          chrome.tabs.sendMessage(tabs[0].id, message, (response) => {
-            sendResponse(response)
-          })
+          return browser.tabs.sendMessage(tabs[0].id, message)
         }
+        return null
       })
-      return true
+    }
 
     case 'stateUpdate':
       // Store state and broadcast to all tabs
-      speechState = {
-        isReading: message.state.isReading,
-        isPaused: message.state.isPaused,
-        currentText: message.state.currentText || speechState.currentText
+      if (msg.state) {
+        speechState = {
+          isReading: msg.state.isReading,
+          isPaused: msg.state.isPaused,
+          currentText: msg.state.currentText || speechState.currentText
+        }
       }
-      sendResponse({ success: true })
-      break
+      return Promise.resolve({ success: true })
 
     case 'getState':
-      sendResponse(speechState)
-      break
+      return Promise.resolve(speechState)
+
+    default:
+      return Promise.resolve(null)
   }
-  
-  return true
 })
 
