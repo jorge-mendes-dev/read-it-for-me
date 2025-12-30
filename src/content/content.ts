@@ -84,6 +84,15 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   utterance.pitch = pitch
   utterance.volume = volume
 
+  // Word boundary tracking for potential highlighting (basic implementation)
+  utterance.onboundary = (event: SpeechSynthesisEvent) => {
+    if (event.name === 'word') {
+      // Store current word position for future highlighting feature
+      // This can be expanded to actually highlight words in the page
+      console.debug('Word boundary at char:', event.charIndex)
+    }
+  }
+
   // Track progress
   startTime = Date.now()
   if (progressInterval) {
@@ -340,42 +349,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   return true
 });
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e: KeyboardEvent) => {
-  // Space - Pause/Resume (when not in input fields)
-  if (e.code === 'Space' && isReading && !isInputFocused()) {
-    e.preventDefault()
-    if (isPaused) {
-      chrome.runtime.sendMessage({ action: 'resumeReading' })
-    } else {
-      chrome.runtime.sendMessage({ action: 'pauseReading' })
-    }
-  }
-  
-  // Escape - Stop reading
-  if (e.code === 'Escape' && isReading) {
-    chrome.runtime.sendMessage({ action: 'stopReading' })
-  }
-  
-  // Ctrl+Shift+R - Read selected text
-  if (e.ctrlKey && e.shiftKey && e.code === 'KeyR') {
-    e.preventDefault()
-    const selection = window.getSelection()
-    const selectedText = selection?.toString().trim()
-    if (selectedText) {
-      handleSelectionRead()
-    }
-  }
-})
-
-function isInputFocused(): boolean {
-  const active = document.activeElement
-  return active instanceof HTMLInputElement || 
-         active instanceof HTMLTextAreaElement || 
-         active instanceof HTMLSelectElement ||
-         (active as HTMLElement)?.isContentEditable
-}
 
 // Selection Tooltip Button
 let selectionTooltip: HTMLDivElement | null = null
@@ -691,5 +664,72 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     })
   }
 })
+
+// Keyboard Shortcuts
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  // Ctrl+Shift+R: Read selected text (case-insensitive for 'r' key)
+  if (e.ctrlKey && e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+    e.preventDefault()
+    const selection = window.getSelection()
+    const selectedText = selection?.toString().trim()
+    if (selectedText && selectedText.length > 0) {
+      handleSelectionRead()
+    }
+    return
+  }
+
+  // Only handle other shortcuts when reading
+  if (!isReading) return
+
+  // Space: Pause/Resume (avoid input fields and contentEditable)
+  if (e.code === 'Space') {
+    const target = e.target as HTMLElement
+    const isEditable = target.tagName === 'INPUT' || 
+                       target.tagName === 'TEXTAREA' || 
+                       target.isContentEditable ||
+                       target.getAttribute('contenteditable') === 'true'
+    
+    if (!isEditable) {
+      e.preventDefault()
+      togglePlayPause()
+      return
+    }
+  }
+
+  // Escape: Stop reading
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    stopReading()
+    return
+  }
+})
+
+function togglePlayPause() {
+  if (!currentUtterance) return
+  
+  if (isPaused) {
+    window.speechSynthesis.resume()
+    isPaused = false
+  } else {
+    window.speechSynthesis.pause()
+    isPaused = true
+  }
+  updateState()
+  updatePlayerState(isPaused)
+}
+
+function stopReading() {
+  window.speechSynthesis.cancel()
+  isReading = false
+  isPaused = false
+  currentUtterance = null
+  readingQueue = []
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
+  hidePlayer()
+  updateState()
+}
 
 

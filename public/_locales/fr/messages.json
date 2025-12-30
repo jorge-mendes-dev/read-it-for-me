@@ -235,8 +235,12 @@
     "message": "Activez la détection automatique pour les pages multilingues",
     "description": "Tip about auto-detect feature"
   },
+  "tipKeyboardShortcut": {
+    "message": "Appuyez sur Ctrl+Shift+R pour lire le texte sélectionné",
+    "description": "Tip about keyboard shortcut to read"
+  },
   "tipPause": {
-    "message": "Utilisez Espace pour mettre en pause/reprendre",
+    "message": "Appuyez sur Espace pour mettre en pause/reprendre",
     "description": "Tip about pause/resume"
   },
   "tipStop": {

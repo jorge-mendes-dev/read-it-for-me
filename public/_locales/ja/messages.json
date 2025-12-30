@@ -235,6 +235,10 @@
     "message": "多言語ページの自動検出を有効にする",
     "description": "Tip about auto-detect feature"
   },
+  "tipKeyboardShortcut": {
+    "message": "Ctrl+Shift+Rキーで選択したテキストを読み上げ",
+    "description": "Tip about keyboard shortcut to read"
+  },
   "tipPause": {
     "message": "スペースキーで一時停止/再開",
     "description": "Tip about pause/resume"

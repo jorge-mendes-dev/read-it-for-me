@@ -234,8 +234,12 @@
     "message": "Aktivieren Sie die automatische Erkennung für mehrsprachige Seiten",
     "description": "Tip about auto-detect feature"
   },
+  "tipKeyboardShortcut": {
+    "message": "Drücken Sie Strg+Umschalt+R, um ausgewählten Text zu lesen",
+    "description": "Tip about keyboard shortcut to read"
+  },
   "tipPause": {
-    "message": "Verwenden Sie die Leertaste zum Pausieren/Fortsetzen",
+    "message": "Drücken Sie die Leertaste zum Pausieren/Fortsetzen",
     "description": "Tip about pause/resume"
   },
   "tipStop": {

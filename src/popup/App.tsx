@@ -129,10 +129,30 @@ function App() {
   const [autoSelectVoice, setAutoSelectVoice] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string>('voice')
+  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('auto')
+  const [isLoadingVoices, setIsLoadingVoices] = useState(true)
+
+  // Apply theme
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      root.classList.toggle('dark', prefersDark)
+    } else {
+      root.classList.toggle('dark', theme === 'dark')
+    }
+  }, [theme])
 
   useEffect(() => {
     // Get the proper URL for the logo
     setLogoUrl(chrome.runtime.getURL('icons/icon128.png'))
+    
+    // Load theme preference
+    chrome.storage.local.get(['theme'], (result) => {
+      if (result.theme) {
+        setTheme(result.theme)
+      }
+    })
     
     // Check if first run
     chrome.storage.local.get(['hasSeenWelcome'], (result) => {
@@ -153,8 +173,10 @@ function App() {
 
     // Get available voices
     const loadVoices = () => {
+      setIsLoadingVoices(true)
       const availableVoices = window.speechSynthesis.getVoices()
       setVoices(availableVoices)
+      setIsLoadingVoices(false)
       
       // Load saved default voice settings and recent voices
       chrome.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice'], (result) => {
@@ -263,9 +285,9 @@ function App() {
 
   if (!localeReady) {
     return (
-      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-3"></div>
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-[500px] p-6 flex items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-3"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -273,26 +295,27 @@ function App() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-[500px] p-6">
+    <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-[500px] p-6 transition-colors duration-300">
       <div className="max-w-md mx-auto">
         {/* First Run Welcome */}
         {showFirstRun && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeWelcome}>
-            <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 animate-fade-in" onClick={closeWelcome} role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm mx-4 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
               <div className="text-center mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full mb-3">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mb-3">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{t('welcomeTitle')}</h2>
-                <p className="text-gray-600 text-sm mb-4">
+                <h2 id="welcome-title" className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('welcomeTitle')}</h2>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                   {t('welcomeDescription')}
                 </p>
-                <div className="bg-indigo-50 p-3 rounded-lg mb-4 text-left">
-                  <p className="text-xs font-medium text-indigo-900 mb-2">{t('quickTips')}</p>
-                  <ul className="text-xs text-indigo-700 space-y-1">
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg mb-4 text-left">
+                  <p className="text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-2">{t('quickTips')}</p>
+                  <ul className="text-xs text-indigo-700 dark:text-indigo-300 space-y-1">
                     <li>• {t('tipAutoDetect')}</li>
+                    <li>• {t('tipKeyboardShortcut')}</li>
                     <li>• {t('tipPause')}</li>
                     <li>• {t('tipStop')}</li>
                   </ul>
@@ -300,7 +323,8 @@ function App() {
               </div>
               <button
                 onClick={closeWelcome}
-                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all"
+                className="w-full py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95"
+                aria-label="Close welcome guide"
               >
                 {t('gotIt')}
               </button>
@@ -314,23 +338,54 @@ function App() {
             {logoUrl ? (
               <img src={logoUrl} alt="Read It For Me" className="w-14 h-14 rounded-2xl shadow-lg" />
             ) : (
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg flex items-center justify-center">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 </svg>
               </div>
             )}
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             {t('readItForMe')}
           </h1>
-          <p className="text-sm text-gray-600 mt-1">{t('selectTextPrompt')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('selectTextPrompt')}</p>
+          
+          {/* Theme Toggle */}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => {
+                const newTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light'
+                setTheme(newTheme)
+                chrome.storage.local.set({ theme: newTheme })
+              }}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              aria-label={`Current theme: ${theme}. Click to switch`}
+              title={`Theme: ${theme}`}
+            >
+              {theme === 'light' && (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+              {theme === 'dark' && (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+              {theme === 'auto' && (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
+          </div>
           
           {/* Help Button */}
           <button
             onClick={() => setShowFirstRun(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary dark:text-primary-light hover:text-primary-dark dark:hover:text-primary hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all duration-200"
             title="Show welcome guide"
+            aria-label="Show welcome guide"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -340,14 +395,14 @@ function App() {
         </div>
 
         {/* Settings Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 mb-4 overflow-hidden">
+        <div className="bg-white/80 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 dark:border-gray-700/50 mb-4 overflow-hidden">
           {/* Language Selection - Always Visible */}
-          <div className="p-5 border-b border-gray-100">
-            <label className="block text-xs font-medium text-gray-600 mb-2">
+          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
               {t('language')}
             </label>
             <select
-              className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
+              className="w-full p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 dark:text-white text-sm"
               value={currentLocale}
               onChange={(e) => handleLanguageChange(e.target.value)}
             >
@@ -360,47 +415,60 @@ function App() {
           </div>
 
           {/* Voice Settings - Collapsible */}
-          <div className="border-b border-gray-100">
+          <div className="border-b border-gray-100 dark:border-gray-700">
             <button
               onClick={() => toggleSection('voice')}
-              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+              aria-expanded={expandedSection === 'voice'}
+              aria-controls="voice-settings"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-primary dark:text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
-                <h2 className="text-sm font-semibold text-gray-700">{t('voice')}</h2>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('voice')}</h2>
               </div>
               <svg 
-                className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'voice' ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${expandedSection === 'voice' ? 'rotate-180' : ''}`}
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             
             {expandedSection === 'voice' && (
-              <div className="p-5 pt-0 space-y-4">
+              <div className="p-5 pt-0 space-y-4 animate-slide-down">
                 {/* Voice Selection */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label htmlFor="voice-select" className="block text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t('selectVoice')}
                     </label>
                     <button
                       onClick={testVoice}
-                      className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+                      className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-lg transition-all duration-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 hover:scale-105 active:scale-95 font-medium"
+                      aria-label="Test selected voice"
                     >
                       🔊 {t('test')}
                     </button>
                   </div>
-                  <select
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white text-sm"
-                    value={selectedVoice}
-                    onChange={(e) => setSelectedVoice(Number(e.target.value))}
-                  >
+                  {isLoadingVoices ? (
+                    <div className="animate-pulse space-y-2" role="status" aria-label="Loading voices">
+                      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                    </div>
+                  ) : (
+                    <select
+                      id="voice-select"
+                      className="w-full p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white dark:bg-gray-700 dark:text-white text-sm"
+                      value={selectedVoice}
+                      onChange={(e) => setSelectedVoice(Number(e.target.value))}
+                      aria-label="Select voice for text-to-speech"
+                    >
                     {recentVoices.length > 0 && (
                       <optgroup label="⭐ Recent">
                         {recentVoices.map(idx => {
@@ -451,14 +519,16 @@ function App() {
                       })
                     })()}
                   </select>
+                  )}
                 </div>
 
                 <button
                   id="save-default-btn"
                   onClick={saveAsDefault}
-                  className="w-full py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-success to-emerald-500 text-white text-sm font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 shadow-md flex items-center justify-center gap-2"
+                  aria-label="Save current voice as default"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   {t('saveAsDefault')}
@@ -468,16 +538,18 @@ function App() {
           </div>
 
           {/* Playback Settings - Collapsible */}
-          <div className="border-b border-gray-100">
+          <div className="border-b border-gray-100 dark:border-gray-700">
             <button
               onClick={() => toggleSection('playback')}
-              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+              className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+              aria-expanded={expandedSection === 'playback'}
+              aria-controls="playback-settings"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-primary dark:text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
-                <h2 className="text-sm font-semibold text-gray-700">{t('playback')}</h2>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('playback')}</h2>
               </div>
               <svg 
                 className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'playback' ? 'rotate-180' : ''}`}
@@ -525,17 +597,18 @@ function App() {
               className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-primary dark:text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <h2 className="text-sm font-semibold text-gray-700">{t('advanced')}</h2>
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('advanced')}</h2>
               </div>
               <svg 
-                className={`w-5 h-5 text-gray-400 transition-transform ${expandedSection === 'advanced' ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${expandedSection === 'advanced' ? 'rotate-180' : ''}`}
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -565,7 +638,7 @@ function App() {
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                     </div>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
                 </div>
               </div>
             )}
@@ -588,14 +661,14 @@ function App() {
         </div>
 
         {/* Developer Credit */}
-        <div className="text-center text-xs text-gray-500">
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
           <p>
             {t('developedBy')}{' '}
             <a
               href="https://jorgemendes.com.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+              className="text-primary dark:text-primary-light hover:text-primary-dark dark:hover:text-primary font-medium hover:underline transition-colors duration-200"
             >
               Jorge Mendes
             </a>

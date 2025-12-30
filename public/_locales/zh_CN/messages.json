@@ -234,8 +234,12 @@
     "message": "为多语言页面启用自动检测",
     "description": "Tip about auto-detect feature"
   },
+  "tipKeyboardShortcut": {
+    "message": "按Ctrl+Shift+R键朗读选定的文本",
+    "description": "Tip about keyboard shortcut to read"
+  },
   "tipPause": {
-    "message": "使用空格键暂停/继续",
+    "message": "按空格键暂停/继续",
     "description": "Tip about pause/resume"
   },
   "tipStop": {
