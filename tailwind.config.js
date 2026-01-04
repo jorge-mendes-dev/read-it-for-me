@@ -17,7 +17,7 @@ export default {
         '2xl': '2.5rem',    // 40px
         '3xl': '3rem',      // 48px
       },
-      // Semantic color system
+      // Semantic color system with improved dark mode contrast
       colors: {
         primary: {
           DEFAULT: '#6366f1',
@@ -33,6 +33,7 @@ export default {
           700: '#4338ca',
           800: '#3730a3',
           900: '#312e81',
+          950: '#1e1b4b',
         },
         secondary: {
           DEFAULT: '#8b5cf6',
@@ -48,15 +49,39 @@ export default {
           700: '#7c3aed',
           800: '#6d28d9',
           900: '#5b21b6',
+          950: '#3b0764',
         },
-        success: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
+        success: {
+          DEFAULT: '#10b981',
+          light: '#34d399',
+          dark: '#059669',
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
+          light: '#fbbf24',
+          dark: '#d97706',
+        },
+        error: {
+          DEFAULT: '#ef4444',
+          light: '#f87171',
+          dark: '#dc2626',
+        },
         surface: {
           light: '#ffffff',
           DEFAULT: '#f9fafb',
           dark: '#1f2937',
           darker: '#111827',
+        },
+        // Dark mode specific colors for better contrast
+        'dark-bg': {
+          DEFAULT: '#111827',
+          lighter: '#1f2937',
+          card: '#1e293b',
+        },
+        'dark-text': {
+          primary: '#f1f5f9',
+          secondary: '#cbd5e1',
+          tertiary: '#94a3b8',
         },
       },
       // Typography scale
