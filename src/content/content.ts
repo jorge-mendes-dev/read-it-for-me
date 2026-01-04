@@ -357,10 +357,12 @@ function createSelectionTooltip() {
         display: none !important;
         align-items: center !important;
         gap: 6px !important;
-        transition: all 0.2s !important;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         user-select: none !important;
         backdrop-filter: blur(10px) !important;
         white-space: nowrap !important;
+        opacity: 0 !important;
+        transform: translateY(-8px) scale(0.9) !important;
       }
 
       @media (prefers-color-scheme: dark) {
@@ -371,18 +373,30 @@ function createSelectionTooltip() {
       }
 
       #rifm-selection-tooltip:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5) !important;
+        transform: translateY(0) scale(1.08) !important;
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6) !important;
+      }
+
+      #rifm-selection-tooltip:active {
+        transform: translateY(0) scale(0.98) !important;
       }
 
       #rifm-selection-tooltip.show {
         display: flex !important;
+        opacity: 1 !important;
+        transform: translateY(0) scale(1) !important;
       }
 
       #rifm-selection-tooltip svg {
         width: 16px !important;
         height: 16px !important;
         fill: white !important;
+        animation: tooltipIconPulse 2s ease-in-out infinite !important;
+      }
+
+      @keyframes tooltipIconPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
       }
     </style>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -449,7 +463,13 @@ function showSelectionTooltip() {
 }
 
 function hideSelectionTooltip() {
-  selectionTooltip?.classList.remove('show')
+  if (!selectionTooltip) return
+  // Trigger exit animation before hiding
+  selectionTooltip.style.opacity = '0'
+  selectionTooltip.style.transform = 'translateY(-8px) scale(0.9)'
+  setTimeout(() => {
+    selectionTooltip?.classList.remove('show')
+  }, 300) // Match transition duration
 }
 
 // Detect language from text

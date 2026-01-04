@@ -184,6 +184,38 @@ function createFloatingPlayer() {
         }
       }
 
+      @keyframes bounceIn {
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        70% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+        20%, 40%, 60%, 80% { transform: translateX(2px); }
+      }
+
+      @keyframes progressGlow {
+        0%, 100% {
+          box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+      }
+
       #read-it-for-me-player.show {
         display: block;
       }
@@ -223,6 +255,13 @@ function createFloatingPlayer() {
         font-size: 10px;
         font-weight: 700;
         margin-left: 4px;
+        animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      .rifm-queue-badge:hover {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.4);
       }
 
       #read-it-for-me-player.mini-mode .rifm-queue-badge {
@@ -241,11 +280,16 @@ function createFloatingPlayer() {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .rifm-close:hover {
         background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg) scale(1.1);
+      }
+
+      .rifm-close:active {
+        transform: rotate(90deg) scale(0.9);
       }
 
       .rifm-progress-bar {
@@ -254,6 +298,7 @@ function createFloatingPlayer() {
         border-radius: 2px;
         margin-bottom: 12px;
         overflow: hidden;
+        position: relative;
       }
 
       .rifm-progress-fill {
@@ -261,6 +306,28 @@ function createFloatingPlayer() {
         background: white;
         width: 0%;
         transition: width 0.1s linear;
+        position: relative;
+        animation: progressGlow 2s ease-in-out infinite;
+      }
+
+      .rifm-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100px;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3));
+        animation: shimmer 2s ease-in-out infinite;
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
       }
 
       .rifm-status {
@@ -299,6 +366,19 @@ function createFloatingPlayer() {
         50% { transform: scaleY(1); opacity: 1; }
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        #read-it-for-me-player,
+        .rifm-btn,
+        .rifm-btn::before,
+        .rifm-queue-badge,
+        .rifm-progress-fill,
+        .rifm-pulse,
+        #rifm-selection-tooltip {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
       .rifm-controls {
         display: flex;
         gap: 8px;
@@ -314,12 +394,32 @@ function createFloatingPlayer() {
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
         flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .rifm-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+
+      .rifm-btn:active::before {
+        width: 300px;
+        height: 300px;
       }
 
       #read-it-for-me-player.mini-mode .rifm-btn {
@@ -342,11 +442,23 @@ function createFloatingPlayer() {
 
       .rifm-btn:hover {
         background: rgba(255, 255, 255, 0.35);
-        transform: translateY(-1px);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
       .rifm-btn:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .rifm-btn svg {
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        z-index: 1;
+      }
+
+      .rifm-btn:hover svg {
+        transform: scale(1.1) rotate(5deg);
       }
 
       .rifm-btn-stop {
