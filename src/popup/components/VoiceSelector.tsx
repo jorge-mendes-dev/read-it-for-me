@@ -49,7 +49,7 @@ export function VoiceSelector({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label htmlFor="voice-select" className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+        <label htmlFor="voice-select" className="block text-xs font-medium text-gray-700 dark:text-gray-400">
           {t('selectVoice')}
         </label>
         <button
@@ -63,7 +63,7 @@ export function VoiceSelector({
 
       <select
         id="voice-select"
-        className="w-full p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white dark:bg-gray-700 dark:text-white text-sm"
+        className="w-full p-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm shadow-sm hover:border-primary/50 cursor-pointer"
         value={selectedVoice}
         onChange={(e) => onVoiceChange(Number(e.target.value))}
         aria-label="Select voice for text-to-speech"

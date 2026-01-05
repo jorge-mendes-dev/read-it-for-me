@@ -202,11 +202,11 @@ function App() {
         <div className="bg-white/90 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 dark:border-gray-700/60 mb-4 overflow-hidden hover:shadow-3xl transition-shadow duration-300">
           {/* Language Selection - Always Visible */}
           <div className="p-5 border-b border-gray-100 dark:border-gray-700">
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('language')}
             </label>
             <select
-              className="w-full p-3.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 dark:text-white text-sm font-medium shadow-sm hover:border-primary/50 dark:hover:border-primary/50 cursor-pointer"
+              className="w-full p-3.5 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium shadow-sm hover:border-primary/50 dark:hover:border-primary/50 cursor-pointer"
               value={currentLocale}
               onChange={(e) => handleLanguageChange(e.target.value)}
             >
@@ -301,7 +301,7 @@ function App() {
             onToggle={() => toggleSection('playback')}
           >
             <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -323,7 +323,7 @@ function App() {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
               </div>
             </label>
           </SettingsSection>
@@ -359,7 +359,7 @@ function App() {
           >
             <div>
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -381,10 +381,10 @@ function App() {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
                 </div>
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-5">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
                 {t('autoDetectLanguageDesc')}
               </p>
             </div>
