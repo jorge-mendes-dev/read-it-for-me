@@ -62,6 +62,13 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   
   const voices = window.speechSynthesis.getVoices()
   
+  // Safety check: if no voices available, log error and return early
+  if (voices.length === 0) {
+    console.error('No speech synthesis voices available')
+    processNextInQueue()
+    return
+  }
+  
   if (voiceIndex !== undefined && voices[voiceIndex]) {
     utterance.voice = voices[voiceIndex]
   } else {
@@ -70,7 +77,7 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
     const bestVoice = getBestVoiceForLanguage(detectedLanguage)
     if (bestVoice) {
       utterance.voice = bestVoice
-    } else if (voices.length > 0) {
+    } else {
       utterance.voice = voices[0]
     }
   }
@@ -98,7 +105,9 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
     if (!isReading || isPaused) return
     const elapsed = (Date.now() - startTime) / 1000
     const estimated = estimatedSeconds
-    updateProgress(elapsed, estimated)
+    // Prevent progress from exceeding 100%
+    const cappedElapsed = Math.min(elapsed, estimated)
+    updateProgress(cappedElapsed, estimated)
   }, 100)
 
   utterance.onend = () => {
@@ -110,7 +119,8 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
     processNextInQueue()
   }
 
-  utterance.onerror = () => {
+  utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+    console.error('Speech synthesis error:', event.error, event)
     if (progressInterval) {
       clearInterval(progressInterval)
       progressInterval = null
@@ -237,10 +247,13 @@ function preprocessText(text: string): string {
 }
 
 function updateState() {
-  // Send update to background
+  // Send update to background (catch errors if background not ready)
   browser.runtime.sendMessage({
     action: 'stateUpdate',
     state: { isReading, isPaused, currentText: currentUtterance?.text || '' }
+  }).catch(err => {
+    // Background might not be ready yet, silently ignore
+    console.debug('Could not send state update to background:', err.message)
   })
   
   // Also dispatch custom event for floating player in same page
@@ -409,6 +422,7 @@ window.addEventListener('rifm-action', ((event: CustomEvent) => {
 
 // Selection Tooltip Button
 let selectionTooltip: HTMLDivElement | null = null
+let tooltipHideTimeout: number | null = null
 
 function createSelectionTooltip() {
   if (selectionTooltip) return
@@ -539,11 +553,18 @@ function showSelectionTooltip() {
 
 function hideSelectionTooltip() {
   if (!selectionTooltip) return
+  
+  // Clear any existing timeout to prevent multiple hide attempts
+  if (tooltipHideTimeout !== null) {
+    clearTimeout(tooltipHideTimeout)
+  }
+  
   // Trigger exit animation before hiding
   selectionTooltip.style.opacity = '0'
   selectionTooltip.style.transform = 'translateY(-8px) scale(0.9)'
-  setTimeout(() => {
+  tooltipHideTimeout = window.setTimeout(() => {
     selectionTooltip?.classList.remove('show')
+    tooltipHideTimeout = null
   }, 300) // Match transition duration
 }
 
