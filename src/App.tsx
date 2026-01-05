@@ -157,21 +157,27 @@ function App() {
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 relative group">
             {logoUrl ? (
-              <img src={logoUrl} alt="Read It For Me" className="w-14 h-14 rounded-2xl shadow-lg" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                <img src={logoUrl} alt="Read It For Me" className="relative w-16 h-16 rounded-2xl shadow-2xl ring-2 ring-white/50 dark:ring-gray-700/50 group-hover:scale-110 transition-transform duration-300" />
+              </div>
             ) : (
-              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg flex items-center justify-center">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                <div className="relative w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-2xl flex items-center justify-center ring-2 ring-white/50 dark:ring-gray-700/50 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </div>
               </div>
             )}
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
             {t('readItForMe')}
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('selectTextPrompt')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">{t('selectTextPrompt')}</p>
           
           {/* Theme Toggle */}
           <div className="flex items-center justify-center gap-2 mt-4">
@@ -181,7 +187,7 @@ function App() {
           {/* Help Button */}
           <button
             onClick={() => setShowFirstRun(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary dark:text-primary-light hover:text-primary-dark dark:hover:text-primary hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all duration-200"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
             title="Show welcome guide"
             aria-label="Show welcome guide"
           >
@@ -193,14 +199,14 @@ function App() {
         </div>
 
         {/* Settings Card */}
-        <div className="bg-white/80 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 dark:border-gray-700/50 mb-4 overflow-hidden">
+        <div className="bg-white/90 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 dark:border-gray-700/60 mb-4 overflow-hidden hover:shadow-3xl transition-shadow duration-300">
           {/* Language Selection - Always Visible */}
           <div className="p-5 border-b border-gray-100 dark:border-gray-700">
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
               {t('language')}
             </label>
             <select
-              className="w-full p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 dark:text-white text-sm"
+              className="w-full p-3.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 dark:text-white text-sm font-medium shadow-sm hover:border-primary/50 dark:hover:border-primary/50 cursor-pointer"
               value={currentLocale}
               onChange={(e) => handleLanguageChange(e.target.value)}
             >
@@ -247,9 +253,11 @@ function App() {
             <button
               id="save-default-btn"
               onClick={saveAsDefault}
-              className="w-full py-2.5 px-4 bg-gradient-to-r from-success to-emerald-500 text-white text-sm font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 shadow-md flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white text-sm font-bold rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-2 relative overflow-hidden group"
               aria-label="Save current voice as default"
             >
+              <span className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+              <span className="relative flex items-center gap-2">
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -265,6 +273,7 @@ function App() {
                 />
               </svg>
               {t('saveAsDefault')}
+              </span>
             </button>
           </SettingsSection>
 

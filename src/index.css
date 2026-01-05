@@ -84,3 +84,41 @@ textarea {
   );
   backdrop-filter: blur(10px);
 }
+
+/* Animated gradient for title */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 8s ease infinite;
+}
+
+/* Glass card effect */
+.glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass {
+  background: rgba(31, 41, 55, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced shadow utilities */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
+}
+
+.dark .shadow-3xl {
+  box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
+}
