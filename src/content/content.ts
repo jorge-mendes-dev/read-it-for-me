@@ -40,9 +40,16 @@ function processNextInQueue() {
       clearInterval(progressInterval)
       progressInterval = null
     }
-    // Don't hide player immediately - keep it visible so user can see it finished
-    // Player will be hidden when user explicitly stops or closes it
     updateState()
+    
+    // Auto-hide player after 2 seconds when reading finishes
+    if (autoHideTimeout) {
+      clearTimeout(autoHideTimeout)
+    }
+    autoHideTimeout = window.setTimeout(() => {
+      hidePlayer()
+      autoHideTimeout = null
+    }, 2000)
     return
   }
   
@@ -53,6 +60,12 @@ function processNextInQueue() {
 
 // Function to start reading (used by both queue and direct calls)
 function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number) {
+  // Clear any pending auto-hide when starting new reading
+  if (autoHideTimeout) {
+    clearTimeout(autoHideTimeout)
+    autoHideTimeout = null
+  }
+  
   const processedText = preprocessText(text)
   const utterance = new SpeechSynthesisUtterance(processedText)
   
