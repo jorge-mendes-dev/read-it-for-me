@@ -10,6 +10,7 @@ let isPaused = false
 let currentMessages: any = {}
 let progressInterval: number | null = null
 let startTime = 0
+let autoHideTimeout: number | null = null
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -39,7 +40,8 @@ function processNextInQueue() {
       clearInterval(progressInterval)
       progressInterval = null
     }
-    hidePlayer()
+    // Don't hide player immediately - keep it visible so user can see it finished
+    // Player will be hidden when user explicitly stops or closes it
     updateState()
     return
   }
@@ -367,6 +369,11 @@ window.addEventListener('rifm-action', ((event: CustomEvent) => {
   const { action, ...params } = event.detail
   
   if (action === 'stopReading') {
+    // Clear any pending auto-hide
+    if (autoHideTimeout !== null) {
+      clearTimeout(autoHideTimeout)
+      autoHideTimeout = null
+    }
     window.speechSynthesis.cancel()
     readingQueue = []
     isReading = false

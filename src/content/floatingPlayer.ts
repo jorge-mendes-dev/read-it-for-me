@@ -1090,7 +1090,9 @@ window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
   if (isReading) {
     showPlayer().then(() => updatePlayerState(isPaused)).catch(console.error)
   } else {
-    hidePlayer()
+    // When reading stops naturally (not via stop button), keep player visible
+    // Update the player state but don't hide it
+    updatePlayerState(isPaused)
   }
 }) as EventListener)
 
