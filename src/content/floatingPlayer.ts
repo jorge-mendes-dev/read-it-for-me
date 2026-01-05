@@ -810,7 +810,7 @@ function createFloatingPlayer() {
   // Event listeners
   floatingPlayer.querySelector('#rifm-close')?.addEventListener('click', hidePlayer)
   floatingPlayer.querySelector('#rifm-stop')?.addEventListener('click', () => {
-    browser.runtime.sendMessage({ action: 'stopReading' })
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'stopReading' } }))
     hidePlayer()
   })
   
@@ -831,7 +831,7 @@ function createFloatingPlayer() {
 
   // Clear queue button
   floatingPlayer.querySelector('#rifm-clear-queue')?.addEventListener('click', () => {
-    browser.runtime.sendMessage({ action: 'clearQueue' })
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'clearQueue' } }))
   })
 
   // Speed presets
@@ -842,7 +842,7 @@ function createFloatingPlayer() {
       if (speedSlider) {
         speedSlider.value = speed.toString()
         updateSliderValue('speed', speed)
-        browser.runtime.sendMessage({ action: 'updateSettings', rate: speed })
+        window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: speed } }))
         browser.storage.local.set({ defaultRate: speed })
       }
       // Update active state
@@ -959,7 +959,7 @@ function createFloatingPlayer() {
   speedSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('speed', value)
-    browser.runtime.sendMessage({ action: 'updateSettings', rate: value })
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: value } }))
     // Auto-save to storage
     browser.storage.local.set({ defaultRate: value })
   })
@@ -967,7 +967,7 @@ function createFloatingPlayer() {
   pitchSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('pitch', value)
-    browser.runtime.sendMessage({ action: 'updateSettings', pitch: value })
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', pitch: value } }))
     // Auto-save to storage
     browser.storage.local.set({ defaultPitch: value })
   })
@@ -975,7 +975,7 @@ function createFloatingPlayer() {
   volumeSlider?.addEventListener('input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('volume', value)
-    browser.runtime.sendMessage({ action: 'updateSettings', volume: value })
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', volume: value } }))
     // Auto-save to storage
     browser.storage.local.set({ defaultVolume: value })
   })
@@ -1065,13 +1065,9 @@ export function updateTimeEstimate(seconds: number) {
   }
 }
 
-async function togglePlayPause() {
-  const response: any = await browser.runtime.sendMessage({ action: 'getState' })
-  if (response?.isPaused) {
-    browser.runtime.sendMessage({ action: 'resumeReading' })
-  } else {
-    browser.runtime.sendMessage({ action: 'pauseReading' })
-  }
+function togglePlayPause() {
+  // Dispatch custom event to content script in same context
+  window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'togglePlayPause' } }))
 }
 
 // Listen for state updates from background

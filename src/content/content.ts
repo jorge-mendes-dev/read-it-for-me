@@ -283,22 +283,30 @@ browser.runtime.onMessage.addListener((request: any) => {
 
   if (request.action === 'pauseReading') {
     if (isReading && !isPaused) {
-      window.speechSynthesis.pause()
-      isPaused = true
-      updatePlayerState(true) // Update player immediately
-      updateState()
+      try {
+        window.speechSynthesis.pause()
+        isPaused = true
+        updatePlayerState(true) // Update player immediately
+        updateState()
+      } catch (error) {
+        console.error('Error pausing speech:', error)
+      }
     }
-    return Promise.resolve({ success: true })
+    return Promise.resolve({ success: true, isPaused })
   }
 
   if (request.action === 'resumeReading') {
     if (isReading && isPaused) {
-      window.speechSynthesis.resume()
-      isPaused = false
-      updatePlayerState(false) // Update player immediately
-      updateState()
+      try {
+        window.speechSynthesis.resume()
+        isPaused = false
+        updatePlayerState(false) // Update player immediately
+        updateState()
+      } catch (error) {
+        console.error('Error resuming speech:', error)
+      }
     }
-    return Promise.resolve({ success: true })
+    return Promise.resolve({ success: true, isPaused })
   }
 
   if (request.action === 'stopReading') {
@@ -311,6 +319,15 @@ browser.runtime.onMessage.addListener((request: any) => {
     updateQueueCount(0)
     updateState()
     return Promise.resolve({ success: true })
+  }
+
+  if (request.action === 'getState') {
+    return Promise.resolve({
+      isReading,
+      isPaused,
+      currentText: currentUtterance?.text || '',
+      queueLength: readingQueue.length
+    })
   }
 
   if (request.action === 'clearQueue') {
@@ -331,6 +348,60 @@ browser.runtime.onMessage.addListener((request: any) => {
 
   return Promise.resolve(null)
 });
+
+// Listen for custom events from floating player (same context)
+window.addEventListener('rifm-action', ((event: CustomEvent) => {
+  const { action, ...params } = event.detail
+  
+  if (action === 'stopReading') {
+    window.speechSynthesis.cancel()
+    readingQueue = []
+    isReading = false
+    isPaused = false
+    currentUtterance = null
+    if (progressInterval) clearInterval(progressInterval)
+    updateQueueCount(0)
+    updateState()
+  }
+  
+  if (action === 'togglePlayPause') {
+    if (isPaused) {
+      // Resume
+      try {
+        window.speechSynthesis.resume()
+        isPaused = false
+        updatePlayerState(false)
+        updateState()
+      } catch (error) {
+        console.error('Error resuming speech:', error)
+      }
+    } else if (isReading) {
+      // Pause
+      try {
+        window.speechSynthesis.pause()
+        isPaused = true
+        updatePlayerState(true)
+        updateState()
+      } catch (error) {
+        console.error('Error pausing speech:', error)
+      }
+    }
+  }
+  
+  if (action === 'clearQueue') {
+    readingQueue = []
+    updateQueueCount(0)
+  }
+  
+  if (action === 'updateSettings') {
+    // Update current utterance settings in real-time if reading
+    if (currentUtterance && isReading) {
+      if (params.rate !== undefined) currentUtterance.rate = params.rate
+      if (params.pitch !== undefined) currentUtterance.pitch = params.pitch
+      if (params.volume !== undefined) currentUtterance.volume = params.volume
+    }
+  }
+}) as EventListener)
 
 // Selection Tooltip Button
 let selectionTooltip: HTMLDivElement | null = null
