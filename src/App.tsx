@@ -14,8 +14,8 @@ function App() {
   const [localeReady, setLocaleReady] = useState(false)
   const [logoUrl] = useState(() => browser.runtime.getURL('icons/icon128.png'))
   const [recentVoices, setRecentVoices] = useState<number[]>([])
-  const [showProgressBar, setShowProgressBar] = useState(true)
-  const [autoSelectVoice, setAutoSelectVoice] = useState(false)
+  const [showProgressBar, setShowProgressBar] = useState(false)
+  const [autoSelectVoice, setAutoSelectVoice] = useState(true)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')
 
