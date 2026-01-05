@@ -359,9 +359,13 @@ window.addEventListener('rifm-action', ((event: CustomEvent) => {
     isReading = false
     isPaused = false
     currentUtterance = null
-    if (progressInterval) clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
     updateQueueCount(0)
     updateState()
+    hidePlayer()
   }
   
   if (action === 'togglePlayPause') {
@@ -768,7 +772,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     
     if (!isEditable) {
       e.preventDefault()
-      togglePlayPause()
+      window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'togglePlayPause' } }))
       return
     }
   }
@@ -776,37 +780,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   // Escape: Stop reading
   if (e.key === 'Escape') {
     e.preventDefault()
-    stopReading()
+    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'stopReading' } }))
     return
   }
 })
-
-function togglePlayPause() {
-  if (!currentUtterance) return
-  
-  if (isPaused) {
-    window.speechSynthesis.resume()
-    isPaused = false
-  } else {
-    window.speechSynthesis.pause()
-    isPaused = true
-  }
-  updateState()
-  updatePlayerState(isPaused)
-}
-
-function stopReading() {
-  window.speechSynthesis.cancel()
-  isReading = false
-  isPaused = false
-  currentUtterance = null
-  readingQueue = []
-  if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
-  }
-  hidePlayer()
-  updateState()
-}
 
 
