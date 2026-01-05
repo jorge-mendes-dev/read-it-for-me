@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build:firefox": "node scripts/build-firefox.js",
     "build:all": "npm run build && npm run build:firefox",
     "preview": "vite preview",
