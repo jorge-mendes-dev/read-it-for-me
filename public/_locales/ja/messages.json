@@ -247,6 +247,42 @@
     "message": "Escキーで読み上げを停止",
     "description": "Tip about stopping"
   },
+  "fineTuneSpeedTip": {
+    "message": "💡 フローティングプレーヤーで速度を調整",
+    "description": "Tip about adjusting speed in floating player"
+  },
+  "keyboardShortcuts": {
+    "message": "キーボードショートカット",
+    "description": "Keyboard shortcuts modal title"
+  },
+  "showKeyboardShortcuts": {
+    "message": "キーボードショートカットを表示",
+    "description": "Button aria-label and title for keyboard shortcuts"
+  },
+  "readSelectedText": {
+    "message": "選択したテキストを読み上げ",
+    "description": "Keyboard shortcut description for read"
+  },
+  "pauseResume": {
+    "message": "一時停止 / 再開",
+    "description": "Keyboard shortcut description for pause/resume"
+  },
+  "stopReading": {
+    "message": "読み上げ停止",
+    "description": "Keyboard shortcut description for stop"
+  },
+  "tooltipTip": {
+    "message": "💡 テキストを選択すると表示されるツールチップをクリックして読み上げを開始",
+    "description": "Tip about using tooltip in keyboard shortcuts modal"
+  },
+  "close": {
+    "message": "閉じる",
+    "description": "Close button label"
+  },
+  "loading": {
+    "message": "読み込み中...",
+    "description": "Loading state text"
+  },
   "gotIt": {
     "message": "了解！",
     "description": "Button to close welcome modal"  },

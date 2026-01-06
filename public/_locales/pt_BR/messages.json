@@ -247,6 +247,42 @@
     "message": "Pressione Esc para parar a leitura",
     "description": "Tip about stopping"
   },
+  "fineTuneSpeedTip": {
+    "message": "💡 Ajuste a velocidade no player flutuante",
+    "description": "Tip about adjusting speed in floating player"
+  },
+  "keyboardShortcuts": {
+    "message": "Atalhos de Teclado",
+    "description": "Keyboard shortcuts modal title"
+  },
+  "showKeyboardShortcuts": {
+    "message": "Mostrar atalhos de teclado",
+    "description": "Button aria-label and title for keyboard shortcuts"
+  },
+  "readSelectedText": {
+    "message": "Ler texto selecionado",
+    "description": "Keyboard shortcut description for read"
+  },
+  "pauseResume": {
+    "message": "Pausar / Retomar",
+    "description": "Keyboard shortcut description for pause/resume"
+  },
+  "stopReading": {
+    "message": "Parar leitura",
+    "description": "Keyboard shortcut description for stop"
+  },
+  "tooltipTip": {
+    "message": "💡 Clique na dica que aparece ao selecionar texto para iniciar a leitura",
+    "description": "Tip about using tooltip in keyboard shortcuts modal"
+  },
+  "close": {
+    "message": "Fechar",
+    "description": "Close button label"
+  },
+  "loading": {
+    "message": "Carregando...",
+    "description": "Loading state text"
+  },
   "gotIt": {
     "message": "Entendi!",
     "description": "Button to close welcome modal"

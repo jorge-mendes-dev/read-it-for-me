@@ -246,6 +246,42 @@
     "message": "按Esc键停止朗读",
     "description": "Tip about stopping"
   },
+  "fineTuneSpeedTip": {
+    "message": "💡 在浮动播放器中调整速度",
+    "description": "Tip about adjusting speed in floating player"
+  },
+  "keyboardShortcuts": {
+    "message": "键盘快捷键",
+    "description": "Keyboard shortcuts modal title"
+  },
+  "showKeyboardShortcuts": {
+    "message": "显示键盘快捷键",
+    "description": "Button aria-label and title for keyboard shortcuts"
+  },
+  "readSelectedText": {
+    "message": "朗读选中的文本",
+    "description": "Keyboard shortcut description for read"
+  },
+  "pauseResume": {
+    "message": "暂停 / 继续",
+    "description": "Keyboard shortcut description for pause/resume"
+  },
+  "stopReading": {
+    "message": "停止朗读",
+    "description": "Keyboard shortcut description for stop"
+  },
+  "tooltipTip": {
+    "message": "💡 单击选择文本时出现的提示框即可开始朗读",
+    "description": "Tip about using tooltip in keyboard shortcuts modal"
+  },
+  "close": {
+    "message": "关闭",
+    "description": "Close button label"
+  },
+  "loading": {
+    "message": "加载中...",
+    "description": "Loading state text"
+  },
   "gotIt": {
     "message": "知道了！",
     "description": "Button to close welcome modal"

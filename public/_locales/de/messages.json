@@ -246,6 +246,42 @@
     "message": "Drücken Sie Esc, um das Vorlesen zu stoppen",
     "description": "Tip about stopping"
   },
+  "fineTuneSpeedTip": {
+    "message": "💡 Passen Sie die Geschwindigkeit im schwebenden Player an",
+    "description": "Tip about adjusting speed in floating player"
+  },
+  "keyboardShortcuts": {
+    "message": "Tastaturkürzel",
+    "description": "Keyboard shortcuts modal title"
+  },
+  "showKeyboardShortcuts": {
+    "message": "Tastaturkürzel anzeigen",
+    "description": "Button aria-label and title for keyboard shortcuts"
+  },
+  "readSelectedText": {
+    "message": "Ausgewählten Text vorlesen",
+    "description": "Keyboard shortcut description for read"
+  },
+  "pauseResume": {
+    "message": "Pause / Fortsetzen",
+    "description": "Keyboard shortcut description for pause/resume"
+  },
+  "stopReading": {
+    "message": "Vorlesen stoppen",
+    "description": "Keyboard shortcut description for stop"
+  },
+  "tooltipTip": {
+    "message": "💡 Klicken Sie auf den Tooltip, der beim Auswählen von Text erscheint, um das Vorlesen zu starten",
+    "description": "Tip about using tooltip in keyboard shortcuts modal"
+  },
+  "close": {
+    "message": "Schließen",
+    "description": "Close button label"
+  },
+  "loading": {
+    "message": "Lädt...",
+    "description": "Loading state text"
+  },
   "gotIt": {
     "message": "Verstanden!",
     "description": "Button to close welcome modal"

@@ -211,8 +211,8 @@ function App() {
             <button
               onClick={() => setShowKeyboardHelp(true)}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
-              title="Keyboard shortcuts"
-              aria-label="Show keyboard shortcuts"
+              title={t('showKeyboardShortcuts')}
+              aria-label={t('showKeyboardShortcuts')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -327,30 +327,30 @@ function App() {
             {/* Quick Speed Presets */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Quick Speed Presets
+                {t('speedPresets')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 0.75 })}
                   className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
                 >
-                  🐢 Slow<br/><span className="text-[10px] opacity-90">0.75x</span>
+                  🐢 {t('presetSlow')}<br/><span className="text-[10px] opacity-90">0.75x</span>
                 </button>
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 1.0 })}
                   className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
                 >
-                  ▶️ Normal<br/><span className="text-[10px] opacity-90">1.0x</span>
+                  ▶️ {t('presetNormal')}<br/><span className="text-[10px] opacity-90">1.0x</span>
                 </button>
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 1.5 })}
                   className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
                 >
-                  ⚡ Fast<br/><span className="text-[10px] opacity-90">1.5x</span>
+                  ⚡ {t('presetFast')}<br/><span className="text-[10px] opacity-90">1.5x</span>
                 </button>
               </div>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 text-center">
-                💡 Fine-tune speed in the floating player
+                {t('fineTuneSpeedTip')}
               </p>
             </div>
             
@@ -560,12 +560,12 @@ function App() {
                   <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                   </svg>
-                  Keyboard Shortcuts
+                  {t('keyboardShortcuts')}
                 </h2>
                 <button
                   onClick={() => setShowKeyboardHelp(false)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  aria-label="Close"
+                  aria-label={t('close')}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -575,21 +575,21 @@ function App() {
               
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Read selected text</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('readSelectedText')}</span>
                   <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
                     Ctrl + Shift + R
                   </kbd>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Pause / Resume</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('pauseResume')}</span>
                   <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
                     Space
                   </kbd>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Stop reading</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('stopReading')}</span>
                   <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
                     Esc
                   </kbd>
@@ -598,7 +598,7 @@ function App() {
               
               <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  💡 Click the tooltip that appears when you select text to start reading
+                  {t('tooltipTip')}
                 </p>
               </div>
             </div>
