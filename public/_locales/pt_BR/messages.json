@@ -258,5 +258,13 @@
   "wordHighlightDesc": {
     "message": "Destacar palavras conforme são pronunciadas",
     "description": "Description for word highlight feature"
+  },
+  "followHighlight": {
+    "message": "Seguir Destaque",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "Rolar automaticamente para manter a palavra destacada na tela",
+    "description": "Description for follow highlight feature"
   }
 }

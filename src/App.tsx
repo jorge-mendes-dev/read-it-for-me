@@ -17,6 +17,7 @@ function App() {
   const [showProgressBar, setShowProgressBar] = useState(false)
   const [autoSelectVoice, setAutoSelectVoice] = useState(true)
   const [wordHighlightEnabled, setWordHighlightEnabled] = useState(false)
+  const [followHighlight, setFollowHighlight] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
@@ -42,7 +43,7 @@ function App() {
     if (!localeReady || voices.length === 0) return
 
     // Load saved default voice settings and recent voices
-    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice', 'wordHighlightEnabled']).then((result) => {
+    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice', 'wordHighlightEnabled', 'followHighlight']).then((result) => {
       const autoSelectedVoice = result.autoSelectedVoice as number | undefined
       const defaultVoiceIndex = result.defaultVoiceIndex as number | undefined
       const recentVoices = result.recentVoices as number[] | undefined
@@ -67,6 +68,10 @@ function App() {
       const wordHighlight = result.wordHighlightEnabled as boolean | undefined
       if (wordHighlight !== undefined) {
         setWordHighlightEnabled(wordHighlight)
+      }
+      const followHighlightSetting = result.followHighlight as boolean | undefined
+      if (followHighlightSetting !== undefined) {
+        setFollowHighlight(followHighlightSetting)
       }
     }).catch((error) => {
       console.error('Failed to load voice settings:', error)
@@ -467,6 +472,44 @@ function App() {
               </label>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
                 {t('wordHighlightDesc')}
+              </p>
+            </div>
+            
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  {t('followHighlight')}
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={followHighlight}
+                    onChange={(e) => {
+                      const value = e.target.checked
+                      setFollowHighlight(value)
+                      browser.storage.local.set({ followHighlight: value })
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                </div>
+              </label>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
+                {t('followHighlightDesc')}
               </p>
             </div>
           </SettingsSection>

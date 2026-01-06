@@ -256,5 +256,13 @@
   },
   "wordHighlightDesc": {
     "message": "読み上げ中の単語をハイライトする",
-    "description": "Description for word highlight feature"  }
+    "description": "Description for word highlight feature"  },
+  "followHighlight": {
+    "message": "ハイライトを追跡",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "ハイライトされた単語を表示するために自動スクロール",
+    "description": "Description for follow highlight feature"
+  }
 }

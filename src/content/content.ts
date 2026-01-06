@@ -17,6 +17,7 @@ let originalSelectionRange: Range | null = null
 let highlightFadeoutTimeout: number | null = null
 let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
 let wordHighlightEnabled: boolean = false // Track if word highlighting is enabled
+let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -268,6 +269,19 @@ function highlightCurrentWord(charIndex: number) {
                 
                 currentHighlightElement = highlight
                 lastHighlightCharIndex = charIndex // Track this position for next search
+                
+                // Scroll element into view if follow highlight is enabled
+                if (followHighlight) {
+                  setTimeout(() => {
+                    if (currentHighlightElement === highlight) {
+                      highlight.scrollIntoView({ 
+                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                        block: 'center',
+                        inline: 'nearest'
+                      })
+                    }
+                  }, prefersReducedMotion ? 0 : 100)
+                }
                 
                 found = true
                 console.debug('[RIFM] Highlighted word:', actualWord)
@@ -535,8 +549,9 @@ loadLocaleMessages().then(() => {
 })
 
 // Load word highlight setting
-browser.storage.local.get(['wordHighlightEnabled']).then((result) => {
+browser.storage.local.get(['wordHighlightEnabled', 'followHighlight']).then((result) => {
   wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? false
+  followHighlight = (result.followHighlight as boolean | undefined) ?? false
 }).catch((error) => {
   console.error('[ContentScript] Failed to load word highlight setting:', error)
 })
@@ -1127,6 +1142,9 @@ browser.storage.local.onChanged.addListener((changes) => {
   }
   if (changes.wordHighlightEnabled) {
     wordHighlightEnabled = (changes.wordHighlightEnabled.newValue as boolean | undefined) ?? false
+  }
+  if (changes.followHighlight) {
+    followHighlight = (changes.followHighlight.newValue as boolean | undefined) ?? false
   }
 })
 

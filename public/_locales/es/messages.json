@@ -258,5 +258,13 @@
   "wordHighlightDesc": {
     "message": "Resaltar palabras mientras se pronuncian",
     "description": "Description for word highlight feature"
+  },
+  "followHighlight": {
+    "message": "Seguir Resaltado",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "Desplazar automáticamente para mantener la palabra resaltada visible",
+    "description": "Description for follow highlight feature"
   }
 }

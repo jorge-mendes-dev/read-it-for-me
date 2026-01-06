@@ -256,6 +256,12 @@
   },
   "wordHighlightDesc": {
     "message": "朗读时高亮显示单词",
-    "description": "Description for word highlight feature"
-  }
+    "description": "Description for word highlight feature"  },
+  "followHighlight": {
+    "message": "跟随高亮",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "自动滚动以保持高亮单词可见",
+    "description": "Description for follow highlight feature"  }
 }

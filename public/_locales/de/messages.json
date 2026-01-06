@@ -257,5 +257,13 @@
   "wordHighlightDesc": {
     "message": "Wörter während des Sprechens hervorheben",
     "description": "Description for word highlight feature"
+  },
+  "followHighlight": {
+    "message": "Hervorhebung Folgen",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "Automatisch scrollen, um das hervorgehobene Wort sichtbar zu halten",
+    "description": "Description for follow highlight feature"
   }
 }

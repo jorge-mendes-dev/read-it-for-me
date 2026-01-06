@@ -257,6 +257,12 @@
   },
   "wordHighlightDesc": {
     "message": "Highlight words as they are spoken",
-    "description": "Description for word highlight feature"
-  }
+    "description": "Description for word highlight feature"  },
+  "followHighlight": {
+    "message": "Follow Highlight",
+    "description": "Label for follow highlight toggle"
+  },
+  "followHighlightDesc": {
+    "message": "Auto-scroll to keep highlighted word in view",
+    "description": "Description for follow highlight feature"  }
 }
