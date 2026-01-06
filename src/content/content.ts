@@ -1,7 +1,7 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
 import browser from '../utils/browser'
-import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate } from './floatingPlayer'
+import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate, destroyPlayer } from './floatingPlayer'
 import type { ReadingRequest } from '../types'
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
@@ -15,9 +15,19 @@ let currentHighlightElement: HTMLElement | null = null
 let currentReadingText: string = ''
 let originalSelectionRange: Range | null = null
 let highlightFadeoutTimeout: number | null = null
+let tooltipHideTimeout: number | null = null
 let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
 let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
+
+// Event handler references for cleanup
+let mouseUpHandler: (() => void) | null = null
+let mouseDownHandler: ((e: MouseEvent) => void) | null = null
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null
+let rifmActionHandler: ((event: CustomEvent) => void) | null = null
+let storageChangeHandler: ((changes: any) => void) | null = null
+let beforeunloadHandler: (() => void) | null = null
+let selectionTooltipClickHandler: (() => void) | null = null
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -648,6 +658,7 @@ browser.runtime.onMessage.addListener((request: any) => {
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
       readingQueue.push({ text, voiceIndex, rate, pitch, volume })
+      updateQueueCount(readingQueue.length)
       return Promise.resolve({ success: true, queued: true })
     } else {
       // Stop current if paused and start new one
@@ -656,6 +667,8 @@ browser.runtime.onMessage.addListener((request: any) => {
         currentUtterance.onerror = null
         window.speechSynthesis.cancel()
       }
+      clearWordHighlight()
+      originalSelectionRange = null
       readingQueue = [] // Clear queue
       startReading(text, voiceIndex, rate, pitch, volume)
       return Promise.resolve({ success: true, queued: false })
@@ -691,12 +704,21 @@ browser.runtime.onMessage.addListener((request: any) => {
   }
 
   if (request.action === 'stopReading') {
+    clearWordHighlight()
+    originalSelectionRange = null
     window.speechSynthesis.cancel()
     readingQueue = [] // Clear the queue
     isReading = false
     isPaused = false
     currentUtterance = null
-    if (progressInterval) clearInterval(progressInterval)
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
+    if (autoHideTimeout) {
+      clearTimeout(autoHideTimeout)
+      autoHideTimeout = null
+    }
     updateQueueCount(0)
     updateState()
     return Promise.resolve({ success: true })
@@ -731,7 +753,7 @@ browser.runtime.onMessage.addListener((request: any) => {
 });
 
 // Listen for custom events from floating player (same context)
-window.addEventListener('rifm-action', ((event: CustomEvent) => {
+rifmActionHandler = (event: CustomEvent) => {
   const { action, ...params } = event.detail
   
   if (action === 'stopReading') {
@@ -787,17 +809,17 @@ window.addEventListener('rifm-action', ((event: CustomEvent) => {
   
   if (action === 'updateSettings') {
     // Update current utterance settings in real-time if reading
-    if (currentUtterance && isReading) {
+    if (currentUtterance && isReading && !isPaused) {
       if (params.rate !== undefined) currentUtterance.rate = params.rate
       if (params.pitch !== undefined) currentUtterance.pitch = params.pitch
       if (params.volume !== undefined) currentUtterance.volume = params.volume
     }
   }
-}) as EventListener)
+}
+window.addEventListener('rifm-action', rifmActionHandler as EventListener)
 
 // Selection Tooltip Button
 let selectionTooltip: HTMLDivElement | null = null
-let tooltipHideTimeout: number | null = null
 
 function createSelectionTooltip() {
   if (selectionTooltip) return
@@ -869,7 +891,8 @@ function createSelectionTooltip() {
     <span id="rifm-tooltip-text">${getMessage('readThis')}</span>
   `
 
-  selectionTooltip.addEventListener('click', handleSelectionRead)
+  selectionTooltipClickHandler = handleSelectionRead
+  selectionTooltip.addEventListener('click', selectionTooltipClickHandler)
   document.body.appendChild(selectionTooltip)
 }
 
@@ -883,6 +906,12 @@ function updateTooltipText() {
 
 function showSelectionTooltip() {
   if (!selectionTooltip) return // Don't auto-create, wait for locale to load
+
+  // Clear any pending hide timeout to prevent race condition
+  if (tooltipHideTimeout !== null) {
+    clearTimeout(tooltipHideTimeout)
+    tooltipHideTimeout = null
+  }
 
   updateTooltipText()
   
@@ -1106,7 +1135,7 @@ function handleSelectionRead() {
 }
 
 // Store selected text and show tooltip
-document.addEventListener('mouseup', () => {
+mouseUpHandler = () => {
   // Small delay to ensure selection is complete
   setTimeout(() => {
     const selection = window.getSelection()
@@ -1119,10 +1148,11 @@ document.addEventListener('mouseup', () => {
       hideSelectionTooltip()
     }
   }, 10)
-})
+}
+document.addEventListener('mouseup', mouseUpHandler)
 
 // Hide tooltip when clicking elsewhere
-document.addEventListener('mousedown', (e: MouseEvent) => {
+mouseDownHandler = (e: MouseEvent) => {
   if (selectionTooltip && !selectionTooltip.contains(e.target as Node)) {
     // Only hide if not clicking the tooltip itself
     const selection = window.getSelection()
@@ -1130,10 +1160,11 @@ document.addEventListener('mousedown', (e: MouseEvent) => {
       hideSelectionTooltip()
     }
   }
-})
+}
+document.addEventListener('mousedown', mouseDownHandler)
 
 // Listen for language changes and settings updates
-browser.storage.local.onChanged.addListener((changes) => {
+storageChangeHandler = (changes) => {
   if (changes.selectedLocale) {
     // Reload locale messages and update UI
     loadLocaleMessages().then(() => {
@@ -1146,10 +1177,11 @@ browser.storage.local.onChanged.addListener((changes) => {
   if (changes.followHighlight) {
     followHighlight = (changes.followHighlight.newValue as boolean | undefined) ?? false
   }
-})
+}
+browser.storage.local.onChanged.addListener(storageChangeHandler)
 
 // Keyboard Shortcuts
-document.addEventListener('keydown', (e: KeyboardEvent) => {
+keydownHandler = (e: KeyboardEvent) => {
   // Ctrl+Shift+R: Read selected text (case-insensitive for 'r' key)
   if (e.ctrlKey && e.shiftKey && (e.key === 'R' || e.key === 'r')) {
     e.preventDefault()
@@ -1185,6 +1217,86 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'stopReading' } }))
     return
   }
-})
+}
+document.addEventListener('keydown', keydownHandler)
 
+// Cleanup function to prevent memory leaks
+function cleanup() {
+  // Remove all event listeners
+  if (mouseUpHandler) {
+    document.removeEventListener('mouseup', mouseUpHandler)
+    mouseUpHandler = null
+  }
+  if (mouseDownHandler) {
+    document.removeEventListener('mousedown', mouseDownHandler)
+    mouseDownHandler = null
+  }
+  if (keydownHandler) {
+    document.removeEventListener('keydown', keydownHandler)
+    keydownHandler = null
+  }
+  if (rifmActionHandler) {
+    window.removeEventListener('rifm-action', rifmActionHandler as EventListener)
+    rifmActionHandler = null
+  }
+  if (storageChangeHandler) {
+    browser.storage.local.onChanged.removeListener(storageChangeHandler)
+    storageChangeHandler = null
+  }
+  
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel()
+  
+  // Clear all timeouts and intervals
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
+  if (autoHideTimeout) {
+    clearTimeout(autoHideTimeout)
+    autoHideTimeout = null
+  }
+  if (tooltipHideTimeout) {
+    clearTimeout(tooltipHideTimeout)
+    tooltipHideTimeout = null
+  }
+  if (highlightFadeoutTimeout) {
+    clearTimeout(highlightFadeoutTimeout)
+    highlightFadeoutTimeout = null
+  }
+  
+  // Remove DOM elements
+  if (selectionTooltip) {
+    if (selectionTooltipClickHandler) {
+      selectionTooltip.removeEventListener('click', selectionTooltipClickHandler)
+      selectionTooltipClickHandler = null
+    }
+    selectionTooltip.remove()
+    selectionTooltip = null
+  }
+  if (currentHighlightElement) {
+    clearWordHighlight(false)
+  }
+  
+  // Destroy floating player
+  destroyPlayer()
+  
+  // Remove beforeunload listener
+  if (beforeunloadHandler) {
+    window.removeEventListener('beforeunload', beforeunloadHandler)
+    beforeunloadHandler = null
+  }
+  
+  // Reset state
+  readingQueue = []
+  isReading = false
+  isPaused = false
+  currentUtterance = null
+  currentReadingText = ''
+  originalSelectionRange = null
+}
+
+// Listen for page unload to cleanup
+beforeunloadHandler = cleanup
+window.addEventListener('beforeunload', beforeunloadHandler)
 

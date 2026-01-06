@@ -7,6 +7,13 @@ let isDragging = false
 const dragOffset = { x: 0, y: 0 }
 let isMiniMode = false
 
+// Event handler references for cleanup
+let stateUpdateHandler: ((event: CustomEvent) => void) | null = null
+let eventHandlers: Map<Element, Map<string, EventListener[]>> = new Map()
+let dragHandler: ((e: MouseEvent) => void) | null = null
+let stopDragHandler: (() => void) | null = null
+let rafId: number | null = null
+
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
   try {
@@ -37,8 +44,22 @@ function getMessage(key: string): string {
   if (currentMessages[key]) {
     return currentMessages[key].message
   }
-  console.warn(`[FloatingPlayer] Translation missing for key: ${key}`);
+  console.warn(`[FloatingPlayer] Translation missing for key: ${key}`)
   return key
+}
+
+// Helper to add tracked event listeners
+function addTrackedListener(element: Element | null, event: string, handler: EventListener | EventListenerObject) {
+  if (!element) return
+  element.addEventListener(event, handler)
+  if (!eventHandlers.has(element)) {
+    eventHandlers.set(element, new Map())
+  }
+  const elementHandlers = eventHandlers.get(element)!
+  if (!elementHandlers.has(event)) {
+    elementHandlers.set(event, [])
+  }
+  elementHandlers.get(event)!.push(handler as EventListener)
 }
 
 // Don't create player on load - only when needed via showPlayer()
@@ -827,16 +848,16 @@ function createFloatingPlayer() {
   })
 
   // Event listeners
-  floatingPlayer.querySelector('#rifm-close')?.addEventListener('click', hidePlayer)
-  floatingPlayer.querySelector('#rifm-stop')?.addEventListener('click', () => {
+  addTrackedListener(floatingPlayer.querySelector('#rifm-close'), 'click', hidePlayer)
+  addTrackedListener(floatingPlayer.querySelector('#rifm-stop'), 'click', () => {
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'stopReading' } }))
     hidePlayer()
   })
   
-  floatingPlayer.querySelector('#rifm-play-pause')?.addEventListener('click', togglePlayPause)
+  addTrackedListener(floatingPlayer.querySelector('#rifm-play-pause'), 'click', togglePlayPause)
   
   // Mini mode toggle
-  floatingPlayer.querySelector('#rifm-mini-toggle')?.addEventListener('click', () => {
+  addTrackedListener(floatingPlayer.querySelector('#rifm-mini-toggle'), 'click', () => {
     isMiniMode = !isMiniMode
     floatingPlayer?.classList.toggle('mini-mode', isMiniMode)
     const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
@@ -849,13 +870,13 @@ function createFloatingPlayer() {
   })
 
   // Clear queue button
-  floatingPlayer.querySelector('#rifm-clear-queue')?.addEventListener('click', () => {
+  addTrackedListener(floatingPlayer.querySelector('#rifm-clear-queue'), 'click', () => {
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'clearQueue' } }))
   })
 
   // Speed presets
   floatingPlayer.querySelectorAll('.rifm-preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    const presetHandler = () => {
       const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
       const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
       if (speedSlider) {
@@ -867,11 +888,12 @@ function createFloatingPlayer() {
       // Update active state
       floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
       btn.classList.add('active')
-    })
+    }
+    addTrackedListener(btn, 'click', presetHandler)
   })
 
   // Reset to defaults button
-  floatingPlayer.querySelector('#rifm-reset-btn')?.addEventListener('click', () => {
+  addTrackedListener(floatingPlayer.querySelector('#rifm-reset-btn'), 'click', () => {
     const defaults = { rate: 0.9, pitch: 1.0, volume: 1.0 }
     
     const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
@@ -912,7 +934,7 @@ function createFloatingPlayer() {
   })
   
   // Settings toggle
-  floatingPlayer.querySelector('#rifm-settings-toggle')?.addEventListener('click', () => {
+  addTrackedListener(floatingPlayer.querySelector('#rifm-settings-toggle'), 'click', () => {
     const panel = floatingPlayer?.querySelector('#rifm-config-panel')
     const toggle = floatingPlayer?.querySelector('#rifm-settings-toggle')
     panel?.classList.toggle('open')
@@ -921,7 +943,6 @@ function createFloatingPlayer() {
 
   // Draggable functionality
   const headerElement = floatingPlayer.querySelector('.rifm-header') as HTMLElement
-  headerElement?.addEventListener('mousedown', startDrag)
   
   function startDrag(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return // Don't drag when clicking buttons
@@ -931,12 +952,13 @@ function createFloatingPlayer() {
     dragOffset.x = e.clientX - rect.left
     dragOffset.y = e.clientY - rect.top
     
-    document.addEventListener('mousemove', drag)
-    document.addEventListener('mouseup', stopDrag)
+    // Use stored handlers for consistency with cleanup
+    if (dragHandler && stopDragHandler) {
+      document.addEventListener('mousemove', dragHandler)
+      document.addEventListener('mouseup', stopDragHandler)
+    }
     e.preventDefault()
   }
-  
-  let rafId: number | null = null
   
   function drag(e: MouseEvent) {
     if (!isDragging || !floatingPlayer) return
@@ -972,8 +994,13 @@ function createFloatingPlayer() {
     if (!isDragging) return
     isDragging = false
     floatingPlayer?.classList.remove('dragging')
-    document.removeEventListener('mousemove', drag)
-    document.removeEventListener('mouseup', stopDrag)
+    
+    if (dragHandler) {
+      document.removeEventListener('mousemove', dragHandler)
+    }
+    if (stopDragHandler) {
+      document.removeEventListener('mouseup', stopDragHandler)
+    }
     
     // Cancel any pending animation frame
     if (rafId !== null) {
@@ -992,13 +1019,19 @@ function createFloatingPlayer() {
       })
     }
   }
+  
+  // Store drag handlers BEFORE they're used in startDrag
+  dragHandler = drag
+  stopDragHandler = stopDrag
+  
+  addTrackedListener(headerElement, 'mousedown', startDrag as EventListener)
 
   // Slider controls with real-time updates
   const speedSlider = floatingPlayer.querySelector('#rifm-speed-slider')
   const pitchSlider = floatingPlayer.querySelector('#rifm-pitch-slider')
   const volumeSlider = floatingPlayer.querySelector('#rifm-volume-slider')
 
-  speedSlider?.addEventListener('input', (e) => {
+  addTrackedListener(speedSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('speed', value)
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: value } }))
@@ -1006,7 +1039,7 @@ function createFloatingPlayer() {
     browser.storage.local.set({ defaultRate: value })
   })
 
-  pitchSlider?.addEventListener('input', (e) => {
+  addTrackedListener(pitchSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('pitch', value)
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', pitch: value } }))
@@ -1014,7 +1047,7 @@ function createFloatingPlayer() {
     browser.storage.local.set({ defaultPitch: value })
   })
 
-  volumeSlider?.addEventListener('input', (e) => {
+  addTrackedListener(volumeSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('volume', value)
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', volume: value } }))
@@ -1113,7 +1146,8 @@ function togglePlayPause() {
 }
 
 // Listen for state updates from background
-browser.runtime.onMessage.addListener((message: any) => {
+let runtimeMessageListener: ((message: any) => void) | null = null
+runtimeMessageListener = (message: any) => {
   if (message.action === 'stateUpdate') {
     const { isReading, isPaused } = message.state
     
@@ -1123,10 +1157,11 @@ browser.runtime.onMessage.addListener((message: any) => {
       hidePlayer()
     }
   }
-})
+}
+browser.runtime.onMessage.addListener(runtimeMessageListener)
 
 // Also listen for direct updates from content script (same page)
-window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
+stateUpdateHandler = (event: CustomEvent) => {
   const { isReading, isPaused } = event.detail
   
   if (isReading) {
@@ -1136,14 +1171,43 @@ window.addEventListener('rifm-state-update', ((event: CustomEvent) => {
     // Update the player state but don't hide it
     updatePlayerState(isPaused)
   }
-}) as EventListener)
+}
+window.addEventListener('rifm-state-update', stateUpdateHandler as EventListener)
 
 // Listen for language changes
-browser.storage.local.onChanged.addListener((changes) => {
+let storageChangeListener: ((changes: any) => void) | null = null
+storageChangeListener = (changes) => {
   if (changes.selectedLocale) {
     // Recreate player with new locale if it exists
     if (floatingPlayer) {
       const wasShowing = floatingPlayer.classList.contains('show')
+      
+      // Clean up before recreating
+      eventHandlers.forEach((handlers, element) => {
+        handlers.forEach((handlerList, event) => {
+          handlerList.forEach(handler => {
+            element.removeEventListener(event, handler)
+          })
+        })
+      })
+      eventHandlers.clear()
+      
+      // Cancel pending animation frame
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+      
+      // Remove drag handlers
+      if (dragHandler) {
+        document.removeEventListener('mousemove', dragHandler)
+        dragHandler = null
+      }
+      if (stopDragHandler) {
+        document.removeEventListener('mouseup', stopDragHandler)
+        stopDragHandler = null
+      }
+      
       floatingPlayer.remove()
       floatingPlayer = null
       
@@ -1165,6 +1229,64 @@ browser.storage.local.onChanged.addListener((changes) => {
       progressBar.style.display = newValue !== false ? 'block' : 'none'
     }
   }
-})
+}
+browser.storage.local.onChanged.addListener(storageChangeListener)
 
+// Cleanup function to remove all event listeners
+export function destroyPlayer() {
+  // Remove all tracked DOM event listeners
+  eventHandlers.forEach((handlers, element) => {
+    handlers.forEach((handlerList, event) => {
+      handlerList.forEach(handler => {
+        element.removeEventListener(event, handler)
+      })
+    })
+  })
+  eventHandlers.clear()
+  
+  // Cancel any pending animation frame
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
+  
+  // Remove drag handlers if active
+  if (dragHandler) {
+    document.removeEventListener('mousemove', dragHandler)
+    dragHandler = null
+  }
+  if (stopDragHandler) {
+    document.removeEventListener('mouseup', stopDragHandler)
+    stopDragHandler = null
+  }
+  
+  // Remove state update listener
+  if (stateUpdateHandler) {
+    window.removeEventListener('rifm-state-update', stateUpdateHandler as EventListener)
+    stateUpdateHandler = null
+  }
+  
+  // Remove runtime message listener
+  if (runtimeMessageListener) {
+    browser.runtime.onMessage.removeListener(runtimeMessageListener)
+    runtimeMessageListener = null
+  }
+  
+  // Remove storage change listener
+  if (storageChangeListener) {
+    browser.storage.local.onChanged.removeListener(storageChangeListener)
+    storageChangeListener = null
+  }
+  
+  // Remove player from DOM
+  if (floatingPlayer) {
+    floatingPlayer.remove()
+    floatingPlayer = null
+  }
+  
+  // Reset state
+  isDragging = false
+  isMiniMode = false
+  currentMessages = {}
+}
 
