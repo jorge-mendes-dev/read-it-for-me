@@ -776,9 +776,9 @@ function createFloatingPlayer() {
     const defaultVolume = result.defaultVolume as number | undefined
     const showProgressBar = result.showProgressBar as boolean | undefined
     
-    // Show/hide progress bar based on setting (default: true)
+    // Show/hide progress bar based on setting (default: false/hidden)
     if (progressBar) {
-      progressBar.style.display = showProgressBar !== false ? 'block' : 'none'
+      progressBar.style.display = showProgressBar === true ? 'block' : 'none'
     }
     
     if (speedSlider && defaultRate !== undefined) {

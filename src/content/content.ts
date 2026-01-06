@@ -659,7 +659,7 @@ function handleSelectionRead() {
     const rate = (result.defaultRate as number | undefined) ?? 0.9
     const pitch = (result.defaultPitch as number | undefined) ?? 1
     const volume = (result.defaultVolume as number | undefined) ?? 1
-    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? false
+    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
 
     // Auto-select voice based on page language if enabled
     if (autoSelect) {
