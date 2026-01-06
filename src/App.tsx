@@ -16,7 +16,7 @@ function App() {
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(false)
   const [autoSelectVoice, setAutoSelectVoice] = useState(true)
-  const [wordHighlightEnabled, setWordHighlightEnabled] = useState(false)
+  const [wordHighlightEnabled, setWordHighlightEnabled] = useState(true)
   const [followHighlight, setFollowHighlight] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')

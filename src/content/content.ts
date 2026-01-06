@@ -16,7 +16,7 @@ let currentReadingText: string = ''
 let originalSelectionRange: Range | null = null
 let highlightFadeoutTimeout: number | null = null
 let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
-let wordHighlightEnabled: boolean = false // Track if word highlighting is enabled
+let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
 
 // Ensure voices are loaded
@@ -550,7 +550,7 @@ loadLocaleMessages().then(() => {
 
 // Load word highlight setting
 browser.storage.local.get(['wordHighlightEnabled', 'followHighlight']).then((result) => {
-  wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? false
+  wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? true
   followHighlight = (result.followHighlight as boolean | undefined) ?? false
 }).catch((error) => {
   console.error('[ContentScript] Failed to load word highlight setting:', error)
@@ -1141,7 +1141,7 @@ browser.storage.local.onChanged.addListener((changes) => {
     })
   }
   if (changes.wordHighlightEnabled) {
-    wordHighlightEnabled = (changes.wordHighlightEnabled.newValue as boolean | undefined) ?? false
+    wordHighlightEnabled = (changes.wordHighlightEnabled.newValue as boolean | undefined) ?? true
   }
   if (changes.followHighlight) {
     followHighlight = (changes.followHighlight.newValue as boolean | undefined) ?? false
