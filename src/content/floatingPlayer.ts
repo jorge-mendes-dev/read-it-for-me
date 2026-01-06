@@ -74,6 +74,19 @@ function createFloatingPlayer() {
         animation: slideIn 0.3s ease-out;
         transition: all 0.3s ease;
         cursor: move;
+        will-change: transform;
+      }
+
+      #read-it-for-me-player.dragging {
+        cursor: grabbing !important;
+        transition: none !important;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+        transform: scale(1.02);
+      }
+
+      #read-it-for-me-player.dragging * {
+        cursor: grabbing !important;
+        user-select: none !important;
       }
 
       #read-it-for-me-player.mini-mode {
@@ -225,6 +238,12 @@ function createFloatingPlayer() {
         align-items: center;
         justify-content: space-between;
         margin-bottom: 12px;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .rifm-header:active {
+        cursor: grabbing;
       }
 
       .rifm-title {
@@ -907,6 +926,7 @@ function createFloatingPlayer() {
   function startDrag(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return // Don't drag when clicking buttons
     isDragging = true
+    floatingPlayer!.classList.add('dragging')
     const rect = floatingPlayer!.getBoundingClientRect()
     dragOffset.x = e.clientX - rect.left
     dragOffset.y = e.clientY - rect.top
@@ -916,28 +936,50 @@ function createFloatingPlayer() {
     e.preventDefault()
   }
   
+  let rafId: number | null = null
+  
   function drag(e: MouseEvent) {
     if (!isDragging || !floatingPlayer) return
     
-    let newX = e.clientX - dragOffset.x
-    let newY = e.clientY - dragOffset.y
+    // Cancel previous animation frame if it exists
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+    }
     
-    // Keep within viewport
-    const rect = floatingPlayer.getBoundingClientRect()
-    newX = Math.max(0, Math.min(newX, window.innerWidth - rect.width))
-    newY = Math.max(0, Math.min(newY, window.innerHeight - rect.height))
-    
-    floatingPlayer.style.left = newX + 'px'
-    floatingPlayer.style.top = newY + 'px'
-    floatingPlayer.style.bottom = 'auto'
-    floatingPlayer.style.right = 'auto'
+    // Use requestAnimationFrame for smooth 60fps updates
+    rafId = requestAnimationFrame(() => {
+      if (!floatingPlayer) return
+      
+      let newX = e.clientX - dragOffset.x
+      let newY = e.clientY - dragOffset.y
+      
+      // Keep within viewport with padding
+      const rect = floatingPlayer.getBoundingClientRect()
+      newX = Math.max(0, Math.min(newX, window.innerWidth - rect.width))
+      newY = Math.max(0, Math.min(newY, window.innerHeight - rect.height))
+      
+      // Use transform for better performance
+      floatingPlayer.style.left = newX + 'px'
+      floatingPlayer.style.top = newY + 'px'
+      floatingPlayer.style.bottom = 'auto'
+      floatingPlayer.style.right = 'auto'
+      
+      rafId = null
+    })
   }
   
   function stopDrag() {
     if (!isDragging) return
     isDragging = false
+    floatingPlayer?.classList.remove('dragging')
     document.removeEventListener('mousemove', drag)
     document.removeEventListener('mouseup', stopDrag)
+    
+    // Cancel any pending animation frame
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId)
+      rafId = null
+    }
     
     // Save position
     if (floatingPlayer) {
