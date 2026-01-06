@@ -249,5 +249,13 @@
   "gotIt": {
     "message": "知道了！",
     "description": "Button to close welcome modal"
+  },
+  "wordHighlight": {
+    "message": "单词高亮",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "朗读时高亮显示单词",
+    "description": "Description for word highlight feature"
   }
 }

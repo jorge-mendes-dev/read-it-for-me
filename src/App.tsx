@@ -16,8 +16,10 @@ function App() {
   const [recentVoices, setRecentVoices] = useState<number[]>([])
   const [showProgressBar, setShowProgressBar] = useState(false)
   const [autoSelectVoice, setAutoSelectVoice] = useState(true)
+  const [wordHighlightEnabled, setWordHighlightEnabled] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
 
   useEffect(() => {
     // Check if first run
@@ -40,7 +42,7 @@ function App() {
     if (!localeReady || voices.length === 0) return
 
     // Load saved default voice settings and recent voices
-    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice']).then((result) => {
+    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice', 'wordHighlightEnabled']).then((result) => {
       const autoSelectedVoice = result.autoSelectedVoice as number | undefined
       const defaultVoiceIndex = result.defaultVoiceIndex as number | undefined
       const recentVoices = result.recentVoices as number[] | undefined
@@ -61,6 +63,10 @@ function App() {
       }
       if (autoSelectVoice !== undefined) {
         setAutoSelectVoice(autoSelectVoice)
+      }
+      const wordHighlight = result.wordHighlightEnabled as boolean | undefined
+      if (wordHighlight !== undefined) {
+        setWordHighlightEnabled(wordHighlight)
       }
     }).catch((error) => {
       console.error('Failed to load voice settings:', error)
@@ -184,18 +190,31 @@ function App() {
             <ThemeToggle theme={theme} onThemeChange={setTheme} />
           </div>
           
-          {/* Help Button */}
-          <button
-            onClick={() => setShowFirstRun(true)}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
-            title="Show welcome guide"
-            aria-label="Show welcome guide"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {t('help')}
-          </button>
+          {/* Help Buttons */}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => setShowFirstRun(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
+              title="Show welcome guide"
+              aria-label="Show welcome guide"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t('help')}
+            </button>
+            <button
+              onClick={() => setShowKeyboardHelp(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
+              title="Keyboard shortcuts"
+              aria-label="Show keyboard shortcuts"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              ⌨️
+            </button>
+          </div>
         </div>
 
         {/* Settings Card */}
@@ -300,6 +319,36 @@ function App() {
             isExpanded={expandedSection === 'playback'}
             onToggle={() => toggleSection('playback')}
           >
+            {/* Quick Speed Presets */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Quick Speed Presets
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => browser.storage.local.set({ defaultRate: 0.75 })}
+                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                >
+                  🐢 Slow<br/><span className="text-[10px] opacity-90">0.75x</span>
+                </button>
+                <button
+                  onClick={() => browser.storage.local.set({ defaultRate: 1.0 })}
+                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                >
+                  ▶️ Normal<br/><span className="text-[10px] opacity-90">1.0x</span>
+                </button>
+                <button
+                  onClick={() => browser.storage.local.set({ defaultRate: 1.5 })}
+                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                >
+                  ⚡ Fast<br/><span className="text-[10px] opacity-90">1.5x</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 text-center">
+                💡 Fine-tune speed in the floating player
+              </p>
+            </div>
+            
             <label className="flex items-center justify-between cursor-pointer group">
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,6 +437,38 @@ function App() {
                 {t('autoDetectLanguageDesc')}
               </p>
             </div>
+            
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                    />
+                  </svg>
+                  {t('wordHighlight')}
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={wordHighlightEnabled}
+                    onChange={(e) => {
+                      const value = e.target.checked
+                      setWordHighlightEnabled(value)
+                      browser.storage.local.set({ wordHighlightEnabled: value })
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                </div>
+              </label>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
+                {t('wordHighlightDesc')}
+              </p>
+            </div>
           </SettingsSection>
         </div>
 
@@ -420,6 +501,66 @@ function App() {
             </a>
           </p>
         </div>
+        
+        {/* Keyboard Shortcuts Modal */}
+        {showKeyboardHelp && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000000] flex items-center justify-center p-4 animate-fade-in"
+            onClick={() => setShowKeyboardHelp(false)}
+          >
+            <div 
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  </svg>
+                  Keyboard Shortcuts
+                </h2>
+                <button
+                  onClick={() => setShowKeyboardHelp(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Read selected text</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+                    Ctrl + Shift + R
+                  </kbd>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Pause / Resume</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+                    Space
+                  </kbd>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Stop reading</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+                    Esc
+                  </kbd>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  💡 Click the tooltip that appears when you select text to start reading
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -249,6 +249,12 @@
   },
   "gotIt": {
     "message": "了解！",
-    "description": "Button to close welcome modal"
-  }
+    "description": "Button to close welcome modal"  },
+  "wordHighlight": {
+    "message": "単語のハイライト",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "読み上げ中の単語をハイライトする",
+    "description": "Description for word highlight feature"  }
 }

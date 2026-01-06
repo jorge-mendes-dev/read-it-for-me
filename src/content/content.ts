@@ -11,6 +11,12 @@ let currentMessages: any = {}
 let progressInterval: number | null = null
 let startTime = 0
 let autoHideTimeout: number | null = null
+let currentHighlightElement: HTMLElement | null = null
+let currentReadingText: string = ''
+let originalSelectionRange: Range | null = null
+let highlightFadeoutTimeout: number | null = null
+let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
+let wordHighlightEnabled: boolean = false // Track if word highlighting is enabled
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -58,6 +64,317 @@ function processNextInQueue() {
   startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume)
 }
 
+// Word highlighting function
+function highlightCurrentWord(charIndex: number) {
+  // Skip if word highlighting is disabled
+  if (!wordHighlightEnabled) return
+  
+  // Remove previous highlight instantly (no animation to prevent blinking)
+  clearWordHighlight(false)
+  
+  // Find word boundaries in the spoken text using non-whitespace pattern
+  const text = currentReadingText
+  if (!text || charIndex >= text.length) return
+  
+  // Find start of word (move back while encountering non-whitespace)
+  let start = charIndex
+  while (start > 0 && /\S/.test(text[start - 1])) {
+    start--
+  }
+  
+  // Find end of word (move forward while encountering non-whitespace)
+  let end = charIndex
+  while (end < text.length && /\S/.test(text[end])) {
+    end++
+  }
+  
+  const currentWord = text.substring(start, end).trim()
+  if (!currentWord) return
+  
+  // Only highlight if this word comes after our last highlight position
+  if (charIndex <= lastHighlightCharIndex) {
+    return // Skip words we've already passed
+  }
+  
+  // Calculate which occurrence of this word we should highlight
+  // by counting how many times it appears before this position
+  const textBeforeWord = text.substring(0, start)
+  const escapedWord = currentWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp('\\b' + escapedWord + '\\b', 'gi')
+  const matchesBefore = textBeforeWord.match(regex)
+  const targetOccurrence = matchesBefore ? matchesBefore.length : 0
+  
+  // Add animation keyframes if not already added
+  if (!document.getElementById('rifm-highlight-styles')) {
+    const style = document.createElement('style')
+    style.id = 'rifm-highlight-styles'
+    style.textContent = `
+      @keyframes rifm-highlight-pulse {
+        0% { 
+          opacity: 0;
+          transform: scale(0.95);
+          box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
+        }
+        15% {
+          opacity: 1;
+          transform: scale(1.02);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+        }
+        50% { 
+          transform: scale(1.01);
+          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+        }
+        100% { 
+          transform: scale(1);
+          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+        }
+      }
+      
+      @keyframes rifm-highlight-fadeout {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.98);
+        }
+      }
+    `
+    document.head.appendChild(style)
+  }
+  
+  // Check if user prefers reduced motion
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  
+  // Try to find and highlight the word in the DOM
+  try {
+    // Use the original selection range to limit search area
+    // This prevents highlighting words outside the selected text
+    let searchRoot: Node = document.body
+    
+    if (originalSelectionRange) {
+      // Get the common ancestor of the original selection
+      searchRoot = originalSelectionRange.commonAncestorContainer
+      // If it's a text node, use its parent element
+      if (searchRoot.nodeType === Node.TEXT_NODE) {
+        searchRoot = searchRoot.parentElement || document.body
+      }
+    }
+    
+    // Case-insensitive comparison for matching
+    const lowerWord = currentWord.toLowerCase()
+    
+    // Find all text nodes in the search area
+    const walker = document.createTreeWalker(
+      searchRoot,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          // Skip script, style, and our own highlight elements
+          const parent = node.parentElement
+          if (!parent) return NodeFilter.FILTER_REJECT
+          const tagName = parent.tagName.toLowerCase()
+          if (tagName === 'script' || tagName === 'style' || parent.id === 'rifm-word-highlight') {
+            return NodeFilter.FILTER_REJECT
+          }
+          // Only accept nodes that contain the current word (case-insensitive)
+          return node.textContent && node.textContent.toLowerCase().includes(lowerWord) 
+            ? NodeFilter.FILTER_ACCEPT 
+            : NodeFilter.FILTER_REJECT
+        }
+      }
+    )
+    
+    // Find the text node and highlight position
+    let found = false
+    let node: Node | null
+    let wordsProcessed = 0
+    let occurrenceCount = 0 // Count how many times we've seen this word
+    
+    while ((node = walker.nextNode()) && !found) {
+      const textNode = node as Text
+      const content = textNode.textContent || ''
+      const lowerContent = content.toLowerCase()
+      
+      // Skip this node if it's not within the original selection range
+      if (originalSelectionRange && !isNodeInRange(textNode, originalSelectionRange)) {
+        wordsProcessed++
+        continue
+      }
+      
+      // Find all occurrences of the word in this text node
+      let searchStart = 0
+      let wordIndex = -1
+      
+      while (searchStart < content.length) {
+        wordIndex = lowerContent.indexOf(lowerWord, searchStart)
+        
+        if (wordIndex === -1) break
+        
+        // Validate this is a whole word, not a partial match (e.g., "cat" in "category")
+        const before = content[wordIndex - 1]
+        const after = content[wordIndex + currentWord.length]
+        const isWholeWord = (!before || /\s/.test(before)) && (!after || /\s/.test(after))
+        
+        if (isWholeWord) {
+          // Check if this is the occurrence we're looking for
+          if (occurrenceCount === targetOccurrence) {
+            const actualWord = content.substring(wordIndex, wordIndex + currentWord.length)
+            
+            try {
+              // Create highlight element
+              const highlight = document.createElement('span')
+              highlight.id = 'rifm-word-highlight'
+              highlight.style.cssText = `
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%);
+                color: inherit;
+                padding: 2px 4px;
+                border-radius: 6px;
+                box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                will-change: transform, opacity;
+                ${prefersReducedMotion ? 'opacity: 0;' : 'animation: rifm-highlight-pulse 0.8s cubic-bezier(0.4, 0, 0.2, 1);'}
+              `
+              
+              // Fade in smoothly for reduced motion users
+              if (prefersReducedMotion) {
+                requestAnimationFrame(() => {
+                  highlight.style.opacity = '1'
+                })
+              }
+              
+              // Split the text node to isolate the word
+              // This preserves all text and is safer than extractContents
+              const wordEndIndex = wordIndex + actualWord.length
+              
+              // If the word isn't at the start, split before it
+              let targetNode = textNode
+              if (wordIndex > 0) {
+                targetNode = textNode.splitText(wordIndex) as Text
+              }
+              
+              // If there's text after the word, split after it
+              if (wordEndIndex < content.length) {
+                targetNode.splitText(actualWord.length)
+              }
+              
+              // Now targetNode contains only the word text
+              // Wrap it in the highlight span
+              const parent = targetNode.parentNode
+              if (parent) {
+                highlight.textContent = targetNode.textContent
+                parent.replaceChild(highlight, targetNode)
+                
+                currentHighlightElement = highlight
+                lastHighlightCharIndex = charIndex // Track this position for next search
+                
+                found = true
+                console.debug('[RIFM] Highlighted word:', actualWord)
+                break
+              }
+            } catch (error) {
+              console.debug('[RIFM] Cannot highlight word (may cross element boundary):', error)
+              // Continue searching for next occurrence
+              searchStart = wordIndex + 1
+              occurrenceCount++
+              continue
+            }
+            // Successfully highlighted - increment counter
+            occurrenceCount++
+          } else {
+            // Not the target occurrence yet, keep counting
+            occurrenceCount++
+          }
+        }
+        
+        searchStart = wordIndex + 1
+      }
+      
+      wordsProcessed++
+      // Safety limit: don't process more than 1000 text nodes
+      if (wordsProcessed > 1000) {
+        console.debug('[RIFM] Stopped search after 1000 nodes for performance')
+        break
+      }
+    }
+    
+    if (!found) {
+      console.debug('[RIFM] Could not find word in DOM:', currentWord)
+    }
+  } catch (error) {
+    console.debug('[RIFM] Error highlighting word:', error)
+  }
+}
+
+function clearWordHighlight(animate: boolean = true) {
+  if (currentHighlightElement) {
+    try {
+      // Cancel any pending fadeout animation
+      if (highlightFadeoutTimeout !== null) {
+        clearTimeout(highlightFadeoutTimeout)
+        highlightFadeoutTimeout = null
+      }
+      
+      // Get the text content before removing
+      const text = currentHighlightElement.textContent || ''
+      const parent = currentHighlightElement.parentNode
+      const elementToRemove = currentHighlightElement
+      
+      // Clear the reference immediately to allow new highlights
+      currentHighlightElement = null
+      
+      if (parent && text) {
+        // Check if animations are preferred
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        
+        if (!prefersReducedMotion && animate) {
+          // Smooth fade-out before removing (only when animate is true)
+          elementToRemove.style.animation = 'rifm-highlight-fadeout 0.3s ease-out forwards'
+          
+          highlightFadeoutTimeout = window.setTimeout(() => {
+            highlightFadeoutTimeout = null
+            if (parent.contains(elementToRemove)) {
+              const textNode = document.createTextNode(text)
+              parent.replaceChild(textNode, elementToRemove)
+              // Normalize to merge adjacent text nodes and prevent fragmentation
+              parent.normalize()
+            }
+          }, 300)
+        } else {
+          // Instant removal (when animate is false or reduced motion)
+          const textNode = document.createTextNode(text)
+          parent.replaceChild(textNode, elementToRemove)
+          // Normalize to merge adjacent text nodes and prevent fragmentation
+          parent.normalize()
+        }
+      } else {
+        // Fallback: just remove the element
+        elementToRemove.remove()
+      }
+    } catch (e) {
+      // Element might already be removed
+      console.debug('[RIFM] Error clearing highlight:', e)
+    }
+  }
+}
+
+// Helper function to check if a node is within a range
+function isNodeInRange(node: Node, range: Range): boolean {
+  try {
+    const nodeRange = document.createRange()
+    nodeRange.selectNode(node)
+    
+    // Check if the node range intersects with the original selection range
+    return (
+      range.compareBoundaryPoints(Range.END_TO_START, nodeRange) <= 0 &&
+      range.compareBoundaryPoints(Range.START_TO_END, nodeRange) >= 0
+    )
+  } catch (e) {
+    return false
+  }
+}
+
 // Function to start reading (used by both queue and direct calls)
 function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number) {
   // Clear any pending auto-hide when starting new reading
@@ -101,12 +418,22 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   utterance.pitch = pitch
   utterance.volume = volume
 
-  // Word boundary tracking for potential highlighting (basic implementation)
+  // Store current text and selection range for word highlighting
+  currentReadingText = processedText
+  lastHighlightCharIndex = -1 // Reset for new reading session
+  
+  // Store the current selection range to limit highlighting to selected text
+  const selection = window.getSelection()
+  if (selection && selection.rangeCount > 0) {
+    originalSelectionRange = selection.getRangeAt(0).cloneRange()
+  } else {
+    originalSelectionRange = null
+  }
+
+  // Word boundary tracking for word highlighting
   utterance.onboundary = (event: SpeechSynthesisEvent) => {
-    if (event.name === 'word') {
-      // Store current word position for future highlighting feature
-      // This can be expanded to actually highlight words in the page
-      console.debug('Word boundary at char:', event.charIndex)
+    if (event.name === 'word' && event.charIndex !== undefined) {
+      highlightCurrentWord(event.charIndex)
     }
   }
 
@@ -126,6 +453,8 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   }, 100)
 
   utterance.onend = () => {
+    clearWordHighlight()
+    originalSelectionRange = null // Clear the stored range
     if (progressInterval) {
       clearInterval(progressInterval)
       progressInterval = null
@@ -136,6 +465,8 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
 
   utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
     console.error('Speech synthesis error:', event.error, event)
+    clearWordHighlight()
+    originalSelectionRange = null // Clear the stored range
     if (progressInterval) {
       clearInterval(progressInterval)
       progressInterval = null
@@ -201,6 +532,13 @@ loadLocaleMessages().then(() => {
   console.error('[ContentScript] Failed to load locale, creating tooltip with defaults:', error)
   // Create tooltip anyway with fallback text
   createSelectionTooltip()
+})
+
+// Load word highlight setting
+browser.storage.local.get(['wordHighlightEnabled']).then((result) => {
+  wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? false
+}).catch((error) => {
+  console.error('[ContentScript] Failed to load word highlight setting:', error)
 })
 
 // Preprocess text for natural speech
@@ -387,6 +725,8 @@ window.addEventListener('rifm-action', ((event: CustomEvent) => {
       clearTimeout(autoHideTimeout)
       autoHideTimeout = null
     }
+    clearWordHighlight()
+    originalSelectionRange = null // Clear the stored range
     window.speechSynthesis.cancel()
     readingQueue = []
     isReading = false
@@ -777,13 +1117,16 @@ document.addEventListener('mousedown', (e: MouseEvent) => {
   }
 })
 
-// Listen for language changes
+// Listen for language changes and settings updates
 browser.storage.local.onChanged.addListener((changes) => {
   if (changes.selectedLocale) {
     // Reload locale messages and update UI
     loadLocaleMessages().then(() => {
       updateTooltipText()
     })
+  }
+  if (changes.wordHighlightEnabled) {
+    wordHighlightEnabled = (changes.wordHighlightEnabled.newValue as boolean | undefined) ?? false
   }
 })
 

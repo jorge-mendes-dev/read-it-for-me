@@ -249,5 +249,13 @@
   "gotIt": {
     "message": "Verstanden!",
     "description": "Button to close welcome modal"
+  },
+  "wordHighlight": {
+    "message": "Wörter Hervorheben",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "Wörter während des Sprechens hervorheben",
+    "description": "Description for word highlight feature"
   }
 }

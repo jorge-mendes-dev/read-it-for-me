@@ -250,5 +250,13 @@
   "gotIt": {
     "message": "¡Entendido!",
     "description": "Button to close welcome modal"
+  },
+  "wordHighlight": {
+    "message": "Resaltar Palabras",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "Resaltar palabras mientras se pronuncian",
+    "description": "Description for word highlight feature"
   }
 }

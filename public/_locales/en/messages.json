@@ -250,5 +250,13 @@
   "gotIt": {
     "message": "Got it!",
     "description": "Button to close welcome modal"
+  },
+  "wordHighlight": {
+    "message": "Word Highlight",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "Highlight words as they are spoken",
+    "description": "Description for word highlight feature"
   }
 }

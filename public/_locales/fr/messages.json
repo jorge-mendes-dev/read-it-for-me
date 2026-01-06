@@ -250,5 +250,13 @@
   "gotIt": {
     "message": "Compris !",
     "description": "Button to close welcome modal"
+  },
+  "wordHighlight": {
+    "message": "Surligner les Mots",
+    "description": "Word highlight setting label"
+  },
+  "wordHighlightDesc": {
+    "message": "Surligner les mots au fur et à mesure qu'ils sont prononcés",
+    "description": "Description for word highlight feature"
   }
 }
