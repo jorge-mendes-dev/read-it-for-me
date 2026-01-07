@@ -302,5 +302,17 @@
   "followHighlightDesc": {
     "message": "Rolar automaticamente para manter a palavra destacada na tela",
     "description": "Description for follow highlight feature"
+  },
+  "smartRead": {
+    "message": "Leitura Inteligente",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "Mostrar botão para ler o artigo completo",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "Ler Artigo Completo",
+    "description": "Button text to read full article"
   }
 }

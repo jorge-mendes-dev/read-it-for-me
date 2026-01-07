@@ -20,6 +20,7 @@ let tooltipShowTimeout: number | null = null // Track tooltip show timeout
 let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
 let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
+let smartReadEnabled: boolean = false // Track if smart read feature is enabled
 
 // Event handler references for cleanup
 let mouseUpHandler: (() => void) | null = null
@@ -29,6 +30,9 @@ let rifmActionHandler: ((event: CustomEvent) => void) | null = null
 let storageChangeHandler: ((changes: any) => void) | null = null
 let beforeunloadHandler: (() => void) | null = null
 let selectionTooltipClickHandler: (() => void) | null = null
+let smartReadButton: HTMLButtonElement | null = null
+let smartReadButtonClickHandler: (() => void) | null = null
+let isCreatingSmartReadButton = false
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -461,7 +465,10 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   lastHighlightCharIndex = -1 // Reset for new reading session
   
   // Use saved range if provided (for queue items), otherwise get current selection
-  if (savedRange) {
+  // If savedRange is explicitly null (like for full article), disable highlighting
+  if (savedRange === null) {
+    originalSelectionRange = null
+  } else if (savedRange) {
     originalSelectionRange = savedRange
   } else {
     // Store the current selection range to limit highlighting to selected text
@@ -474,8 +481,9 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   }
 
   // Word boundary tracking for word highlighting
+  // Only enable if we have a valid selection range (not full article mode)
   utterance.onboundary = (event: SpeechSynthesisEvent) => {
-    if (event.name === 'word' && event.charIndex !== undefined) {
+    if (savedRange !== null && event.name === 'word' && event.charIndex !== undefined) {
       highlightCurrentWord(event.charIndex)
     }
   }
@@ -560,7 +568,8 @@ function getMessage(key: string): string {
     'pause': 'Pause',
     'resume': 'Resume',
     'stop': 'Stop',
-    'clearQueue': 'Clear Queue'
+    'clearQueue': 'Clear Queue',
+    'readFullArticle': 'Read Full Article'
   }
   return fallbacks[key] || key
 }
@@ -571,6 +580,18 @@ loadLocaleMessages().then(() => {
   createSelectionTooltip()
   // Ensure tooltip has correct text
   updateTooltipText()
+  
+  // Load smart read setting and create button if enabled
+  browser.storage.local.get(['smartRead']).then((result) => {
+    smartReadEnabled = (result.smartRead as boolean | undefined) ?? false
+    
+    // Initialize smart read button if enabled (after locale is loaded)
+    if (smartReadEnabled) {
+      detectAndShowSmartReadButton()
+    }
+  }).catch((error) => {
+    console.error('[ContentScript] Failed to load smart read setting:', error)
+  })
 }).catch((error) => {
   console.error('[ContentScript] Failed to load locale, creating tooltip with defaults:', error)
   // Create tooltip anyway with fallback text
@@ -1046,6 +1067,45 @@ function detectLanguageFromText(text: string): string {
 }
 
 // Get best voice for detected language
+// Score a voice based on quality indicators
+function scoreVoice(voice: SpeechSynthesisVoice, fullLangCode: string): number {
+  let score = 0
+  const name = voice.name.toLowerCase()
+  const lang = voice.lang.toLowerCase()
+  
+  // Exact language match bonus
+  if (lang === fullLangCode) score += 50
+  else if (lang.startsWith(fullLangCode)) score += 30
+  
+  // Premium quality indicators
+  if (name.includes('neural')) score += 100
+  if (name.includes('premium')) score += 90
+  if (name.includes('enhanced')) score += 80
+  if (name.includes('natural')) score += 70
+  
+  // Prefer Microsoft/Edge voices (usually higher quality)
+  if (name.includes('microsoft')) score += 40
+  if (name.includes('edge')) score += 40
+  
+  // Google voices are generally good
+  if (name.includes('google')) score += 30
+  
+  // Avoid robotic/poor quality voices
+  if (name.includes('espeak')) score -= 50
+  if (name.includes('festival')) score -= 50
+  
+  // Prefer local voices (usually faster and more reliable)
+  if (voice.localService) score += 20
+  
+  // Female voices often sound more natural
+  if (name.includes('female') || name.includes('aria') || name.includes('zira') || 
+      name.includes('heera') || name.includes('susan') || name.includes('samantha')) {
+    score += 15
+  }
+  
+  return score
+}
+
 function getBestVoiceForLanguage(language: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   const langCode = language.split('-')[0].toLowerCase()
@@ -1117,48 +1177,9 @@ function handleSelectionRead() {
       })
       
       if (matchingVoices.length > 0) {
-        // Score each voice based on quality indicators
-        const scoreVoice = (voice: SpeechSynthesisVoice): number => {
-          let score = 0
-          const name = voice.name.toLowerCase()
-          const lang = voice.lang.toLowerCase()
-          
-          // Exact language match bonus
-          if (lang === fullLangCode) score += 50
-          else if (lang.startsWith(fullLangCode)) score += 30
-          
-          // Premium quality indicators
-          if (name.includes('neural')) score += 100
-          if (name.includes('premium')) score += 90
-          if (name.includes('enhanced')) score += 80
-          if (name.includes('natural')) score += 70
-          
-          // Prefer Microsoft/Edge voices (usually higher quality)
-          if (name.includes('microsoft')) score += 40
-          if (name.includes('edge')) score += 40
-          
-          // Google voices are generally good
-          if (name.includes('google')) score += 30
-          
-          // Avoid robotic/poor quality voices
-          if (name.includes('espeak')) score -= 50
-          if (name.includes('festival')) score -= 50
-          
-          // Prefer local voices (usually faster and more reliable)
-          if (voice.localService) score += 20
-          
-          // Female voices often sound more natural
-          if (name.includes('female') || name.includes('aria') || name.includes('zira') || 
-              name.includes('heera') || name.includes('susan') || name.includes('samantha')) {
-            score += 15
-          }
-          
-          return score
-        }
-        
         // Sort voices by score and pick the best
         const rankedVoices = matchingVoices
-          .map(voice => ({ voice, score: scoreVoice(voice) }))
+          .map(voice => ({ voice, score: scoreVoice(voice, fullLangCode) }))
           .sort((a, b) => b.score - a.score)
         
         const bestVoice = rankedVoices[0].voice
@@ -1239,7 +1260,13 @@ storageChangeHandler = (changes) => {
   if (changes.selectedLocale) {
     // Reload locale messages and update UI
     loadLocaleMessages().then(() => {
-      updateTooltipText()
+      // Small delay to ensure messages are fully loaded
+      setTimeout(() => {
+        updateTooltipText()
+        if (smartReadButton) {
+          updateSmartReadButtonText()
+        }
+      }, 50)
     })
   }
   if (changes.wordHighlightEnabled) {
@@ -1247,6 +1274,14 @@ storageChangeHandler = (changes) => {
   }
   if (changes.followHighlight) {
     followHighlight = (changes.followHighlight.newValue as boolean | undefined) ?? false
+  }
+  if (changes.smartRead) {
+    smartReadEnabled = (changes.smartRead.newValue as boolean | undefined) ?? false
+    if (smartReadEnabled) {
+      detectAndShowSmartReadButton()
+    } else {
+      hideSmartReadButton()
+    }
   }
 }
 browser.storage.local.onChanged.addListener(storageChangeHandler)
@@ -1290,6 +1325,352 @@ keydownHandler = (e: KeyboardEvent) => {
   }
 }
 document.addEventListener('keydown', keydownHandler)
+
+// Smart Read Feature - Detect and show button for full article reading
+function detectArticleContent(): string | null {
+  // Helper to check if element should be excluded
+  const shouldExcludeElement = (element: Element): boolean => {
+    const tagName = element.tagName.toLowerCase()
+    const className = element.className.toString().toLowerCase()
+    const id = element.id.toLowerCase()
+    
+    // Exclude navigation, headers, footers, sidebars, ads, etc.
+    const excludedTags = ['nav', 'header', 'footer', 'aside', 'script', 'style', 'iframe', 'form', 'button']
+    if (excludedTags.includes(tagName)) return true
+    
+    // Exclude by class/id keywords
+    const excludedKeywords = [
+      'nav', 'menu', 'sidebar', 'header', 'footer', 'advertisement', 'ad-',
+      'cookie', 'banner', 'popup', 'modal', 'comment', 'share', 'social',
+      'related', 'recommend', 'widget', 'promo', 'sponsored', 'subscribe'
+    ]
+    
+    for (const keyword of excludedKeywords) {
+      if (className.includes(keyword) || id.includes(keyword)) {
+        return true
+      }
+    }
+    
+    return false
+  }
+  
+  // Helper to extract clean text from element
+  const getCleanText = (element: Element): string => {
+    const clone = element.cloneNode(true) as Element
+    
+    // Remove script, style, and excluded elements from clone
+    const toRemove = clone.querySelectorAll('script, style, nav, header, footer, aside, iframe, form, button, [class*="nav"], [class*="menu"], [class*="sidebar"], [class*="comment"], [class*="ad-"], [class*="share"]')
+    toRemove.forEach(el => el.remove())
+    
+    return clone.textContent?.trim() || ''
+  }
+  
+  // Try common article selectors with clean text extraction
+  const articleSelectors = [
+    'article[role="article"]',
+    'article',
+    '[role="article"]',
+    'main article',
+    '.article-content',
+    '.post-content',
+    '.entry-content',
+    '.article-body',
+    '.story-body',
+    'main .content'
+  ]
+  
+  for (const selector of articleSelectors) {
+    const elements = document.querySelectorAll(selector)
+    for (const element of elements) {
+      if (shouldExcludeElement(element)) continue
+      
+      const text = getCleanText(element)
+      // Check if it has substantial content (more than 500 characters)
+      if (text && text.length > 500) {
+        return text
+      }
+    }
+  }
+  
+  // Fallback: Find element with highest text density in main content
+  const mainContent = document.querySelector('main') || document.body
+  const candidates = mainContent.querySelectorAll<HTMLElement>('article, section, div[class*="content"], div[class*="article"], div[class*="post"]')
+  
+  let bestElement: HTMLElement | null = null
+  let bestScore = 0
+  
+  // Limit search to first 50 candidates for performance
+  const maxCandidates = Math.min(candidates.length, 50)
+  for (let i = 0; i < maxCandidates; i++) {
+    const element = candidates[i]
+    
+    // Skip excluded elements
+    if (shouldExcludeElement(element)) continue
+    
+    // Skip elements that are too small
+    const rect = element.getBoundingClientRect()
+    if (rect.width < 200 || rect.height < 100) continue
+    
+    const cleanText = getCleanText(element)
+    if (cleanText.length < 500) continue
+    
+    // Calculate score based on text length and paragraph count
+    const paragraphs = element.querySelectorAll('p').length
+    const textLength = cleanText.length
+    
+    // Prefer elements with more paragraphs and longer text
+    const score = textLength + (paragraphs * 100)
+    
+    if (score > bestScore) {
+      bestScore = score
+      bestElement = element
+    }
+  }
+  
+  if (bestElement) {
+    return getCleanText(bestElement)
+  }
+  
+  return null
+}
+
+function createSmartReadButton() {
+  if (smartReadButton) return
+  
+  smartReadButton = document.createElement('button')
+  smartReadButton.id = 'rifm-smart-read-button'
+  
+  // Create style element
+  const style = document.createElement('style')
+  style.textContent = `
+    #rifm-smart-read-button {
+      position: fixed !important;
+      bottom: 80px !important;
+      right: 20px !important;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 50px !important;
+      padding: 14px 24px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      z-index: 2147483645 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      user-select: none !important;
+      backdrop-filter: blur(10px) !important;
+      white-space: nowrap !important;
+      opacity: 0 !important;
+      transform: translateY(100px) scale(0.8) !important;
+    }
+    
+    #rifm-smart-read-button.show {
+      opacity: 1 !important;
+      transform: translateY(0) scale(1) !important;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      #rifm-smart-read-button {
+        background: linear-gradient(135deg, #4f52dd 0%, #7748e2 100%) !important;
+        box-shadow: 0 4px 12px rgba(79, 82, 221, 0.5) !important;
+      }
+    }
+    
+    #rifm-smart-read-button:hover {
+      transform: translateY(-2px) scale(1.05) !important;
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6) !important;
+    }
+    
+    #rifm-smart-read-button:active {
+      transform: translateY(0) scale(0.98) !important;
+    }
+    
+    #rifm-smart-read-button svg {
+      width: 18px !important;
+      height: 18px !important;
+      stroke: white !important;
+      fill: none !important;
+      flex-shrink: 0 !important;
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      #rifm-smart-read-button {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+  `
+  
+  // Create SVG icon
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('fill', 'none')
+  svg.setAttribute('stroke', 'currentColor')
+  
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute('stroke-linecap', 'round')
+  path.setAttribute('stroke-linejoin', 'round')
+  path.setAttribute('stroke-width', '2')
+  path.setAttribute('d', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z')
+  
+  svg.appendChild(path)
+  
+  // Create text span
+  const textSpan = document.createElement('span')
+  textSpan.id = 'rifm-smart-read-text'
+  textSpan.textContent = getMessage('readFullArticle')
+  
+  // Assemble button
+  smartReadButton.appendChild(svg)
+  smartReadButton.appendChild(textSpan)
+  
+  // Add click handler BEFORE appending to DOM
+  smartReadButtonClickHandler = handleSmartRead
+  smartReadButton.addEventListener('click', smartReadButtonClickHandler)
+  
+  // Append style and button to document
+  if (!document.getElementById('rifm-smart-read-styles')) {
+    style.id = 'rifm-smart-read-styles'
+    document.head.appendChild(style)
+  }
+  document.body.appendChild(smartReadButton)
+  
+  // Animate in
+  setTimeout(() => {
+    smartReadButton?.classList.add('show')
+  }, 100)
+}
+
+function updateSmartReadButtonText() {
+  if (!smartReadButton) return
+  const textSpan = document.querySelector('#rifm-smart-read-text') as HTMLElement
+  if (textSpan) {
+    const translatedText = getMessage('readFullArticle')
+    textSpan.textContent = translatedText
+  }
+}
+
+function hideSmartReadButton() {
+  if (!smartReadButton) return
+  
+  smartReadButton.classList.remove('show')
+  setTimeout(() => {
+    if (smartReadButton) {
+      if (smartReadButtonClickHandler) {
+        smartReadButton.removeEventListener('click', smartReadButtonClickHandler)
+        smartReadButtonClickHandler = null
+      }
+      smartReadButton.remove()
+      smartReadButton = null
+    }
+  }, 300)
+}
+
+function detectAndShowSmartReadButton() {
+  // Only show if article content is detected and not already creating
+  if (isCreatingSmartReadButton || smartReadButton) return
+  
+  const articleText = detectArticleContent()
+  if (articleText) {
+    isCreatingSmartReadButton = true
+    createSmartReadButton()
+    isCreatingSmartReadButton = false
+  }
+}
+
+function handleSmartRead() {
+  const articleText = detectArticleContent()
+  if (!articleText) {
+    console.warn('[RIFM] No article content detected')
+    return
+  }
+  
+  hideSmartReadButton()
+
+  // Get page language from various sources
+  const getPageLanguage = (): string => {
+    // Try document lang attribute first
+    const htmlLang = document.documentElement.lang
+    if (htmlLang) return htmlLang
+    
+    // Try meta content-language
+    const metaLang = document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content')
+    if (metaLang) return metaLang
+    
+    // Try meta language
+    const metaLang2 = document.querySelector('meta[name="language"]')?.getAttribute('content')
+    if (metaLang2) return metaLang2
+    
+    // Fallback to text detection
+    return detectLanguageFromText(articleText)
+  }
+
+  // Get saved voice settings (using same logic as handleSelectionRead)
+  browser.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice']).then(async (result) => {
+    let voiceIndex = result.defaultVoiceIndex as number | undefined
+    const rate = (result.defaultRate as number | undefined) ?? 0.9
+    const pitch = (result.defaultPitch as number | undefined) ?? 1
+    const volume = (result.defaultVolume as number | undefined) ?? 1
+    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
+
+    // Auto-select voice based on page language if enabled
+    if (autoSelect) {
+      // Wait for voices to be loaded
+      const voices = await ensureVoicesLoaded()
+      const pageLang = getPageLanguage()
+      const langCode = pageLang.split('-')[0].toLowerCase()
+      const fullLangCode = pageLang.toLowerCase()
+      
+      // Find matching voices for page language
+      const matchingVoices = voices.filter(voice => {
+        const voiceLang = voice.lang.toLowerCase()
+        return voiceLang.startsWith(langCode) || 
+               voiceLang === fullLangCode ||
+               voiceLang.startsWith(fullLangCode)
+      })
+      
+      if (matchingVoices.length > 0) {
+        // Sort voices by score and pick the best
+        const rankedVoices = matchingVoices
+          .map(voice => ({ voice, score: scoreVoice(voice, fullLangCode) }))
+          .sort((a, b) => b.score - a.score)
+        
+        const bestVoice = rankedVoices[0].voice
+        voiceIndex = voices.indexOf(bestVoice)
+        
+        // Save the auto-selected voice so the popup can update
+        browser.storage.local.set({ autoSelectedVoice: voiceIndex })
+      }
+    }
+
+    // Add to queue if already reading, otherwise start immediately
+    if (isReading && !isPaused) {
+      readingQueue.push({ text: articleText, voiceIndex, rate, pitch, volume })
+      queuedSelectionRanges.push(null) // No selection range for full article
+      showPlayer().then(() => updateQueueCount(readingQueue.length))
+    } else {
+      // Stop current if paused and start new one
+      if (currentUtterance) {
+        currentUtterance.onend = null
+        currentUtterance.onerror = null
+        window.speechSynthesis.cancel()
+      }
+      readingQueue = [] // Clear queue
+      queuedSelectionRanges = [] // Clear saved ranges
+      // Pass null as savedRange to disable highlighting for full article
+      startReading(articleText, voiceIndex, rate, pitch, volume, null)
+    }
+  }).catch((error) => {
+    console.error('Failed to load voice settings for smart read:', error)
+    // Fallback: start reading with default settings
+    startReading(articleText, undefined, 0.9, 1, 1, null)
+  })
+}
 
 // Cleanup function to prevent memory leaks
 function cleanup() {
@@ -1358,6 +1739,22 @@ function cleanup() {
   if (currentHighlightElement) {
     clearWordHighlight(false)
   }
+  if (smartReadButton) {
+    if (smartReadButtonClickHandler) {
+      smartReadButton.removeEventListener('click', smartReadButtonClickHandler)
+      smartReadButtonClickHandler = null
+    }
+    smartReadButton.remove()
+    smartReadButton = null
+  }
+  
+  // Remove smart read styles
+  const smartReadStyles = document.getElementById('rifm-smart-read-styles')
+  if (smartReadStyles) {
+    smartReadStyles.remove()
+  }
+  
+  isCreatingSmartReadButton = false
   
   // Destroy floating player
   destroyPlayer()

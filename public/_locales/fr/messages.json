@@ -301,6 +301,16 @@
   },
   "followHighlightDesc": {
     "message": "Faire défiler automatiquement pour garder le mot surligné visible",
-    "description": "Description for follow highlight feature"
-  }
+    "description": "Description for follow highlight feature"  },
+  "smartRead": {
+    "message": "Lecture Intelligente",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "Afficher le bouton pour lire l'article complet",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "Lire l'Article Complet",
+    "description": "Button text to read full article"  }
 }

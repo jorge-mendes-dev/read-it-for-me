@@ -299,5 +299,18 @@
   },
   "followHighlightDesc": {
     "message": "自动滚动以保持高亮单词可见",
-    "description": "Description for follow highlight feature"  }
+    "description": "Description for follow highlight feature"
+  },
+  "smartRead": {
+    "message": "智能阅读",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "显示读取完整文章的按钮",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "阅读完整文章",
+    "description": "Button text to read full article"
+  }
 }

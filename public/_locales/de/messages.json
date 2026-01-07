@@ -300,6 +300,16 @@
   },
   "followHighlightDesc": {
     "message": "Automatisch scrollen, um das hervorgehobene Wort sichtbar zu halten",
-    "description": "Description for follow highlight feature"
-  }
+    "description": "Description for follow highlight feature"  },
+  "smartRead": {
+    "message": "Intelligentes Lesen",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "Schaltfläche zum Lesen des vollständigen Artikels anzeigen",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "Vollständigen Artikel vorlesen",
+    "description": "Button text to read full article"  }
 }

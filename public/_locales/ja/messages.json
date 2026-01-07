@@ -300,5 +300,17 @@
   "followHighlightDesc": {
     "message": "ハイライトされた単語を表示するために自動スクロール",
     "description": "Description for follow highlight feature"
+  },
+  "smartRead": {
+    "message": "スマート読み上げ",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "記事全体を読み上げるボタンを表示",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "記事全体を読む",
+    "description": "Button text to read full article"
   }
 }

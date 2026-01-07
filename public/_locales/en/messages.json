@@ -300,5 +300,18 @@
   },
   "followHighlightDesc": {
     "message": "Auto-scroll to keep highlighted word in view",
-    "description": "Description for follow highlight feature"  }
+    "description": "Description for follow highlight feature"
+  },
+  "smartRead": {
+    "message": "Smart Read",
+    "description": "Label for smart read toggle"
+  },
+  "smartReadDesc": {
+    "message": "Show button to read full article content",
+    "description": "Description for smart read feature"
+  },
+  "readFullArticle": {
+    "message": "Read Full Article",
+    "description": "Button text to read full article"
+  }
 }
