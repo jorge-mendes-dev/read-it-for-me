@@ -68,6 +68,9 @@ function processNextInQueue() {
     }
     updateState()
     
+    // Show smart read button again if enabled
+    showSmartReadButtonIfNeeded()
+    
     // Auto-hide player after 2 seconds when reading finishes
     if (autoHideTimeout) {
       clearTimeout(autoHideTimeout)
@@ -850,6 +853,9 @@ rifmActionHandler = (event: CustomEvent) => {
     updateQueueCount(0)
     updateState()
     hidePlayer()
+    
+    // Show smart read button again if enabled
+    showSmartReadButtonIfNeeded()
   }
   
   if (action === 'togglePlayPause') {
@@ -1592,6 +1598,20 @@ function detectAndShowSmartReadButton() {
     createSmartReadButton()
     isCreatingSmartReadButton = false
   }
+}
+
+// Helper to show smart read button after reading completes
+function showSmartReadButtonIfNeeded() {
+  // Check if smart read is enabled
+  browser.storage.local.get(['smartRead']).then((result) => {
+    const smartReadEnabled = result.smartRead as boolean | undefined
+    if (smartReadEnabled) {
+      // Small delay to ensure reading state is settled
+      setTimeout(() => {
+        detectAndShowSmartReadButton()
+      }, 100)
+    }
+  })
 }
 
 function handleSmartRead() {
