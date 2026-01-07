@@ -481,9 +481,8 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   }
 
   // Word boundary tracking for word highlighting
-  // Only enable if we have a valid selection range (not full article mode)
   utterance.onboundary = (event: SpeechSynthesisEvent) => {
-    if (savedRange !== null && event.name === 'word' && event.charIndex !== undefined) {
+    if (event.name === 'word' && event.charIndex !== undefined) {
       highlightCurrentWord(event.charIndex)
     }
   }
@@ -1327,7 +1326,7 @@ keydownHandler = (e: KeyboardEvent) => {
 document.addEventListener('keydown', keydownHandler)
 
 // Smart Read Feature - Detect and show button for full article reading
-function detectArticleContent(): string | null {
+function detectArticleContent(): { text: string; element: Element } | null {
   // Helper to check if element should be excluded
   const shouldExcludeElement = (element: Element): boolean => {
     const tagName = element.tagName.toLowerCase()
@@ -1387,7 +1386,7 @@ function detectArticleContent(): string | null {
       const text = getCleanText(element)
       // Check if it has substantial content (more than 500 characters)
       if (text && text.length > 500) {
-        return text
+        return { text, element }
       }
     }
   }
@@ -1428,10 +1427,22 @@ function detectArticleContent(): string | null {
   }
   
   if (bestElement) {
-    return getCleanText(bestElement)
+    return { text: getCleanText(bestElement), element: bestElement }
   }
   
   return null
+}
+
+// Helper to create a range from an element
+function createRangeFromElement(element: Element): Range | null {
+  try {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    return range
+  } catch (e) {
+    console.debug('[RIFM] Could not create range from element:', e)
+    return null
+  }
 }
 
 function createSmartReadButton() {
@@ -1575,8 +1586,8 @@ function detectAndShowSmartReadButton() {
   // Only show if article content is detected and not already creating
   if (isCreatingSmartReadButton || smartReadButton) return
   
-  const articleText = detectArticleContent()
-  if (articleText) {
+  const articleContent = detectArticleContent()
+  if (articleContent) {
     isCreatingSmartReadButton = true
     createSmartReadButton()
     isCreatingSmartReadButton = false
@@ -1584,11 +1595,14 @@ function detectAndShowSmartReadButton() {
 }
 
 function handleSmartRead() {
-  const articleText = detectArticleContent()
-  if (!articleText) {
+  const articleContent = detectArticleContent()
+  if (!articleContent) {
     console.warn('[RIFM] No article content detected')
     return
   }
+  
+  const { text: articleText, element: articleElement } = articleContent
+  const articleRange = createRangeFromElement(articleElement)
   
   hideSmartReadButton()
 
@@ -1651,7 +1665,7 @@ function handleSmartRead() {
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
       readingQueue.push({ text: articleText, voiceIndex, rate, pitch, volume })
-      queuedSelectionRanges.push(null) // No selection range for full article
+      queuedSelectionRanges.push(articleRange) // Article range for highlighting
       showPlayer().then(() => updateQueueCount(readingQueue.length))
     } else {
       // Stop current if paused and start new one
@@ -1662,13 +1676,13 @@ function handleSmartRead() {
       }
       readingQueue = [] // Clear queue
       queuedSelectionRanges = [] // Clear saved ranges
-      // Pass null as savedRange to disable highlighting for full article
-      startReading(articleText, voiceIndex, rate, pitch, volume, null)
+      // Pass article range for word highlighting
+      startReading(articleText, voiceIndex, rate, pitch, volume, articleRange)
     }
   }).catch((error) => {
     console.error('Failed to load voice settings for smart read:', error)
-    // Fallback: start reading with default settings
-    startReading(articleText, undefined, 0.9, 1, 1, null)
+    // Fallback: start reading with default settings and article range
+    startReading(articleText, undefined, 0.9, 1, 1, articleRange)
   })
 }
 
