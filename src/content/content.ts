@@ -46,6 +46,7 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
 
 // Queue system for reading requests
 let readingQueue: ReadingRequest[] = []
+let queuedSelectionRanges: (Range | null)[] = [] // Store selection ranges for each queue item
 
 // Function to process next item in queue
 function processNextInQueue() {
@@ -70,9 +71,14 @@ function processNextInQueue() {
     return
   }
   
-  updateQueueCount(readingQueue.length)
   const request = readingQueue.shift()!
-  startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume)
+  const savedRange = queuedSelectionRanges.shift() || null
+  
+  // Update count after shifting to show correct remaining items
+  updateQueueCount(readingQueue.length)
+  
+  // Pass the saved range to startReading for queue items
+  startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume, savedRange)
 }
 
 // Word highlighting function
@@ -400,7 +406,7 @@ function isNodeInRange(node: Node, range: Range): boolean {
 }
 
 // Function to start reading (used by both queue and direct calls)
-function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number) {
+function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number, savedRange?: Range | null) {
   // Clear any pending auto-hide when starting new reading
   if (autoHideTimeout) {
     clearTimeout(autoHideTimeout)
@@ -446,12 +452,17 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   currentReadingText = processedText
   lastHighlightCharIndex = -1 // Reset for new reading session
   
-  // Store the current selection range to limit highlighting to selected text
-  const selection = window.getSelection()
-  if (selection && selection.rangeCount > 0) {
-    originalSelectionRange = selection.getRangeAt(0).cloneRange()
+  // Use saved range if provided (for queue items), otherwise get current selection
+  if (savedRange) {
+    originalSelectionRange = savedRange
   } else {
-    originalSelectionRange = null
+    // Store the current selection range to limit highlighting to selected text
+    const selection = window.getSelection()
+    if (selection && selection.rangeCount > 0) {
+      originalSelectionRange = selection.getRangeAt(0).cloneRange()
+    } else {
+      originalSelectionRange = null
+    }
   }
 
   // Word boundary tracking for word highlighting
@@ -655,10 +666,17 @@ browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'startReading') {
     const { text, voiceIndex, rate, pitch, volume } = request
     
+    // Save current selection range for queue highlighting
+    const selection = window.getSelection()
+    const selectionRange = (selection && selection.rangeCount > 0) 
+      ? selection.getRangeAt(0).cloneRange() 
+      : null
+    
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
       readingQueue.push({ text, voiceIndex, rate, pitch, volume })
-      updateQueueCount(readingQueue.length)
+      queuedSelectionRanges.push(selectionRange)
+      showPlayer().then(() => updateQueueCount(readingQueue.length)) // Ensure player is visible first
       return Promise.resolve({ success: true, queued: true })
     } else {
       // Stop current if paused and start new one
@@ -670,6 +688,7 @@ browser.runtime.onMessage.addListener((request: any) => {
       clearWordHighlight()
       originalSelectionRange = null
       readingQueue = [] // Clear queue
+      queuedSelectionRanges = [] // Clear saved ranges
       startReading(text, voiceIndex, rate, pitch, volume)
       return Promise.resolve({ success: true, queued: false })
     }
@@ -708,6 +727,7 @@ browser.runtime.onMessage.addListener((request: any) => {
     originalSelectionRange = null
     window.speechSynthesis.cancel()
     readingQueue = [] // Clear the queue
+    queuedSelectionRanges = [] // Clear saved ranges
     isReading = false
     isPaused = false
     currentUtterance = null
@@ -735,6 +755,7 @@ browser.runtime.onMessage.addListener((request: any) => {
 
   if (request.action === 'clearQueue') {
     readingQueue = []
+    queuedSelectionRanges = []
     updateQueueCount(0)
     return Promise.resolve({ success: true })
   }
@@ -766,6 +787,7 @@ rifmActionHandler = (event: CustomEvent) => {
     originalSelectionRange = null // Clear the stored range
     window.speechSynthesis.cancel()
     readingQueue = []
+    queuedSelectionRanges = []
     isReading = false
     isPaused = false
     currentUtterance = null
@@ -804,6 +826,7 @@ rifmActionHandler = (event: CustomEvent) => {
   
   if (action === 'clearQueue') {
     readingQueue = []
+    queuedSelectionRanges = []
     updateQueueCount(0)
   }
   
@@ -1116,7 +1139,15 @@ function handleSelectionRead() {
 
     // Add to queue if already reading, otherwise start immediately
     if (isReading && !isPaused) {
+      // Save current selection range for this queue item
+      const currentSelection = window.getSelection()
+      const selectionRange = (currentSelection && currentSelection.rangeCount > 0) 
+        ? currentSelection.getRangeAt(0).cloneRange() 
+        : null
+      
       readingQueue.push({ text: selectedText, voiceIndex, rate, pitch, volume })
+      queuedSelectionRanges.push(selectionRange)
+      showPlayer().then(() => updateQueueCount(readingQueue.length))
     } else {
       // Stop current if paused and start new one
       if (currentUtterance) {
@@ -1125,6 +1156,7 @@ function handleSelectionRead() {
         window.speechSynthesis.cancel()
       }
       readingQueue = [] // Clear queue
+      queuedSelectionRanges = [] // Clear saved ranges
       startReading(selectedText, voiceIndex, rate, pitch, volume)
     }
   }).catch((error) => {
@@ -1289,6 +1321,7 @@ function cleanup() {
   
   // Reset state
   readingQueue = []
+  queuedSelectionRanges = []
   isReading = false
   isPaused = false
   currentUtterance = null
