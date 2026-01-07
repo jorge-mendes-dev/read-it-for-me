@@ -16,6 +16,7 @@ let currentReadingText: string = ''
 let originalSelectionRange: Range | null = null
 let highlightFadeoutTimeout: number | null = null
 let tooltipHideTimeout: number | null = null
+let tooltipShowTimeout: number | null = null // Track tooltip show timeout
 let lastHighlightCharIndex: number = -1 // Track the character position of the last highlight
 let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
@@ -36,10 +37,12 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
     if (voices.length > 0) {
       resolve(voices)
     } else {
-      window.speechSynthesis.onvoiceschanged = () => {
+      const handler = () => {
         const loadedVoices = window.speechSynthesis.getVoices()
+        window.speechSynthesis.removeEventListener('voiceschanged', handler)
         resolve(loadedVoices)
       }
+      window.speechSynthesis.addEventListener('voiceschanged', handler)
     }
   })
 }
@@ -51,6 +54,7 @@ let queuedSelectionRanges: (Range | null)[] = [] // Store selection ranges for e
 // Function to process next item in queue
 function processNextInQueue() {
   if (readingQueue.length === 0) {
+    // Queue is empty - finish reading
     isReading = false
     isPaused = false
     currentUtterance = null
@@ -427,7 +431,11 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
   // Safety check: if no voices available, log error and return early
   if (voices.length === 0) {
     console.error('No speech synthesis voices available')
-    processNextInQueue()
+    isReading = false
+    isPaused = false
+    currentUtterance = null
+    updateState()
+    // Don't call processNextInQueue - it would try to start reading again without voices
     return
   }
   
@@ -725,7 +733,19 @@ browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'stopReading') {
     clearWordHighlight()
     originalSelectionRange = null
+    // Clear event handlers before canceling to prevent race condition
+    if (currentUtterance) {
+      currentUtterance.onend = null
+      currentUtterance.onerror = null
+    }
     window.speechSynthesis.cancel()
+    // Validate arrays are synchronized before clearing
+    if (readingQueue.length !== queuedSelectionRanges.length) {
+      console.error('Queue synchronization error detected:', {
+        queueLength: readingQueue.length,
+        rangesLength: queuedSelectionRanges.length
+      })
+    }
     readingQueue = [] // Clear the queue
     queuedSelectionRanges = [] // Clear saved ranges
     isReading = false
@@ -785,7 +805,19 @@ rifmActionHandler = (event: CustomEvent) => {
     }
     clearWordHighlight()
     originalSelectionRange = null // Clear the stored range
+    // Clear event handlers before canceling to prevent race condition
+    if (currentUtterance) {
+      currentUtterance.onend = null
+      currentUtterance.onerror = null
+    }
     window.speechSynthesis.cancel()
+    // Validate arrays are synchronized before clearing
+    if (readingQueue.length !== queuedSelectionRanges.length) {
+      console.error('Queue synchronization error detected:', {
+        queueLength: readingQueue.length,
+        rangesLength: queuedSelectionRanges.length
+      })
+    }
     readingQueue = []
     queuedSelectionRanges = []
     isReading = false
@@ -1168,8 +1200,14 @@ function handleSelectionRead() {
 
 // Store selected text and show tooltip
 mouseUpHandler = () => {
+  // Clear any pending tooltip timeout to prevent race condition
+  if (tooltipShowTimeout !== null) {
+    clearTimeout(tooltipShowTimeout)
+    tooltipShowTimeout = null
+  }
+  
   // Small delay to ensure selection is complete
-  setTimeout(() => {
+  tooltipShowTimeout = window.setTimeout(() => {
     const selection = window.getSelection()
     const selectedText = selection?.toString()
     
@@ -1179,6 +1217,7 @@ mouseUpHandler = () => {
     } else {
       hideSelectionTooltip()
     }
+    tooltipShowTimeout = null
   }, 10)
 }
 document.addEventListener('mouseup', mouseUpHandler)
@@ -1276,6 +1315,12 @@ function cleanup() {
     storageChangeHandler = null
   }
   
+  // Clear event handlers before canceling to prevent race condition
+  if (currentUtterance) {
+    currentUtterance.onend = null
+    currentUtterance.onerror = null
+  }
+  
   // Cancel any ongoing speech
   window.speechSynthesis.cancel()
   
@@ -1287,6 +1332,10 @@ function cleanup() {
   if (autoHideTimeout) {
     clearTimeout(autoHideTimeout)
     autoHideTimeout = null
+  }
+  if (tooltipShowTimeout) {
+    clearTimeout(tooltipShowTimeout)
+    tooltipShowTimeout = null
   }
   if (tooltipHideTimeout) {
     clearTimeout(tooltipHideTimeout)

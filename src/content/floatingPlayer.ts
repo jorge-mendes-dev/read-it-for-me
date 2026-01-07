@@ -805,7 +805,7 @@ function createFloatingPlayer() {
   document.body.appendChild(floatingPlayer)
 
   // Load saved settings
-  browser.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar']).then((result) => {
+  browser.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar', 'isMiniMode']).then((result) => {
     const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
     const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
     const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
@@ -815,6 +815,17 @@ function createFloatingPlayer() {
     const defaultPitch = result.defaultPitch as number | undefined
     const defaultVolume = result.defaultVolume as number | undefined
     const showProgressBar = result.showProgressBar as boolean | undefined
+    const savedMiniMode = result.isMiniMode as boolean | undefined
+    
+    // Restore mini mode preference
+    if (savedMiniMode === true) {
+      isMiniMode = true
+      floatingPlayer?.classList.add('mini-mode')
+      const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
+      if (icon) {
+        icon.setAttribute('d', 'M4 8h16M4 16h16')
+      }
+    }
     
     // Show/hide progress bar based on setting (default: false/hidden)
     if (progressBar) {
@@ -867,6 +878,8 @@ function createFloatingPlayer() {
         : 'M19 13H5v-2h14v2z'
       icon.setAttribute('d', pathData)
     }
+    // Persist mini mode preference
+    browser.storage.local.set({ isMiniMode })
   })
 
   // Clear queue button
