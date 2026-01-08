@@ -11,6 +11,30 @@ html.dark {
   color-scheme: dark;
 }
 
+/* CSS Variables for react-select theming */
+:root {
+  --color-primary: #6366f1;
+  --select-bg: white;
+  --select-border: #d1d5db;
+  --select-menu-bg: white;
+  --select-option-hover: #f3f4f6;
+  --select-text: #111827;
+  --select-group-text: #6b7280;
+  --select-placeholder: #9ca3af;
+  --select-focus-ring: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.dark {
+  --select-bg: #374151;
+  --select-border: #4b5563;
+  --select-menu-bg: #1f2937;
+  --select-option-hover: #4b5563;
+  --select-text: #f9fafb;
+  --select-group-text: #9ca3af;
+  --select-placeholder: #6b7280;
+  --select-focus-ring: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
 /* Prevent transition flash on initial load */
 html.no-transitions * {
   transition: none !important;

@@ -207,6 +207,18 @@
     "message": "Selecionar Voz",
     "description": "Label for voice selector"
   },
+  "searchVoicesByLanguage": {
+    "message": "Pesquisar por idioma, país ou nome da voz...",
+    "description": "Placeholder for voice search input"
+  },
+  "noVoicesFound": {
+    "message": "Nenhuma voz encontrada",
+    "description": "Message when search returns no results"
+  },
+  "noVoicesAvailable": {
+    "message": "Nenhuma voz disponível",
+    "description": "Message when no voices are available"
+  },
   "playback": {
     "message": "Reprodução",
     "description": "Playback settings section"

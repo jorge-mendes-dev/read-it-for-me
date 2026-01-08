@@ -1,4 +1,20 @@
 /**
+ * Get country code from language code
+ * @param langCode - Language code (e.g., 'en-US', 'pt_BR', 'fr')
+ * @returns Country code (e.g., 'US', 'BR', 'FR')
+ */
+export function getCountryCode(langCode: string): string {
+  if (!langCode) return ''
+  
+  // Normalize the language code (handle both - and _ separators)
+  const normalized = langCode.replace('_', '-')
+  const parts = normalized.split('-')
+  const countryCode = parts.length > 1 ? parts[1] : parts[0]
+  
+  return countryCode.toUpperCase()
+}
+
+/**
  * Get flag emoji from language code
  * @param langCode - Language code (e.g., 'en-US', 'pt_BR', 'fr')
  * @returns Flag emoji string
@@ -6,10 +22,7 @@
 export function getFlagEmoji(langCode: string): string {
   if (!langCode) return '🌐'
   
-  // Normalize the language code (handle both - and _ separators)
-  const normalized = langCode.replace('_', '-')
-  const parts = normalized.split('-')
-  const countryCode = parts.length > 1 ? parts[1] : parts[0]
+  const countryCode = getCountryCode(langCode)
   
   const flagMap: { [key: string]: string } = {
     'US': '🇺🇸', 'GB': '🇬🇧', 'AU': '🇦🇺', 'CA': '🇨🇦', 'IN': '🇮🇳', 'IE': '🇮🇪', 'ZA': '🇿🇦',
@@ -34,15 +47,12 @@ export function getFlagEmoji(langCode: string): string {
     'VN': '🇻🇳',
     'PH': '🇵🇭',
     'RO': '🇷🇴', 'HU': '🇭🇺', 'SK': '🇸🇰',
-    // Language-only codes - default flags
-    'en': '🇺🇸', 'pt': '🇵🇹', 'es': '🇪🇸', 'fr': '🇫🇷',
-    'de': '🇩🇪', 'it': '🇮🇹', 'ja': '🇯🇵', 'zh': '🇨🇳',
-    'ko': '🇰🇷', 'ru': '🇷🇺', 'nl': '🇳🇱', 'sv': '🇸🇪',
-    'no': '🇳🇴', 'da': '🇩🇰', 'fi': '🇫🇮', 'pl': '🇵🇱',
-    'cs': '🇨🇿', 'tr': '🇹🇷', 'ar': '🇸🇦', 'he': '🇮🇱',
-    'el': '🇬🇷', 'th': '🇹🇭', 'id': '🇮🇩', 'vi': '🇻🇳',
-    'ro': '🇷🇴', 'hu': '🇭🇺', 'sk': '🇸🇰'
+    // Language-only codes - default flags (uppercase for consistency)
+    'EN': '🇺🇸', 'JA': '🇯🇵', 'ZH': '🇨🇳',
+    'KO': '🇰🇷', 'SV': '🇸🇪',
+    'DA': '🇩🇰', 'CS': '🇨🇿', 'HE': '🇮🇱',
+    'EL': '🇬🇷', 'VI': '🇻🇳'
   }
   
-  return flagMap[countryCode.toUpperCase()] || flagMap[countryCode.toLowerCase()] || '🌐'
+  return flagMap[countryCode] || '🌐'
 }
