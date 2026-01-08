@@ -21,6 +21,8 @@ let lastHighlightCharIndex: number = -1 // Track the character position of the l
 let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
 let smartReadEnabled: boolean = false // Track if smart read feature is enabled
+let pausedAt: number = 0 // Track character position when paused for recovery
+let pauseCheckInterval: number | null = null // Check if speech stopped during pause
 
 // Event handler references for cleanup
 let mouseUpHandler: (() => void) | null = null
@@ -713,10 +715,24 @@ browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'pauseReading') {
     if (isReading && !isPaused) {
       try {
+        pausedAt = lastHighlightCharIndex >= 0 ? lastHighlightCharIndex : 0
         window.speechSynthesis.pause()
         isPaused = true
         updatePlayerState(true)
         updateState()
+        
+        // Monitor if speech gets auto-canceled during pause (browser timeout)
+        if (pauseCheckInterval) clearInterval(pauseCheckInterval)
+        pauseCheckInterval = window.setInterval(() => {
+          if (isPaused && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+            // Speech was auto-canceled, prepare for recovery on resume
+            console.log('[RIFM] Speech auto-canceled during pause, will restart on resume')
+            if (pauseCheckInterval) {
+              clearInterval(pauseCheckInterval)
+              pauseCheckInterval = null
+            }
+          }
+        }, 1000)
       } catch (error) {
         console.error('Error pausing speech:', error)
       }
@@ -727,10 +743,87 @@ browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'resumeReading') {
     if (isReading && isPaused) {
       try {
-        window.speechSynthesis.resume()
-        isPaused = false
-        updatePlayerState(false)
-        updateState()
+        // Clear pause check interval
+        if (pauseCheckInterval) {
+          clearInterval(pauseCheckInterval)
+          pauseCheckInterval = null
+        }
+        
+        // Check if speech was auto-canceled during pause (browser timeout)
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending && currentUtterance) {
+          console.log('[RIFM] Restarting speech from position:', pausedAt)
+          
+          // Extract remaining text from pause point
+          const remainingText = currentReadingText.substring(pausedAt)
+          if (remainingText.trim()) {
+            // Get current settings
+            const currentVoice = currentUtterance.voice
+            const currentRate = currentUtterance.rate
+            const currentPitch = currentUtterance.pitch
+            const currentVolume = currentUtterance.volume
+            const savedRange = originalSelectionRange
+            
+            // Clear current utterance
+            currentUtterance.onend = null
+            currentUtterance.onerror = null
+            window.speechSynthesis.cancel()
+            
+            // Create new utterance with remaining text
+            const newUtterance = new SpeechSynthesisUtterance(remainingText)
+            newUtterance.voice = currentVoice
+            newUtterance.rate = currentRate
+            newUtterance.pitch = currentPitch
+            newUtterance.volume = currentVolume
+            
+            // Set up event handlers
+            newUtterance.onboundary = (event: SpeechSynthesisEvent) => {
+              if (event.name === 'word' && event.charIndex !== undefined) {
+                // Adjust char index to account for skipped text
+                highlightCurrentWord(pausedAt + event.charIndex)
+              }
+            }
+            
+            newUtterance.onend = () => {
+              clearWordHighlight()
+              originalSelectionRange = null
+              if (progressInterval) {
+                clearInterval(progressInterval)
+                progressInterval = null
+              }
+              processNextInQueue()
+            }
+            
+            newUtterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+              console.error('Speech synthesis error:', event.error, event)
+              clearWordHighlight()
+              originalSelectionRange = null
+              if (progressInterval) {
+                clearInterval(progressInterval)
+                progressInterval = null
+              }
+              processNextInQueue()
+            }
+            
+            // Restore selection range
+            originalSelectionRange = savedRange
+            currentUtterance = newUtterance
+            window.speechSynthesis.speak(newUtterance)
+            isPaused = false
+            pausedAt = 0
+            updatePlayerState(false)
+            updateState()
+          } else {
+            // No remaining text, just finish
+            processNextInQueue()
+          }
+        } else {
+          // Normal resume
+          window.speechSynthesis.resume()
+          isPaused = false
+          pausedAt = 0
+          updatePlayerState(false)
+          updateState()
+        }
       } catch (error) {
         console.error('Error resuming speech:', error)
       }
@@ -818,19 +911,101 @@ rifmActionHandler = (event: CustomEvent) => {
   if (action === 'togglePlayPause') {
     if (isPaused) {
       try {
-        window.speechSynthesis.resume()
-        isPaused = false
-        updatePlayerState(false)
-        updateState()
+        // Clear pause check interval
+        if (pauseCheckInterval) {
+          clearInterval(pauseCheckInterval)
+          pauseCheckInterval = null
+        }
+        
+        // Check if speech was auto-canceled during pause
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending && currentUtterance) {
+          console.log('[RIFM] Restarting speech from position:', pausedAt)
+          
+          const remainingText = currentReadingText.substring(pausedAt)
+          if (remainingText.trim()) {
+            const currentVoice = currentUtterance.voice
+            const currentRate = currentUtterance.rate
+            const currentPitch = currentUtterance.pitch
+            const currentVolume = currentUtterance.volume
+            const savedRange = originalSelectionRange
+            
+            currentUtterance.onend = null
+            currentUtterance.onerror = null
+            window.speechSynthesis.cancel()
+            
+            const newUtterance = new SpeechSynthesisUtterance(remainingText)
+            newUtterance.voice = currentVoice
+            newUtterance.rate = currentRate
+            newUtterance.pitch = currentPitch
+            newUtterance.volume = currentVolume
+            
+            newUtterance.onboundary = (event: SpeechSynthesisEvent) => {
+              if (event.name === 'word' && event.charIndex !== undefined) {
+                highlightCurrentWord(pausedAt + event.charIndex)
+              }
+            }
+            
+            newUtterance.onend = () => {
+              clearWordHighlight()
+              originalSelectionRange = null
+              if (progressInterval) {
+                clearInterval(progressInterval)
+                progressInterval = null
+              }
+              processNextInQueue()
+            }
+            
+            newUtterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+              console.error('Speech synthesis error:', event.error, event)
+              clearWordHighlight()
+              originalSelectionRange = null
+              if (progressInterval) {
+                clearInterval(progressInterval)
+                progressInterval = null
+              }
+              processNextInQueue()
+            }
+            
+            originalSelectionRange = savedRange
+            currentUtterance = newUtterance
+            window.speechSynthesis.speak(newUtterance)
+            isPaused = false
+            pausedAt = 0
+            updatePlayerState(false)
+            updateState()
+          } else {
+            processNextInQueue()
+          }
+        } else {
+          // Normal resume
+          window.speechSynthesis.resume()
+          isPaused = false
+          pausedAt = 0
+          updatePlayerState(false)
+          updateState()
+        }
       } catch (error) {
         console.error('Error resuming speech:', error)
       }
     } else if (isReading) {
       try {
+        pausedAt = lastHighlightCharIndex >= 0 ? lastHighlightCharIndex : 0
         window.speechSynthesis.pause()
         isPaused = true
         updatePlayerState(true)
         updateState()
+        
+        // Monitor for auto-cancel
+        if (pauseCheckInterval) clearInterval(pauseCheckInterval)
+        pauseCheckInterval = window.setInterval(() => {
+          if (isPaused && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+            console.log('[RIFM] Speech auto-canceled during pause, will restart on resume')
+            if (pauseCheckInterval) {
+              clearInterval(pauseCheckInterval)
+              pauseCheckInterval = null
+            }
+          }
+        }, 1000)
       } catch (error) {
         console.error('Error pausing speech:', error)
       }
@@ -1690,6 +1865,10 @@ function cleanup() {
   if (progressInterval) {
     clearInterval(progressInterval)
     progressInterval = null
+  }
+  if (pauseCheckInterval) {
+    clearInterval(pauseCheckInterval)
+    pauseCheckInterval = null
   }
   if (autoHideTimeout) {
     clearTimeout(autoHideTimeout)
