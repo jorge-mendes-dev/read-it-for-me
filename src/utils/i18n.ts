@@ -28,6 +28,47 @@ async function loadMessages(locale: string): Promise<void> {
   }
 }
 
+/**
+ * Maps browser language codes to available extension locales
+ * Handles various formats like 'en-US', 'pt-BR', 'zh-CN', 'ja', etc.
+ */
+function mapBrowserLanguageToLocale(browserLang: string): string {
+  // Normalize the language code
+  const normalized = browserLang.toLowerCase().replace('-', '_')
+  
+  // Try exact match first
+  const exactMatch = availableLocales.find(l => l.code.toLowerCase() === normalized)
+  if (exactMatch) return exactMatch.code
+  
+  // Try matching just the language part (before underscore/dash)
+  const langCode = normalized.split('_')[0]
+  
+  // Special cases for common mappings
+  const languageMap: Record<string, string> = {
+    'pt': 'pt_BR',    // Portuguese -> Brazilian Portuguese
+    'zh': 'zh_CN',    // Chinese -> Simplified Chinese
+    'en': 'en',       // English
+    'es': 'es',       // Spanish
+    'fr': 'fr',       // French
+    'de': 'de',       // German
+    'ja': 'ja',       // Japanese
+  }
+  
+  // Check if we have a mapping for this language
+  if (languageMap[langCode]) {
+    return languageMap[langCode]
+  }
+  
+  // Try finding a locale that starts with this language code
+  const partialMatch = availableLocales.find(l => 
+    l.code.toLowerCase().startsWith(langCode)
+  )
+  if (partialMatch) return partialMatch.code
+  
+  // Default to English if no match found
+  return 'en'
+}
+
 // Get current locale from storage or browser
 export async function initializeLocale(): Promise<string> {
   const result = await browser.storage.local.get(['selectedLocale'])
@@ -36,9 +77,10 @@ export async function initializeLocale(): Promise<string> {
     
     if (!locale) {
       // Use browser's default language
-      const browserLang = browser.i18n.getUILanguage().replace('-', '_')
-      // Check if we have this locale
-      locale = availableLocales.find(l => l.code === browserLang)?.code || 'en'
+      const browserLang = browser.i18n.getUILanguage()
+      locale = mapBrowserLanguageToLocale(browserLang)
+      
+      console.log(`Browser language detected: ${browserLang}, using locale: ${locale}`)
     }
     
     await loadMessages(locale)
