@@ -1586,7 +1586,7 @@ function createSmartReadButton() {
   style.textContent = `
     #rifm-smart-read-button {
       position: fixed !important;
-      bottom: 80px !important;
+      top: 80px !important;
       right: 20px !important;
       background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
       color: white !important;
