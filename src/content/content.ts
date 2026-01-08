@@ -848,6 +848,10 @@ browser.runtime.onMessage.addListener((request: any) => {
       clearInterval(progressInterval)
       progressInterval = null
     }
+    if (pauseCheckInterval) {
+      clearInterval(pauseCheckInterval)
+      pauseCheckInterval = null
+    }
     if (autoHideTimeout) {
       clearTimeout(autoHideTimeout)
       autoHideTimeout = null
@@ -900,6 +904,10 @@ rifmActionHandler = (event: CustomEvent) => {
     if (progressInterval) {
       clearInterval(progressInterval)
       progressInterval = null
+    }
+    if (pauseCheckInterval) {
+      clearInterval(pauseCheckInterval)
+      pauseCheckInterval = null
     }
     updateQueueCount(0)
     updateState()
@@ -1607,7 +1615,7 @@ function createSmartReadButton() {
       backdrop-filter: blur(10px) !important;
       white-space: nowrap !important;
       opacity: 0 !important;
-      transform: translateY(100px) scale(0.8) !important;
+      transform: translateY(-100px) scale(0.8) !important;
     }
     
     #rifm-smart-read-button.show {
