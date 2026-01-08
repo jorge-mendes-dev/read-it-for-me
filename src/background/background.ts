@@ -1,7 +1,6 @@
 // Background service worker for Read It For Me
 // Coordinates between popup and content script
 import browser from '../utils/browser'
-import type { Runtime } from 'webextension-polyfill'
 
 interface SpeechState {
   isReading: boolean
@@ -22,24 +21,21 @@ let speechState: SpeechState = {
 }
 
 // Forward messages to active tab
-browser.runtime.onMessage.addListener((message: unknown, _sender: Runtime.MessageSender) => {
+browser.runtime.onMessage.addListener((message: unknown) => {
   const msg = message as Message
   switch (msg.action) {
     case 'startReading':
     case 'pauseReading':
     case 'resumeReading':
-    case 'stopReading': {
-      // Forward to content script of active tab
+    case 'stopReading':
       return browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
         if (tabs[0]?.id) {
           return browser.tabs.sendMessage(tabs[0].id, message)
         }
         return null
       })
-    }
 
     case 'stateUpdate':
-      // Store state and broadcast to all tabs
       if (msg.state) {
         speechState = {
           isReading: msg.state.isReading,
