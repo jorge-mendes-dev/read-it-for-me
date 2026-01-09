@@ -66,11 +66,11 @@
 
 #### Firefox
 
-[![Get the Add-on](https://img.shields.io/badge/Firefox-Get%20Add--on-FF7139?style=for-the-badge&logo=firefox-browser)](https://addons.mozilla.org)
+[![Get the Add-on](https://img.shields.io/badge/Firefox-Get%20Add--on-FF7139?style=for-the-badge&logo=firefox-browser)](https://addons.mozilla.org/firefox/addon/read-it-for-me/)
 
-#### Chrome/Edge (Coming Soon)
+#### Google Chrome
 
-Chrome Web Store submission pending review.
+[![Get it on Chrome Web Store](https://img.shields.io/badge/Chrome-Get%20Extension-4285F4?style=for-the-badge&logo=google-chrome)](https://chromewebstore.google.com/detail/boclnpmpcbbighifbndbkijpkcodddda?utm_source=item-share-cb)
 
 ### Manual Installation
 
