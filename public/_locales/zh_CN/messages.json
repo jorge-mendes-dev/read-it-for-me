@@ -153,7 +153,8 @@
   },
   "readText": {
     "message": "阅读文本",
-    "description": "Main read button text"  },
+    "description": "Main read button text"
+  },
   "clearQueue": {
     "message": "清除队列",
     "description": "Clear queue button text"
@@ -292,7 +293,8 @@
   },
   "wordHighlightDesc": {
     "message": "朗读时高亮显示单词",
-    "description": "Description for word highlight feature"  },
+    "description": "Description for word highlight feature"
+  },
   "followHighlight": {
     "message": "跟随高亮",
     "description": "Label for follow highlight toggle"
@@ -312,5 +314,25 @@
   "readFullArticle": {
     "message": "阅读完整文章",
     "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "主题模式",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "浅色模式",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "深色模式",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "自动 (系统)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "迷你模式",
+    "description": "Toggle compact floating player"
   }
 }

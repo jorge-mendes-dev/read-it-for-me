@@ -181,7 +181,8 @@
   },
   "showProgressBar": {
     "message": "Fortschrittsbalken Anzeigen",
-    "description": "Toggle for progress bar visibility"  },
+    "description": "Toggle for progress bar visibility"
+  },
   "buyMeACoffee": {
     "message": "Spendier mir einen Kaffee ☕",
     "description": "Donation link text"
@@ -312,7 +313,8 @@
   },
   "followHighlightDesc": {
     "message": "Automatisch scrollen, um das hervorgehobene Wort sichtbar zu halten",
-    "description": "Description for follow highlight feature"  },
+    "description": "Description for follow highlight feature"
+  },
   "smartRead": {
     "message": "Intelligentes Lesen",
     "description": "Label for smart read toggle"
@@ -323,5 +325,26 @@
   },
   "readFullArticle": {
     "message": "Vollständigen Artikel vorlesen",
-    "description": "Button text to read full article"  }
+    "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "Designmodus",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "Heller Modus",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "Dunkler Modus",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "Automatisch (System)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "Minimodus",
+    "description": "Toggle compact floating player"
+  }
 }

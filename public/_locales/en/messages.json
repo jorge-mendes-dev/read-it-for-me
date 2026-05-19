@@ -305,7 +305,8 @@
   },
   "wordHighlightDesc": {
     "message": "Highlight words as they are spoken",
-    "description": "Description for word highlight feature"  },
+    "description": "Description for word highlight feature"
+  },
   "followHighlight": {
     "message": "Follow Highlight",
     "description": "Label for follow highlight toggle"
@@ -325,5 +326,25 @@
   "readFullArticle": {
     "message": "Read Full Article",
     "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "Theme mode",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "Light mode",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "Dark mode",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "Auto (system)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "Mini mode",
+    "description": "Toggle compact floating player"
   }
 }

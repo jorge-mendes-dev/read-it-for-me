@@ -326,5 +326,25 @@
   "readFullArticle": {
     "message": "Ler Artigo Completo",
     "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "Modo de tema",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "Modo claro",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "Modo escuro",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "Automático (sistema)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "Modo mini",
+    "description": "Toggle compact floating player"
   }
 }

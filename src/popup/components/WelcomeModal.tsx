@@ -52,8 +52,9 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
           </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
-          className="w-full py-2.5 px-3 bg-primary hover:bg-primary-hover text-white rounded-md font-medium transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="w-full py-2.5 px-3 font-medium ui-btn-primary ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           aria-label="Close welcome guide"
         >
           {t('gotIt')}

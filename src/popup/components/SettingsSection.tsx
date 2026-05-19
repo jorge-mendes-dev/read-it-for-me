@@ -20,8 +20,9 @@ export function SettingsSection({
   return (
     <div className="border-b border-hairline last:border-b-0">
       <button
+        type="button"
         onClick={onToggle}
-        className="w-full p-5 flex items-center justify-between hover:bg-surface-2 transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        className="w-full p-5 flex items-center justify-between hover:bg-surface-2 ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         aria-expanded={isExpanded}
         aria-controls={id}
       >

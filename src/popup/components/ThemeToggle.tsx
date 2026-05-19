@@ -1,4 +1,5 @@
 import type { ThemeMode } from '../../types'
+import { t } from '../../utils/i18n'
 
 interface ThemeToggleProps {
   theme: ThemeMode
@@ -9,7 +10,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
   const options: Array<{ value: ThemeMode; title: string; icon: JSX.Element }> = [
     {
       value: 'light',
-      title: 'Light mode',
+      title: t('lightMode'),
       icon: (
         <svg
           className="w-3.5 h-3.5"
@@ -29,7 +30,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
     },
     {
       value: 'dark',
-      title: 'Dark mode',
+      title: t('darkMode'),
       icon: (
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M21.752 15.002A9 9 0 1112.998 2.25a.75.75 0 01.681 1.064A7.5 7.5 0 0020.686 13.32a.75.75 0 011.066.682z" />
@@ -38,7 +39,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
     },
     {
       value: 'auto',
-      title: 'Auto (system)',
+      title: t('autoThemeSystem'),
       icon: (
         <svg
           className="w-3.5 h-3.5"
@@ -58,7 +59,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
     <div
       className="inline-flex items-center rounded-md border border-hairline bg-surface-2 p-0.5 shadow-sm"
       role="radiogroup"
-      aria-label="Theme mode"
+      aria-label={t('themeMode')}
     >
       {options.map((option) => {
         const isActive = option.value === theme
@@ -73,7 +74,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
             aria-label={option.title}
             title={option.title}
             className={[
-              'min-w-7 h-7 px-2 rounded-sm text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95',
+              'min-w-7 h-7 px-2 rounded-sm text-xs font-semibold ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
               isActive
                 ? 'bg-primary text-white shadow-sm'
                 : 'text-ink-subtle hover:text-ink hover:bg-surface-3 hover:-translate-y-px',

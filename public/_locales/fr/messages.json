@@ -313,7 +313,8 @@
   },
   "followHighlightDesc": {
     "message": "Faire défiler automatiquement pour garder le mot surligné visible",
-    "description": "Description for follow highlight feature"  },
+    "description": "Description for follow highlight feature"
+  },
   "smartRead": {
     "message": "Lecture Intelligente",
     "description": "Label for smart read toggle"
@@ -324,5 +325,26 @@
   },
   "readFullArticle": {
     "message": "Lire l'Article Complet",
-    "description": "Button text to read full article"  }
+    "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "Mode de thème",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "Mode clair",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "Mode sombre",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "Automatique (système)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "Mode mini",
+    "description": "Toggle compact floating player"
+  }
 }

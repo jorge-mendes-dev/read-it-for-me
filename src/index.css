@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .ui-interactive {
+    @apply transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.98];
+  }
+
+  .ui-btn-surface {
+    @apply bg-surface-1 hover:bg-surface-2 border border-hairline rounded-md;
+  }
+
+  .ui-btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white rounded-md;
+  }
+}
+
 :root {
   color-scheme: light;
 

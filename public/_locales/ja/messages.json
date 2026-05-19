@@ -285,14 +285,16 @@
   },
   "gotIt": {
     "message": "了解！",
-    "description": "Button to close welcome modal"  },
+    "description": "Button to close welcome modal"
+  },
   "wordHighlight": {
     "message": "単語のハイライト",
     "description": "Word highlight setting label"
   },
   "wordHighlightDesc": {
     "message": "読み上げ中の単語をハイライトする",
-    "description": "Description for word highlight feature"  },
+    "description": "Description for word highlight feature"
+  },
   "followHighlight": {
     "message": "ハイライトを追跡",
     "description": "Label for follow highlight toggle"
@@ -312,5 +314,25 @@
   "readFullArticle": {
     "message": "記事全体を読む",
     "description": "Button text to read full article"
+  },
+  "themeMode": {
+    "message": "テーマモード",
+    "description": "Theme selector label"
+  },
+  "lightMode": {
+    "message": "ライトモード",
+    "description": "Light theme option"
+  },
+  "darkMode": {
+    "message": "ダークモード",
+    "description": "Dark theme option"
+  },
+  "autoThemeSystem": {
+    "message": "自動 (システム)",
+    "description": "Automatic theme based on system setting"
+  },
+  "miniMode": {
+    "message": "ミニモード",
+    "description": "Toggle compact floating player"
   }
 }

@@ -251,7 +251,7 @@ export function VoiceSelector({
         </label>
         <button
           onClick={onTest}
-          className="text-xs bg-surface-2 border border-hairline text-ink px-3 py-1.5 rounded-md transition-all duration-200 hover:bg-surface-3 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 font-medium"
+          className="text-xs bg-surface-2 border border-hairline text-ink px-3 py-1.5 rounded-md ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 font-medium"
           aria-label="Test selected voice"
         >
           🔊 {t('test')}
