@@ -44,6 +44,38 @@ let selectionTooltipClickHandler: (() => void) | null = null
 let smartReadButton: HTMLButtonElement | null = null
 let smartReadButtonClickHandler: (() => void) | null = null
 let isCreatingSmartReadButton = false
+type ThemeMode = 'light' | 'dark' | 'auto'
+let currentTooltipThemeMode: ThemeMode = 'auto'
+let tooltipSystemThemeMediaQuery: MediaQueryList | null = null
+let tooltipSystemThemeChangeHandler: ((event: MediaQueryListEvent) => void) | null = null
+
+function resolveTooltipTheme(themeMode: ThemeMode): 'light' | 'dark' {
+  if (themeMode === 'light' || themeMode === 'dark') {
+    return themeMode
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function applySelectionTooltipTheme(themeMode: ThemeMode = currentTooltipThemeMode) {
+  currentTooltipThemeMode = themeMode
+  if (!selectionTooltip) return
+
+  const resolvedTheme = resolveTooltipTheme(themeMode)
+  selectionTooltip.classList.toggle('rifm-theme-dark', resolvedTheme === 'dark')
+  selectionTooltip.classList.toggle('rifm-theme-light', resolvedTheme === 'light')
+}
+
+function setupTooltipSystemThemeListener() {
+  if (tooltipSystemThemeMediaQuery) return
+
+  tooltipSystemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  tooltipSystemThemeChangeHandler = () => {
+    if (currentTooltipThemeMode === 'auto') {
+      applySelectionTooltipTheme('auto')
+    }
+  }
+  tooltipSystemThemeMediaQuery.addEventListener('change', tooltipSystemThemeChangeHandler)
+}
 
 // Ensure voices are loaded
 function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
@@ -1144,10 +1176,16 @@ function createSelectionTooltip() {
   selectionTooltip.innerHTML = `
     <style>
       #rifm-selection-tooltip {
+        --rifm-tooltip-bg: #141519;
+        --rifm-tooltip-bg-hover: #1a1c22;
+        --rifm-tooltip-border: #23252a;
+        --rifm-tooltip-border-hover: #2d3038;
+        --rifm-tooltip-text: #f7f8f8;
+        --rifm-tooltip-icon: #5e6ad2;
         position: fixed !important;
-        background: #141519 !important;
-        color: #f7f8f8 !important;
-        border: 1px solid #23252a !important;
+        background: var(--rifm-tooltip-bg) !important;
+        color: var(--rifm-tooltip-text) !important;
+        border: 1px solid var(--rifm-tooltip-border) !important;
         padding: 8px 16px !important;
         border-radius: 8px !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
@@ -1165,9 +1203,27 @@ function createSelectionTooltip() {
         transform: translateY(-8px) scale(0.9) !important;
       }
 
+      #rifm-selection-tooltip.rifm-theme-light {
+        --rifm-tooltip-bg: #ffffff;
+        --rifm-tooltip-bg-hover: #f3f5f9;
+        --rifm-tooltip-border: #d8deea;
+        --rifm-tooltip-border-hover: #c7cfde;
+        --rifm-tooltip-text: #141923;
+        --rifm-tooltip-icon: #5e6ad2;
+      }
+
+      #rifm-selection-tooltip.rifm-theme-dark {
+        --rifm-tooltip-bg: #141519;
+        --rifm-tooltip-bg-hover: #1a1c22;
+        --rifm-tooltip-border: #23252a;
+        --rifm-tooltip-border-hover: #2d3038;
+        --rifm-tooltip-text: #f7f8f8;
+        --rifm-tooltip-icon: #5e6ad2;
+      }
+
       #rifm-selection-tooltip:hover {
-        background: #1a1c22 !important;
-        border-color: #2d3038 !important;
+        background: var(--rifm-tooltip-bg-hover) !important;
+        border-color: var(--rifm-tooltip-border-hover) !important;
         transform: translateY(0) scale(1.03) !important;
       }
 
@@ -1184,7 +1240,7 @@ function createSelectionTooltip() {
       #rifm-selection-tooltip svg {
         width: 16px !important;
         height: 16px !important;
-        fill: #5e6ad2 !important;
+        fill: var(--rifm-tooltip-icon) !important;
         animation: tooltipIconPulse 2s ease-in-out infinite !important;
       }
 
@@ -1202,6 +1258,21 @@ function createSelectionTooltip() {
   selectionTooltipClickHandler = handleSelectionRead
   selectionTooltip.addEventListener('click', selectionTooltipClickHandler)
   document.body.appendChild(selectionTooltip)
+  setupTooltipSystemThemeListener()
+  browser.storage.local
+    .get(['theme'])
+    .then((result) => {
+      const savedTheme = result.theme as ThemeMode | undefined
+      if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'auto') {
+        applySelectionTooltipTheme(savedTheme)
+      } else {
+        applySelectionTooltipTheme('auto')
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load tooltip theme from storage:', error)
+      applySelectionTooltipTheme('auto')
+    })
   console.log('[RIFM] Selection tooltip created and event listener attached')
 }
 
@@ -1538,6 +1609,14 @@ storageChangeHandler = (changes) => {
       detectAndShowSmartReadButton()
     } else {
       hideSmartReadButton()
+    }
+  }
+  if (changes.theme) {
+    const newTheme = changes.theme.newValue as ThemeMode | undefined
+    if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'auto') {
+      applySelectionTooltipTheme(newTheme)
+    } else {
+      applySelectionTooltipTheme('auto')
     }
   }
 }
@@ -2063,6 +2142,11 @@ function cleanup() {
     }
     selectionTooltip.remove()
     selectionTooltip = null
+  }
+  if (tooltipSystemThemeMediaQuery && tooltipSystemThemeChangeHandler) {
+    tooltipSystemThemeMediaQuery.removeEventListener('change', tooltipSystemThemeChangeHandler)
+    tooltipSystemThemeMediaQuery = null
+    tooltipSystemThemeChangeHandler = null
   }
   if (currentHighlightElement) {
     clearWordHighlight(false)

@@ -2,26 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  color-scheme: dark;
-}
-
-html.dark {
-  color-scheme: dark;
-}
-
 :root {
-  --canvas: #010102;
-  --surface-1: #141519;
-  --surface-2: #1a1c22;
-  --surface-3: #21242c;
-  --surface-4: #2a2d36;
-  --hairline: #23252a;
-  --hairline-strong: #2d3038;
-  --ink: #f7f8f8;
-  --ink-muted: #d0d6e0;
-  --ink-subtle: #8a8f98;
-  --ink-tertiary: #62666d;
+  color-scheme: light;
+
+  --canvas: #f6f7fb;
+  --surface-1: #ffffff;
+  --surface-2: #f3f5f9;
+  --surface-3: #e9edf5;
+  --surface-4: #dde3ee;
+  --hairline: #d8deea;
+  --hairline-strong: #c7cfde;
+  --ink: #141923;
+  --ink-muted: #3b4558;
+  --ink-subtle: #596680;
+  --ink-tertiary: #7a869e;
+  --primary-rgb: 94 106 210;
+  --primary-hover-rgb: 130 143 255;
   --primary: #5e6ad2;
   --primary-hover: #828fff;
   --primary-focus: rgba(94, 105, 209, 0.5);
@@ -33,6 +29,22 @@ html.dark {
   --select-group-text: var(--ink-subtle);
   --select-placeholder: var(--ink-tertiary);
   --select-focus-ring: 0 0 0 2px var(--primary-focus);
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --canvas: #010102;
+  --surface-1: #141519;
+  --surface-2: #1a1c22;
+  --surface-3: #21242c;
+  --surface-4: #2a2d36;
+  --hairline: #23252a;
+  --hairline-strong: #2d3038;
+  --ink: #f7f8f8;
+  --ink-muted: #d0d6e0;
+  --ink-subtle: #8a8f98;
+  --ink-tertiary: #62666d;
 }
 
 html.no-transitions * {

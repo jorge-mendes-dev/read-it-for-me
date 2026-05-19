@@ -6,6 +6,10 @@ let currentMessages: Record<string, { message: string; description?: string }> =
 let isDragging = false
 const dragOffset = { x: 0, y: 0 }
 let isMiniMode = false
+type ThemeMode = 'light' | 'dark' | 'auto'
+let currentThemeMode: ThemeMode = 'auto'
+let systemThemeMediaQuery: MediaQueryList | null = null
+let systemThemeChangeHandler: ((event: MediaQueryListEvent) => void) | null = null
 
 // Event handler references for cleanup
 let stateUpdateHandler: ((event: CustomEvent) => void) | null = null
@@ -13,6 +17,34 @@ let eventHandlers: Map<Element, Map<string, EventListener[]>> = new Map()
 let dragHandler: ((e: MouseEvent) => void) | null = null
 let stopDragHandler: (() => void) | null = null
 let rafId: number | null = null
+
+function resolvePlayerTheme(themeMode: ThemeMode): 'light' | 'dark' {
+  if (themeMode === 'light' || themeMode === 'dark') {
+    return themeMode
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function applyPlayerTheme(themeMode: ThemeMode = currentThemeMode) {
+  currentThemeMode = themeMode
+  if (!floatingPlayer) return
+
+  const resolved = resolvePlayerTheme(themeMode)
+  floatingPlayer.classList.toggle('rifm-theme-dark', resolved === 'dark')
+  floatingPlayer.classList.toggle('rifm-theme-light', resolved === 'light')
+}
+
+function setupSystemThemeListener() {
+  if (systemThemeMediaQuery) return
+
+  systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  systemThemeChangeHandler = () => {
+    if (currentThemeMode === 'auto') {
+      applyPlayerTheme('auto')
+    }
+  }
+  systemThemeMediaQuery.addEventListener('change', systemThemeChangeHandler)
+}
 
 // Load messages for selected locale
 async function loadLocaleMessages(): Promise<void> {
@@ -90,17 +122,34 @@ function createFloatingPlayer() {
   floatingPlayer.innerHTML = `
     <style>
       #read-it-for-me-player {
+        --rifm-bg: #141519;
+        --rifm-surface: #1a1c22;
+        --rifm-surface-hover: #21242c;
+        --rifm-border: #23252a;
+        --rifm-border-strong: #2d3038;
+        --rifm-text: #f7f8f8;
+        --rifm-subtle-text: rgba(247, 248, 248, 0.9);
+        --rifm-slider-bg: rgba(255, 255, 255, 0.3);
+        --rifm-value-bg: rgba(255, 255, 255, 0.3);
+        --rifm-preset-bg: rgba(255, 255, 255, 0.15);
+        --rifm-preset-border: rgba(255, 255, 255, 0.3);
+        --rifm-preset-hover: rgba(255, 255, 255, 0.25);
+        --rifm-preset-active: rgba(255, 255, 255, 0.4);
+        --rifm-preset-text: #ffffff;
+        --rifm-primary: #5e6ad2;
+        --rifm-ripple: rgba(255, 255, 255, 0.3);
+        --rifm-shimmer: rgba(255, 255, 255, 0.12);
         position: fixed;
         bottom: 20px;
         right: 20px;
         width: 300px;
-        background: #141519;
-        border: 1px solid #23252a;
+        background: var(--rifm-bg);
+        border: 1px solid var(--rifm-border);
         border-radius: 12px;
         padding: 16px;
         z-index: 999999;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: #f7f8f8;
+        color: var(--rifm-text);
         display: none;
         animation: slideIn 0.3s ease-out;
         transition: all 0.3s ease;
@@ -108,10 +157,48 @@ function createFloatingPlayer() {
         will-change: transform;
       }
 
+      #read-it-for-me-player.rifm-theme-light {
+        --rifm-bg: #ffffff;
+        --rifm-surface: #f3f5f9;
+        --rifm-surface-hover: #e9edf5;
+        --rifm-border: #d8deea;
+        --rifm-border-strong: #c7cfde;
+        --rifm-text: #141923;
+        --rifm-subtle-text: rgba(20, 25, 35, 0.85);
+        --rifm-slider-bg: rgba(89, 102, 128, 0.3);
+        --rifm-value-bg: rgba(89, 102, 128, 0.2);
+        --rifm-preset-bg: rgba(89, 102, 128, 0.12);
+        --rifm-preset-border: rgba(89, 102, 128, 0.25);
+        --rifm-preset-hover: rgba(89, 102, 128, 0.2);
+        --rifm-preset-active: rgba(89, 102, 128, 0.28);
+        --rifm-preset-text: #141923;
+        --rifm-ripple: rgba(20, 25, 35, 0.18);
+        --rifm-shimmer: rgba(255, 255, 255, 0.35);
+      }
+
+      #read-it-for-me-player.rifm-theme-dark {
+        --rifm-bg: #141519;
+        --rifm-surface: #1a1c22;
+        --rifm-surface-hover: #21242c;
+        --rifm-border: #23252a;
+        --rifm-border-strong: #2d3038;
+        --rifm-text: #f7f8f8;
+        --rifm-subtle-text: rgba(247, 248, 248, 0.9);
+        --rifm-slider-bg: rgba(255, 255, 255, 0.3);
+        --rifm-value-bg: rgba(255, 255, 255, 0.3);
+        --rifm-preset-bg: rgba(255, 255, 255, 0.15);
+        --rifm-preset-border: rgba(255, 255, 255, 0.3);
+        --rifm-preset-hover: rgba(255, 255, 255, 0.25);
+        --rifm-preset-active: rgba(255, 255, 255, 0.4);
+        --rifm-preset-text: #ffffff;
+        --rifm-ripple: rgba(255, 255, 255, 0.3);
+        --rifm-shimmer: rgba(255, 255, 255, 0.12);
+      }
+
       #read-it-for-me-player.dragging {
         cursor: grabbing !important;
         transition: none !important;
-        border-color: #2d3038;
+        border-color: var(--rifm-border-strong);
         transform: scale(1.02);
       }
 
@@ -291,8 +378,8 @@ function createFloatingPlayer() {
       }
 
       .rifm-queue-badge {
-        background: #1a1c22;
-        border: 1px solid #2d3038;
+        background: var(--rifm-surface);
+        border: 1px solid var(--rifm-border-strong);
         padding: 2px 6px;
         border-radius: 8px;
         font-size: 10px;
@@ -304,7 +391,7 @@ function createFloatingPlayer() {
 
       .rifm-queue-badge:hover {
         transform: scale(1.1);
-        background: #21242c;
+        background: var(--rifm-surface-hover);
       }
 
       #read-it-for-me-player.mini-mode .rifm-queue-badge {
@@ -312,13 +399,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-close {
-        background: #1a1c22;
-        border: 1px solid #2d3038;
+        background: var(--rifm-surface);
+        border: 1px solid var(--rifm-border-strong);
         border-radius: 8px;
         width: 40px;
         height: 40px;
         cursor: pointer;
-        color: #f7f8f8;
+        color: var(--rifm-text);
         font-size: 16px;
         display: flex;
         align-items: center;
@@ -327,7 +414,7 @@ function createFloatingPlayer() {
       }
 
       .rifm-close:hover {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
         transform: rotate(90deg) scale(1.1);
       }
 
@@ -337,7 +424,7 @@ function createFloatingPlayer() {
 
       .rifm-progress-bar {
         height: 3px;
-        background: #1a1c22;
+        background: var(--rifm-surface);
         border-radius: 2px;
         margin-bottom: 12px;
         overflow: hidden;
@@ -346,7 +433,7 @@ function createFloatingPlayer() {
 
       .rifm-progress-fill {
         height: 100%;
-        background: #5e6ad2;
+        background: var(--rifm-primary);
         width: 0%;
         transition: width 0.1s linear;
         position: relative;
@@ -360,7 +447,7 @@ function createFloatingPlayer() {
         right: 0;
         bottom: 0;
         width: 100px;
-        background: rgba(255, 255, 255, 0.12);
+        background: var(--rifm-shimmer);
         animation: shimmer 2s ease-in-out infinite;
       }
 
@@ -429,11 +516,11 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn {
-        background: #1a1c22;
-        border: 1px solid #2d3038;
+        background: var(--rifm-surface);
+        border: 1px solid var(--rifm-border-strong);
         border-radius: 8px;
         padding: 10px 16px;
-        color: #f7f8f8;
+        color: var(--rifm-text);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
@@ -455,7 +542,7 @@ function createFloatingPlayer() {
         width: 0;
         height: 0;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--rifm-ripple);
         transform: translate(-50%, -50%);
         transition: width 0.6s, height 0.6s;
       }
@@ -484,7 +571,7 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn:hover {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
         transform: translateY(-2px) scale(1.02);
       }
 
@@ -503,13 +590,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn-stop {
-        background: #1a1c22;
+        background: var(--rifm-surface);
         flex: 0.8;
-        border-color: #5e6ad2;
+        border-color: var(--rifm-primary);
       }
 
       .rifm-btn-stop:hover {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
       }
 
       .rifm-speed-presets {
@@ -529,11 +616,11 @@ function createFloatingPlayer() {
       }
 
       .rifm-preset-btn {
-        background: rgba(255, 255, 255, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: var(--rifm-preset-bg);
+        border: 1px solid var(--rifm-preset-border);
         border-radius: 6px;
         padding: 4px 8px;
-        color: white;
+        color: var(--rifm-preset-text);
         font-size: 10px;
         font-weight: 600;
         cursor: pointer;
@@ -541,12 +628,12 @@ function createFloatingPlayer() {
       }
 
       .rifm-preset-btn:hover {
-        background: rgba(255, 255, 255, 0.25);
+        background: var(--rifm-preset-hover);
       }
 
       .rifm-preset-btn.active {
-        background: rgba(255, 255, 255, 0.4);
-        border-color: white;
+        background: var(--rifm-preset-active);
+        border-color: var(--rifm-text);
       }
 
       .rifm-clear-queue {
@@ -604,13 +691,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-settings-toggle {
-        background: #1a1c22;
-        border: 1px solid #2d3038;
+        background: var(--rifm-surface);
+        border: 1px solid var(--rifm-border-strong);
         border-radius: 8px;
         width: 40px;
         height: 40px;
         cursor: pointer;
-        color: white;
+        color: var(--rifm-text);
         font-size: 16px;
         display: flex;
         align-items: center;
@@ -620,23 +707,23 @@ function createFloatingPlayer() {
       }
 
       .rifm-settings-toggle:hover {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
         transform: rotate(90deg);
       }
 
       .rifm-settings-toggle.active {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
         transform: rotate(180deg);
       }
 
       .rifm-mini-toggle {
-        background: #1a1c22;
-        border: 1px solid #2d3038;
+        background: var(--rifm-surface);
+        border: 1px solid var(--rifm-border-strong);
         border-radius: 8px;
         width: 40px;
         height: 40px;
         cursor: pointer;
-        color: white;
+        color: var(--rifm-text);
         font-size: 14px;
         display: flex;
         align-items: center;
@@ -646,7 +733,7 @@ function createFloatingPlayer() {
       }
 
       .rifm-mini-toggle:hover {
-        background: #21242c;
+        background: var(--rifm-surface-hover);
       }
 
       .rifm-config-panel {
@@ -675,22 +762,23 @@ function createFloatingPlayer() {
         align-items: center;
         font-size: 11px;
         margin-bottom: 6px;
-        opacity: 0.95;
+        color: var(--rifm-subtle-text);
       }
 
       .rifm-slider-value {
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--rifm-value-bg);
         padding: 2px 8px;
         border-radius: 6px;
         font-weight: 600;
         font-size: 10px;
+        color: var(--rifm-text);
       }
 
       .rifm-slider {
         width: 100%;
         height: 4px;
         border-radius: 2px;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--rifm-slider-bg);
         outline: none;
         -webkit-appearance: none;
         appearance: none;
@@ -702,18 +790,18 @@ function createFloatingPlayer() {
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: white;
+        background: var(--rifm-text);
         cursor: pointer;
-        border: 1px solid #23252a;
+        border: 1px solid var(--rifm-border);
       }
 
       .rifm-slider::-moz-range-thumb {
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: white;
+        background: var(--rifm-text);
         cursor: pointer;
-        border: 1px solid #23252a;
+        border: 1px solid var(--rifm-border);
       }
     </style>
     <div class="rifm-header">
@@ -804,10 +892,11 @@ function createFloatingPlayer() {
   `
 
   document.body.appendChild(floatingPlayer)
+  setupSystemThemeListener()
 
   // Load saved settings
   browser.storage.local
-    .get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar', 'isMiniMode'])
+    .get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar', 'isMiniMode', 'theme'])
     .then((result) => {
       const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
       const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
@@ -819,6 +908,13 @@ function createFloatingPlayer() {
       const defaultVolume = result.defaultVolume as number | undefined
       const showProgressBar = result.showProgressBar as boolean | undefined
       const savedMiniMode = result.isMiniMode as boolean | undefined
+      const savedTheme = result.theme as ThemeMode | undefined
+
+      if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'auto') {
+        applyPlayerTheme(savedTheme)
+      } else {
+        applyPlayerTheme('auto')
+      }
 
       // Restore mini mode preference
       if (savedMiniMode === true) {
@@ -1262,6 +1358,15 @@ storageChangeListener = (changes) => {
       progressBar.style.display = newValue !== false ? 'block' : 'none'
     }
   }
+
+  if (changes.theme) {
+    const newTheme = changes.theme.newValue as ThemeMode | undefined
+    if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'auto') {
+      applyPlayerTheme(newTheme)
+    } else {
+      applyPlayerTheme('auto')
+    }
+  }
 }
 browser.storage.local.onChanged.addListener(storageChangeListener)
 
@@ -1311,6 +1416,12 @@ export function destroyPlayer() {
     storageChangeListener = null
   }
 
+  if (systemThemeMediaQuery && systemThemeChangeHandler) {
+    systemThemeMediaQuery.removeEventListener('change', systemThemeChangeHandler)
+    systemThemeMediaQuery = null
+    systemThemeChangeHandler = null
+  }
+
   // Remove player from DOM
   if (floatingPlayer) {
     floatingPlayer.remove()
@@ -1320,5 +1431,6 @@ export function destroyPlayer() {
   // Reset state
   isDragging = false
   isMiniMode = false
+  currentThemeMode = 'auto'
   currentMessages = {}
 }

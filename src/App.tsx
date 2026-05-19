@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { UI_CONFIG } from './constants'
-import { SettingsSection, VoiceSelector, WelcomeModal } from './popup/components'
+import { SettingsSection, ThemeToggle, VoiceSelector, WelcomeModal } from './popup/components'
 import { useTheme, useVoices } from './popup/hooks'
 import type { SettingsSection as SettingsSectionType } from './types'
 import browser from './utils/browser'
@@ -8,7 +8,7 @@ import { availableLocales, initializeLocale, setLocale, t } from './utils/i18n'
 
 function App() {
   const { voices, isLoadingVoices } = useVoices()
-  useTheme()
+  const [theme, setTheme] = useTheme()
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
@@ -195,6 +195,10 @@ function App() {
 
         {/* Header */}
         <div className="text-center mb-6">
+          <div className="flex justify-end mb-3">
+            <ThemeToggle theme={theme} onThemeChange={setTheme} />
+          </div>
+
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4 relative group">
             {logoUrl ? (
               <div className="relative">

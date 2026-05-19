@@ -6,31 +6,71 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
-  const handleToggle = () => onThemeChange('dark')
-  const label = theme === 'dark' ? 'Dark mode' : 'Dark mode'
-
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleToggle}
-        className="p-2 rounded-md bg-surface-1 border border-hairline text-ink-muted"
-        aria-label="Dark mode enabled"
-      >
-        <svg
-          className="w-4 h-4 text-primary"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
+  const options: Array<{ value: ThemeMode; title: string; icon: JSX.Element }> = [
+    {
+      value: 'light',
+      title: 'Light mode',
+      icon: (
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="4" strokeWidth="2" />
           <path
-            fillRule="evenodd"
-            d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
-            clipRule="evenodd"
+            strokeWidth="2"
+            strokeLinecap="round"
+            d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
           />
         </svg>
-      </button>
+      ),
+    },
+    {
+      value: 'dark',
+      title: 'Dark mode',
+      icon: (
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21.752 15.002A9 9 0 1112.998 2.25a.75.75 0 01.681 1.064A7.5 7.5 0 0020.686 13.32a.75.75 0 011.066.682z" />
+        </svg>
+      ),
+    },
+    {
+      value: 'auto',
+      title: 'Auto (system)',
+      icon: (
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="4" width="18" height="13" rx="2" strokeWidth="2" />
+          <path strokeWidth="2" strokeLinecap="round" d="M8 20h8M10 17v3m4-3v3" />
+        </svg>
+      ),
+    },
+  ]
 
-      <span className="text-xs text-ink-subtle font-medium">{label}</span>
+  return (
+    <div
+      className="inline-flex items-center rounded-md border border-hairline bg-surface-2 p-0.5"
+      role="radiogroup"
+      aria-label="Theme mode"
+    >
+      {options.map((option) => {
+        const isActive = option.value === theme
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onThemeChange(option.value)}
+            role="radio"
+            aria-checked={isActive}
+            aria-label={option.title}
+            title={option.title}
+            className={[
+              'min-w-7 h-7 px-2 rounded-sm text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              isActive
+                ? 'bg-primary text-white'
+                : 'text-ink-subtle hover:text-ink hover:bg-surface-3',
+            ].join(' ')}
+          >
+            {option.icon}
+          </button>
+        )
+      })}
     </div>
   )
 }
