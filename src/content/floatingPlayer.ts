@@ -30,9 +30,16 @@ async function loadLocaleMessages(): Promise<void> {
     } catch (error) {
       console.error('[FloatingPlayer] Failed to load locale:', locale, error)
       // Try loading English as absolute fallback
-      const fallbackUrl = browser.runtime.getURL('_locales/en/messages.json')
-      const fallbackResponse = await fetch(fallbackUrl)
-      currentMessages = await fallbackResponse.json()
+      try {
+        const fallbackUrl = browser.runtime.getURL('_locales/en/messages.json')
+        const fallbackResponse = await fetch(fallbackUrl)
+        if (!fallbackResponse.ok) {
+          throw new Error(`HTTP ${fallbackResponse.status}`)
+        }
+        currentMessages = await fallbackResponse.json()
+      } catch (fallbackError) {
+        console.error('[FloatingPlayer] Failed to load fallback locale:', fallbackError)
+      }
     }
   } catch (error) {
     console.error('[FloatingPlayer] Failed to load locale messages:', error)

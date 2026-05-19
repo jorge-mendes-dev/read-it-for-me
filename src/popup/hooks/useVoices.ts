@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * Custom hook to load and manage speech synthesis voices
@@ -21,11 +21,11 @@ export function useVoices() {
     loadVoices()
 
     // Listen for voiceschanged event (some browsers load voices asynchronously)
-    window.speechSynthesis.onvoiceschanged = loadVoices
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices)
 
     // Cleanup
     return () => {
-      window.speechSynthesis.onvoiceschanged = null
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices)
     }
   }, [])
 

@@ -303,7 +303,7 @@ function highlightCurrentWord(charIndex: number) {
         // Validate this is a whole word, not a partial match (e.g., "cat" in "category")
         const before = content[wordIndex - 1]
         const after = content[wordIndex + currentWord.length]
-        const isWholeWord = (!before || /\s/.test(before)) && (!after || /\s/.test(after))
+        const isWholeWord = (!before || /\W/.test(before)) && (!after || /\W/.test(after))
 
         if (isWholeWord) {
           // Check if this is the occurrence we're looking for
@@ -603,12 +603,18 @@ async function loadLocaleMessages(): Promise<void> {
     try {
       const url = browser.runtime.getURL(`_locales/${locale}/messages.json`)
       const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
       currentMessages = await response.json()
     } catch (error) {
       console.error('[ContentScript] Failed to load locale:', locale, error)
       // Try loading English as absolute fallback
       const fallbackUrl = browser.runtime.getURL('_locales/en/messages.json')
       const fallbackResponse = await fetch(fallbackUrl)
+      if (!fallbackResponse.ok) {
+        throw new Error(`HTTP ${fallbackResponse.status}`)
+      }
       currentMessages = await fallbackResponse.json()
     }
   } catch (error) {
