@@ -122,6 +122,8 @@ function createFloatingPlayer() {
   floatingPlayer.innerHTML = `
     <style>
       #read-it-for-me-player {
+        --rifm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --rifm-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
         --rifm-bg: #141519;
         --rifm-surface: #1a1c22;
         --rifm-surface-hover: #21242c;
@@ -151,8 +153,8 @@ function createFloatingPlayer() {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         color: var(--rifm-text);
         display: none;
-        animation: slideIn 0.3s ease-out;
-        transition: all 0.3s ease;
+        animation: slideIn 240ms var(--rifm-ease-out);
+        transition: background-color 200ms var(--rifm-ease-out), border-color 200ms var(--rifm-ease-out), color 200ms var(--rifm-ease-out), transform 220ms var(--rifm-ease-out), box-shadow 220ms var(--rifm-ease-out);
         cursor: move;
         will-change: transform;
       }
@@ -410,16 +412,28 @@ function createFloatingPlayer() {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: background-color 180ms var(--rifm-ease-out), transform 180ms var(--rifm-ease-out), border-color 180ms var(--rifm-ease-out), box-shadow 180ms var(--rifm-ease-out);
       }
 
       .rifm-close:hover {
         background: var(--rifm-surface-hover);
-        transform: rotate(90deg) scale(1.1);
+        transform: translateY(-1px);
       }
 
       .rifm-close:active {
-        transform: rotate(90deg) scale(0.9);
+        transform: scale(0.96);
+      }
+
+      .rifm-close:focus-visible,
+      .rifm-btn:focus-visible,
+      .rifm-settings-toggle:focus-visible,
+      .rifm-mini-toggle:focus-visible,
+      .rifm-preset-btn:focus-visible,
+      .rifm-clear-queue:focus-visible,
+      .rifm-reset-btn:focus-visible,
+      .rifm-slider:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--rifm-primary) 60%, transparent) !important;
+        outline-offset: 2px;
       }
 
       .rifm-progress-bar {
@@ -478,7 +492,7 @@ function createFloatingPlayer() {
       .rifm-pulse {
         width: 4px;
         height: 12px;
-        background: white;
+        background: var(--rifm-text);
         border-radius: 2px;
         animation: pulse 1s ease-in-out infinite;
       }
@@ -524,7 +538,7 @@ function createFloatingPlayer() {
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: background-color 180ms var(--rifm-ease-out), border-color 180ms var(--rifm-ease-out), color 180ms var(--rifm-ease-out), transform 160ms var(--rifm-ease-out), box-shadow 180ms var(--rifm-ease-out);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -572,7 +586,7 @@ function createFloatingPlayer() {
 
       .rifm-btn:hover {
         background: var(--rifm-surface-hover);
-        transform: translateY(-2px) scale(1.02);
+        transform: translateY(-1px);
       }
 
       .rifm-btn:active {
@@ -580,13 +594,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn svg {
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: transform 180ms var(--rifm-ease-out);
         position: relative;
         z-index: 1;
       }
 
       .rifm-btn:hover svg {
-        transform: scale(1.1) rotate(5deg);
+        transform: scale(1.06);
       }
 
       .rifm-btn-stop {
@@ -624,16 +638,21 @@ function createFloatingPlayer() {
         font-size: 10px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 160ms var(--rifm-ease-out), border-color 160ms var(--rifm-ease-out), transform 140ms var(--rifm-ease-out);
       }
 
       .rifm-preset-btn:hover {
         background: var(--rifm-preset-hover);
+        transform: translateY(-1px);
       }
 
       .rifm-preset-btn.active {
         background: var(--rifm-preset-active);
         border-color: var(--rifm-text);
+      }
+
+      .rifm-preset-btn:active {
+        transform: scale(0.97);
       }
 
       .rifm-clear-queue {
@@ -645,13 +664,18 @@ function createFloatingPlayer() {
         font-size: 10px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 160ms var(--rifm-ease-out), transform 140ms var(--rifm-ease-out), box-shadow 180ms var(--rifm-ease-out);
         margin-bottom: 8px;
         width: 100%;
       }
 
       .rifm-clear-queue:hover {
         background: rgba(255, 140, 0, 0.9);
+        transform: translateY(-1px);
+      }
+
+      .rifm-clear-queue:active {
+        transform: scale(0.98);
       }
 
       .rifm-reset-btn {
@@ -659,18 +683,18 @@ function createFloatingPlayer() {
         border: 1px solid rgba(239, 68, 68, 0.3);
         border-radius: 8px;
         padding: 8px 12px;
-        color: rgba(255, 255, 255, 0.95);
+        color: color-mix(in srgb, var(--rifm-text) 94%, transparent);
         font-size: 11px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: background-color 160ms var(--rifm-ease-out), border-color 160ms var(--rifm-ease-out), transform 140ms var(--rifm-ease-out), color 160ms var(--rifm-ease-out);
         margin-top: 12px;
         width: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-top: 1px solid color-mix(in srgb, var(--rifm-text) 15%, transparent);
         padding-top: 12px;
       }
 
@@ -678,6 +702,10 @@ function createFloatingPlayer() {
         background: rgba(239, 68, 68, 0.25);
         border-color: rgba(239, 68, 68, 0.5);
         transform: translateY(-1px);
+      }
+
+      .rifm-reset-btn:active {
+        transform: scale(0.98);
       }
 
       .mini-mode .rifm-config-panel,
@@ -702,18 +730,23 @@ function createFloatingPlayer() {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        transition: background-color 160ms var(--rifm-ease-out), border-color 160ms var(--rifm-ease-out), transform 180ms var(--rifm-ease-out);
         margin-left: 4px;
       }
 
       .rifm-settings-toggle:hover {
         background: var(--rifm-surface-hover);
-        transform: rotate(90deg);
+        transform: translateY(-1px) rotate(15deg);
       }
 
       .rifm-settings-toggle.active {
         background: var(--rifm-surface-hover);
         transform: rotate(180deg);
+      }
+
+      .rifm-settings-toggle:active,
+      .rifm-mini-toggle:active {
+        transform: scale(0.96);
       }
 
       .rifm-mini-toggle {
@@ -728,24 +761,29 @@ function createFloatingPlayer() {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        transition: background-color 160ms var(--rifm-ease-out), border-color 160ms var(--rifm-ease-out), transform 160ms var(--rifm-ease-out);
         margin-left: 4px;
       }
 
       .rifm-mini-toggle:hover {
         background: var(--rifm-surface-hover);
+        transform: translateY(-1px);
       }
 
       .rifm-config-panel {
         max-height: 0;
         overflow: hidden;
-        transition: max-height 0.3s ease-out, margin-top 0.3s ease-out;
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: max-height 220ms var(--rifm-ease-out), margin-top 220ms var(--rifm-ease-out), opacity 180ms var(--rifm-ease-out), transform 180ms var(--rifm-ease-out);
         margin-top: 0;
       }
 
       .rifm-config-panel.open {
         max-height: 250px;
         margin-top: 12px;
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .rifm-slider-group {
@@ -782,6 +820,7 @@ function createFloatingPlayer() {
         outline: none;
         -webkit-appearance: none;
         appearance: none;
+        transition: background-color 140ms var(--rifm-ease-out);
       }
 
       .rifm-slider::-webkit-slider-thumb {

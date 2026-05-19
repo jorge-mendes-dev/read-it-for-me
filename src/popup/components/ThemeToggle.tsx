@@ -11,7 +11,13 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
       value: 'light',
       title: 'Light mode',
       icon: (
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg
+          className="w-3.5 h-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
           <circle cx="12" cy="12" r="4" strokeWidth="2" />
           <path
             strokeWidth="2"
@@ -34,7 +40,13 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
       value: 'auto',
       title: 'Auto (system)',
       icon: (
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg
+          className="w-3.5 h-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
           <rect x="3" y="4" width="18" height="13" rx="2" strokeWidth="2" />
           <path strokeWidth="2" strokeLinecap="round" d="M8 20h8M10 17v3m4-3v3" />
         </svg>
@@ -44,7 +56,7 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
 
   return (
     <div
-      className="inline-flex items-center rounded-md border border-hairline bg-surface-2 p-0.5"
+      className="inline-flex items-center rounded-md border border-hairline bg-surface-2 p-0.5 shadow-sm"
       role="radiogroup"
       aria-label="Theme mode"
     >
@@ -61,10 +73,10 @@ export function ThemeToggle({ theme, onThemeChange }: ThemeToggleProps) {
             aria-label={option.title}
             title={option.title}
             className={[
-              'min-w-7 h-7 px-2 rounded-sm text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              'min-w-7 h-7 px-2 rounded-sm text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95',
               isActive
-                ? 'bg-primary text-white'
-                : 'text-ink-subtle hover:text-ink hover:bg-surface-3',
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-ink-subtle hover:text-ink hover:bg-surface-3 hover:-translate-y-px',
             ].join(' ')}
           >
             {option.icon}

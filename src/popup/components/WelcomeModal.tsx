@@ -10,7 +10,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -53,7 +53,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
         </div>
         <button
           onClick={onClose}
-          className="w-full py-2.5 px-3 bg-primary hover:bg-primary-hover text-white rounded-md font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="w-full py-2.5 px-3 bg-primary hover:bg-primary-hover text-white rounded-md font-medium transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           aria-label="Close welcome guide"
         >
           {t('gotIt')}
