@@ -37,6 +37,7 @@ let mouseUpHandler: (() => void) | null = null
 let mouseDownHandler: ((e: MouseEvent) => void) | null = null
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null
 let rifmActionHandler: ((event: CustomEvent) => void) | null = null
+let runtimeMessageHandler: ((request: any) => Promise<any>) | null = null
 let storageChangeHandler: ((changes: any) => void) | null = null
 let beforeunloadHandler: (() => void) | null = null
 let selectionTooltipClickHandler: (() => void) | null = null
@@ -758,7 +759,7 @@ function updateState() {
   )
 }
 
-browser.runtime.onMessage.addListener((request: any) => {
+runtimeMessageHandler = (request: any) => {
   if (request.action === 'getSelectedText') {
     const selectedText = window.getSelection()?.toString() || ''
     const pageLang =
@@ -973,7 +974,8 @@ browser.runtime.onMessage.addListener((request: any) => {
   }
 
   return Promise.resolve(null)
-})
+}
+browser.runtime.onMessage.addListener(runtimeMessageHandler)
 
 // Listen for custom events from floating player (same context)
 rifmActionHandler = (event: CustomEvent) => {
@@ -1452,9 +1454,18 @@ function handleSelectionRead() {
         queuedSelectionRanges.push(selectionRange)
         showPlayer().then(() => updateQueueCount(readingQueue.length))
       } else {
+        // If currently paused, fully cancel the paused utterance before starting the new selection.
+        if (currentUtterance) {
+          currentUtterance.onend = null
+          currentUtterance.onerror = null
+          window.speechSynthesis.cancel()
+        }
+
         // Clear queue and start new reading
         readingQueue = []
         queuedSelectionRanges = []
+        isPaused = false
+        pausedAt = 0
         startReading(selectedText, voiceIndex, rate, pitch, volume)
       }
     })
@@ -2005,6 +2016,10 @@ function cleanup() {
   if (storageChangeHandler) {
     browser.storage.local.onChanged.removeListener(storageChangeHandler)
     storageChangeHandler = null
+  }
+  if (runtimeMessageHandler) {
+    browser.runtime.onMessage.removeListener(runtimeMessageHandler)
+    runtimeMessageHandler = null
   }
 
   // Cancel any ongoing speech

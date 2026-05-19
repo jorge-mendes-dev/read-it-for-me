@@ -17,7 +17,7 @@ interface Message {
 let speechState: SpeechState = {
   isReading: false,
   isPaused: false,
-  currentText: ''
+  currentText: '',
 }
 
 // Forward messages to active tab
@@ -28,7 +28,8 @@ browser.runtime.onMessage.addListener((message: unknown) => {
     case 'pauseReading':
     case 'resumeReading':
     case 'stopReading':
-      return browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+    case 'updateSettings':
+      return browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0]?.id) {
           return browser.tabs.sendMessage(tabs[0].id, message)
         }
@@ -40,7 +41,7 @@ browser.runtime.onMessage.addListener((message: unknown) => {
         speechState = {
           isReading: msg.state.isReading,
           isPaused: msg.state.isPaused,
-          currentText: msg.state.currentText || speechState.currentText
+          currentText: msg.state.currentText || speechState.currentText,
         }
       }
       return Promise.resolve({ success: true })
@@ -52,4 +53,3 @@ browser.runtime.onMessage.addListener((message: unknown) => {
       return Promise.resolve(null)
   }
 })
-

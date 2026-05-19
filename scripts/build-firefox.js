@@ -1,7 +1,7 @@
 // Build script for Firefox version
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,7 +12,7 @@ console.log('🦊 Building Firefox version...\n');
 // Step 1: Build
 console.log('🔨 Running build...');
 try {
-  execSync('node_modules\\.bin\\vite.cmd build', { 
+  execSync('npm run build', {
     stdio: 'inherit',
     shell: true 
   });
