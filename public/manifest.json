@@ -1,13 +1,10 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "permissions": [
-    "activeTab",
-    "storage"
-  ],
+  "permissions": ["activeTab", "storage"],
   "background": {
     "service_worker": "background.js"
   },
