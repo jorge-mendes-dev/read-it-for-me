@@ -19,7 +19,7 @@ async function loadLocaleMessages(): Promise<void> {
   try {
     const result = await browser.storage.local.get(['selectedLocale'])
     const locale = (result.selectedLocale as string | undefined) || 'en'
-    
+
     try {
       const url = browser.runtime.getURL(`_locales/${locale}/messages.json`)
       const response = await fetch(url)
@@ -49,7 +49,11 @@ function getMessage(key: string): string {
 }
 
 // Helper to add tracked event listeners
-function addTrackedListener(element: Element | null, event: string, handler: EventListener | EventListenerObject) {
+function addTrackedListener(
+  element: Element | null,
+  event: string,
+  handler: EventListener | EventListenerObject
+) {
   if (!element) return
   element.addEventListener(event, handler)
   if (!eventHandlers.has(element)) {
@@ -67,7 +71,7 @@ function addTrackedListener(element: Element | null, event: string, handler: Eve
 
 function createFloatingPlayer() {
   if (floatingPlayer) return
-  
+
   // Verify messages are loaded before creating UI
   if (Object.keys(currentMessages).length === 0) {
     console.error('[FloatingPlayer] Cannot create player - no messages loaded!')
@@ -83,14 +87,13 @@ function createFloatingPlayer() {
         bottom: 20px;
         right: 20px;
         width: 300px;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        background: #141519;
+        border: 1px solid #23252a;
+        border-radius: 12px;
         padding: 16px;
         z-index: 999999;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: white;
+        color: #f7f8f8;
         display: none;
         animation: slideIn 0.3s ease-out;
         transition: all 0.3s ease;
@@ -101,7 +104,7 @@ function createFloatingPlayer() {
       #read-it-for-me-player.dragging {
         cursor: grabbing !important;
         transition: none !important;
-        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+        border-color: #2d3038;
         transform: scale(1.02);
       }
 
@@ -113,8 +116,7 @@ function createFloatingPlayer() {
       #read-it-for-me-player.mini-mode {
         width: 60px;
         padding: 12px 10px;
-        border-radius: 30px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
       }
 
       #read-it-for-me-player.mini-mode .rifm-settings-toggle {
@@ -200,13 +202,6 @@ function createFloatingPlayer() {
         margin-bottom: 4px;
       }
 
-      @media (prefers-color-scheme: dark) {
-        #read-it-for-me-player {
-          background: linear-gradient(135deg, rgba(79, 82, 221, 0.98) 0%, rgba(119, 72, 226, 0.98) 100%);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-      }
-
       @keyframes slideIn {
         from {
           transform: translateY(100px);
@@ -243,10 +238,10 @@ function createFloatingPlayer() {
 
       @keyframes progressGlow {
         0%, 100% {
-          box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+          opacity: 0.85;
         }
         50% {
-          box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+          opacity: 1;
         }
       }
 
@@ -289,7 +284,8 @@ function createFloatingPlayer() {
       }
 
       .rifm-queue-badge {
-        background: rgba(255, 255, 255, 0.3);
+        background: #1a1c22;
+        border: 1px solid #2d3038;
         padding: 2px 6px;
         border-radius: 8px;
         font-size: 10px;
@@ -301,7 +297,7 @@ function createFloatingPlayer() {
 
       .rifm-queue-badge:hover {
         transform: scale(1.1);
-        background: rgba(255, 255, 255, 0.4);
+        background: #21242c;
       }
 
       #read-it-for-me-player.mini-mode .rifm-queue-badge {
@@ -309,13 +305,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-close {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
+        background: #1a1c22;
+        border: 1px solid #2d3038;
         border-radius: 8px;
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
         cursor: pointer;
-        color: white;
+        color: #f7f8f8;
         font-size: 16px;
         display: flex;
         align-items: center;
@@ -324,7 +320,7 @@ function createFloatingPlayer() {
       }
 
       .rifm-close:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: #21242c;
         transform: rotate(90deg) scale(1.1);
       }
 
@@ -334,7 +330,7 @@ function createFloatingPlayer() {
 
       .rifm-progress-bar {
         height: 3px;
-        background: rgba(255, 255, 255, 0.2);
+        background: #1a1c22;
         border-radius: 2px;
         margin-bottom: 12px;
         overflow: hidden;
@@ -343,7 +339,7 @@ function createFloatingPlayer() {
 
       .rifm-progress-fill {
         height: 100%;
-        background: white;
+        background: #5e6ad2;
         width: 0%;
         transition: width 0.1s linear;
         position: relative;
@@ -357,7 +353,7 @@ function createFloatingPlayer() {
         right: 0;
         bottom: 0;
         width: 100px;
-        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3));
+        background: rgba(255, 255, 255, 0.12);
         animation: shimmer 2s ease-in-out infinite;
       }
 
@@ -426,11 +422,11 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn {
-        background: rgba(255, 255, 255, 0.25);
-        border: none;
+        background: #1a1c22;
+        border: 1px solid #2d3038;
         border-radius: 8px;
         padding: 10px 16px;
-        color: white;
+        color: #f7f8f8;
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
@@ -463,8 +459,8 @@ function createFloatingPlayer() {
       }
 
       #read-it-for-me-player.mini-mode .rifm-btn {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         padding: 10px;
         flex: none;
         border-radius: 12px;
@@ -481,14 +477,12 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn:hover {
-        background: rgba(255, 255, 255, 0.35);
+        background: #21242c;
         transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
       .rifm-btn:active {
         transform: translateY(0) scale(0.98);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       }
 
       .rifm-btn svg {
@@ -502,12 +496,13 @@ function createFloatingPlayer() {
       }
 
       .rifm-btn-stop {
-        background: rgba(239, 68, 68, 0.9);
+        background: #1a1c22;
         flex: 0.8;
+        border-color: #5e6ad2;
       }
 
       .rifm-btn-stop:hover {
-        background: rgba(220, 38, 38, 0.9);
+        background: #21242c;
       }
 
       .rifm-speed-presets {
@@ -602,11 +597,11 @@ function createFloatingPlayer() {
       }
 
       .rifm-settings-toggle {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
+        background: #1a1c22;
+        border: 1px solid #2d3038;
         border-radius: 8px;
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
         cursor: pointer;
         color: white;
         font-size: 16px;
@@ -618,21 +613,21 @@ function createFloatingPlayer() {
       }
 
       .rifm-settings-toggle:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: #21242c;
         transform: rotate(90deg);
       }
 
       .rifm-settings-toggle.active {
-        background: rgba(255, 255, 255, 0.4);
+        background: #21242c;
         transform: rotate(180deg);
       }
 
       .rifm-mini-toggle {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
+        background: #1a1c22;
+        border: 1px solid #2d3038;
         border-radius: 8px;
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
         cursor: pointer;
         color: white;
         font-size: 14px;
@@ -644,7 +639,7 @@ function createFloatingPlayer() {
       }
 
       .rifm-mini-toggle:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: #21242c;
       }
 
       .rifm-config-panel {
@@ -702,7 +697,7 @@ function createFloatingPlayer() {
         border-radius: 50%;
         background: white;
         cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        border: 1px solid #23252a;
       }
 
       .rifm-slider::-moz-range-thumb {
@@ -711,8 +706,7 @@ function createFloatingPlayer() {
         border-radius: 50%;
         background: white;
         cursor: pointer;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        border: 1px solid #23252a;
       }
     </style>
     <div class="rifm-header">
@@ -805,58 +799,61 @@ function createFloatingPlayer() {
   document.body.appendChild(floatingPlayer)
 
   // Load saved settings
-  browser.storage.local.get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar', 'isMiniMode']).then((result) => {
-    const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
-    const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
-    const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
-    const progressBar = floatingPlayer?.querySelector('.rifm-progress-bar') as HTMLElement
-    
-    const defaultRate = result.defaultRate as number | undefined
-    const defaultPitch = result.defaultPitch as number | undefined
-    const defaultVolume = result.defaultVolume as number | undefined
-    const showProgressBar = result.showProgressBar as boolean | undefined
-    const savedMiniMode = result.isMiniMode as boolean | undefined
-    
-    // Restore mini mode preference
-    if (savedMiniMode === true) {
-      isMiniMode = true
-      floatingPlayer?.classList.add('mini-mode')
-      const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
-      if (icon) {
-        icon.setAttribute('d', 'M4 8h16M4 16h16')
-      }
-    }
-    
-    // Show/hide progress bar based on setting (default: false/hidden)
-    if (progressBar) {
-      progressBar.style.display = showProgressBar === true ? 'block' : 'none'
-    }
-    
-    if (speedSlider && defaultRate !== undefined) {
-      speedSlider.value = defaultRate.toString()
-      updateSliderValue('speed', defaultRate)
-      
-      // Update active preset button
-      floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(btn => {
-        const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
-        if (Math.abs(speed - defaultRate) < 0.01) {
-          btn.classList.add('active')
-        } else {
-          btn.classList.remove('active')
+  browser.storage.local
+    .get(['defaultRate', 'defaultPitch', 'defaultVolume', 'showProgressBar', 'isMiniMode'])
+    .then((result) => {
+      const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
+      const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
+      const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
+      const progressBar = floatingPlayer?.querySelector('.rifm-progress-bar') as HTMLElement
+
+      const defaultRate = result.defaultRate as number | undefined
+      const defaultPitch = result.defaultPitch as number | undefined
+      const defaultVolume = result.defaultVolume as number | undefined
+      const showProgressBar = result.showProgressBar as boolean | undefined
+      const savedMiniMode = result.isMiniMode as boolean | undefined
+
+      // Restore mini mode preference
+      if (savedMiniMode === true) {
+        isMiniMode = true
+        floatingPlayer?.classList.add('mini-mode')
+        const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
+        if (icon) {
+          icon.setAttribute('d', 'M4 8h16M4 16h16')
         }
-      })
-    }
-    if (pitchSlider && defaultPitch !== undefined) {
-      pitchSlider.value = defaultPitch.toString()
-      updateSliderValue('pitch', defaultPitch)
-    }
-    if (volumeSlider && defaultVolume !== undefined) {
-      volumeSlider.value = defaultVolume.toString()
-      updateSliderValue('volume', defaultVolume)
-    }
-  }).catch((error) => {
-    console.error('Failed to load player settings:', error)
-  })
+      }
+
+      // Show/hide progress bar based on setting (default: false/hidden)
+      if (progressBar) {
+        progressBar.style.display = showProgressBar === true ? 'block' : 'none'
+      }
+
+      if (speedSlider && defaultRate !== undefined) {
+        speedSlider.value = defaultRate.toString()
+        updateSliderValue('speed', defaultRate)
+
+        // Update active preset button
+        floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach((btn) => {
+          const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
+          if (Math.abs(speed - defaultRate) < 0.01) {
+            btn.classList.add('active')
+          } else {
+            btn.classList.remove('active')
+          }
+        })
+      }
+      if (pitchSlider && defaultPitch !== undefined) {
+        pitchSlider.value = defaultPitch.toString()
+        updateSliderValue('pitch', defaultPitch)
+      }
+      if (volumeSlider && defaultVolume !== undefined) {
+        volumeSlider.value = defaultVolume.toString()
+        updateSliderValue('volume', defaultVolume)
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load player settings:', error)
+    })
 
   // Event listeners
   addTrackedListener(floatingPlayer.querySelector('#rifm-close'), 'click', hidePlayer)
@@ -864,18 +861,16 @@ function createFloatingPlayer() {
     window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'stopReading' } }))
     hidePlayer()
   })
-  
+
   addTrackedListener(floatingPlayer.querySelector('#rifm-play-pause'), 'click', togglePlayPause)
-  
+
   // Mini mode toggle
   addTrackedListener(floatingPlayer.querySelector('#rifm-mini-toggle'), 'click', () => {
     isMiniMode = !isMiniMode
     floatingPlayer?.classList.toggle('mini-mode', isMiniMode)
     const icon = floatingPlayer?.querySelector('#rifm-mini-toggle svg path')
     if (icon) {
-      const pathData = isMiniMode 
-        ? 'M4 8h16M4 16h16' 
-        : 'M19 13H5v-2h14v2z'
+      const pathData = isMiniMode ? 'M4 8h16M4 16h16' : 'M19 13H5v-2h14v2z'
       icon.setAttribute('d', pathData)
     }
     // Persist mini mode preference
@@ -888,18 +883,22 @@ function createFloatingPlayer() {
   })
 
   // Speed presets
-  floatingPlayer.querySelectorAll('.rifm-preset-btn').forEach(btn => {
+  floatingPlayer.querySelectorAll('.rifm-preset-btn').forEach((btn) => {
     const presetHandler = () => {
       const speed = parseFloat((btn as HTMLElement).dataset.speed || '1.0')
       const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
       if (speedSlider) {
         speedSlider.value = speed.toString()
         updateSliderValue('speed', speed)
-        window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: speed } }))
+        window.dispatchEvent(
+          new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: speed } })
+        )
         browser.storage.local.set({ defaultRate: speed })
       }
       // Update active state
-      floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
+      floatingPlayer
+        ?.querySelectorAll('.rifm-preset-btn')
+        .forEach((b) => b.classList.remove('active'))
       btn.classList.add('active')
     }
     addTrackedListener(btn, 'click', presetHandler)
@@ -908,11 +907,11 @@ function createFloatingPlayer() {
   // Reset to defaults button
   addTrackedListener(floatingPlayer.querySelector('#rifm-reset-btn'), 'click', () => {
     const defaults = { rate: 0.9, pitch: 1.0, volume: 1.0 }
-    
+
     const speedSlider = floatingPlayer?.querySelector('#rifm-speed-slider') as HTMLInputElement
     const pitchSlider = floatingPlayer?.querySelector('#rifm-pitch-slider') as HTMLInputElement
     const volumeSlider = floatingPlayer?.querySelector('#rifm-volume-slider') as HTMLInputElement
-    
+
     if (speedSlider) {
       speedSlider.value = defaults.rate.toString()
       updateSliderValue('speed', defaults.rate)
@@ -925,27 +924,29 @@ function createFloatingPlayer() {
       volumeSlider.value = defaults.volume.toString()
       updateSliderValue('volume', defaults.volume)
     }
-    
+
     // Update active preset button
-    floatingPlayer?.querySelectorAll('.rifm-preset-btn').forEach(b => b.classList.remove('active'))
+    floatingPlayer
+      ?.querySelectorAll('.rifm-preset-btn')
+      .forEach((b) => b.classList.remove('active'))
     floatingPlayer?.querySelector('.rifm-preset-btn[data-speed="1.0"]')?.classList.add('active')
-    
+
     // Save to storage
     browser.storage.local.set({
       defaultRate: defaults.rate,
       defaultPitch: defaults.pitch,
-      defaultVolume: defaults.volume
+      defaultVolume: defaults.volume,
     })
-    
+
     // Update current playback if reading
-    browser.runtime.sendMessage({ 
-      action: 'updateSettings', 
-      rate: defaults.rate, 
-      pitch: defaults.pitch, 
-      volume: defaults.volume 
+    browser.runtime.sendMessage({
+      action: 'updateSettings',
+      rate: defaults.rate,
+      pitch: defaults.pitch,
+      volume: defaults.volume,
     })
   })
-  
+
   // Settings toggle
   addTrackedListener(floatingPlayer.querySelector('#rifm-settings-toggle'), 'click', () => {
     const panel = floatingPlayer?.querySelector('#rifm-config-panel')
@@ -956,7 +957,7 @@ function createFloatingPlayer() {
 
   // Draggable functionality
   const headerElement = floatingPlayer.querySelector('.rifm-header') as HTMLElement
-  
+
   function startDrag(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('button')) return // Don't drag when clicking buttons
     isDragging = true
@@ -964,7 +965,7 @@ function createFloatingPlayer() {
     const rect = floatingPlayer!.getBoundingClientRect()
     dragOffset.x = e.clientX - rect.left
     dragOffset.y = e.clientY - rect.top
-    
+
     // Use stored handlers for consistency with cleanup
     if (dragHandler && stopDragHandler) {
       document.addEventListener('mousemove', dragHandler)
@@ -972,71 +973,71 @@ function createFloatingPlayer() {
     }
     e.preventDefault()
   }
-  
+
   function drag(e: MouseEvent) {
     if (!isDragging || !floatingPlayer) return
-    
+
     // Cancel previous animation frame if it exists
     if (rafId !== null) {
       cancelAnimationFrame(rafId)
     }
-    
+
     // Use requestAnimationFrame for smooth 60fps updates
     rafId = requestAnimationFrame(() => {
       if (!floatingPlayer) return
-      
+
       let newX = e.clientX - dragOffset.x
       let newY = e.clientY - dragOffset.y
-      
+
       // Keep within viewport with padding
       const rect = floatingPlayer.getBoundingClientRect()
       newX = Math.max(0, Math.min(newX, window.innerWidth - rect.width))
       newY = Math.max(0, Math.min(newY, window.innerHeight - rect.height))
-      
+
       // Use transform for better performance
       floatingPlayer.style.left = newX + 'px'
       floatingPlayer.style.top = newY + 'px'
       floatingPlayer.style.bottom = 'auto'
       floatingPlayer.style.right = 'auto'
-      
+
       rafId = null
     })
   }
-  
+
   function stopDrag() {
     if (!isDragging) return
     isDragging = false
     floatingPlayer?.classList.remove('dragging')
-    
+
     if (dragHandler) {
       document.removeEventListener('mousemove', dragHandler)
     }
     if (stopDragHandler) {
       document.removeEventListener('mouseup', stopDragHandler)
     }
-    
+
     // Cancel any pending animation frame
     if (rafId !== null) {
       cancelAnimationFrame(rafId)
       rafId = null
     }
-    
+
     // Save position
     if (floatingPlayer) {
       const rect = floatingPlayer.getBoundingClientRect()
       browser.storage.local.set({
         playerPosition: {
           left: rect.left,
-          top: rect.top
-        }
+          top: rect.top,
+        },
       })
     }
   }
-  
+
   // Store drag handlers BEFORE they're used in startDrag
   dragHandler = drag
   stopDragHandler = stopDrag
-  
+
   addTrackedListener(headerElement, 'mousedown', startDrag as EventListener)
 
   // Slider controls with real-time updates
@@ -1047,7 +1048,9 @@ function createFloatingPlayer() {
   addTrackedListener(speedSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('speed', value)
-    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: value } }))
+    window.dispatchEvent(
+      new CustomEvent('rifm-action', { detail: { action: 'updateSettings', rate: value } })
+    )
     // Auto-save to storage
     browser.storage.local.set({ defaultRate: value })
   })
@@ -1055,7 +1058,9 @@ function createFloatingPlayer() {
   addTrackedListener(pitchSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('pitch', value)
-    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', pitch: value } }))
+    window.dispatchEvent(
+      new CustomEvent('rifm-action', { detail: { action: 'updateSettings', pitch: value } })
+    )
     // Auto-save to storage
     browser.storage.local.set({ defaultPitch: value })
   })
@@ -1063,7 +1068,9 @@ function createFloatingPlayer() {
   addTrackedListener(volumeSlider, 'input', (e) => {
     const value = parseFloat((e.target as HTMLInputElement).value)
     updateSliderValue('volume', value)
-    window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'updateSettings', volume: value } }))
+    window.dispatchEvent(
+      new CustomEvent('rifm-action', { detail: { action: 'updateSettings', volume: value } })
+    )
     // Auto-save to storage
     browser.storage.local.set({ defaultVolume: value })
   })
@@ -1086,7 +1093,7 @@ export async function showPlayer() {
     await loadLocaleMessages()
     createFloatingPlayer()
   }
-  
+
   // Show the player
   if (floatingPlayer) {
     floatingPlayer.classList.add('show')
@@ -1118,7 +1125,7 @@ export function updatePlayerState(isPaused: boolean) {
 export function updateQueueCount(count: number) {
   const badge = floatingPlayer?.querySelector('#rifm-queue-badge')
   const clearBtn = floatingPlayer?.querySelector('#rifm-clear-queue')
-  
+
   if (badge) {
     if (count > 0) {
       badge.textContent = count.toString()
@@ -1127,7 +1134,7 @@ export function updateQueueCount(count: number) {
       badge.setAttribute('style', 'display: none;')
     }
   }
-  
+
   if (clearBtn) {
     clearBtn.setAttribute('style', count > 0 ? 'display: block;' : 'display: none;')
   }
@@ -1163,9 +1170,11 @@ let runtimeMessageListener: ((message: any) => void) | null = null
 runtimeMessageListener = (message: any) => {
   if (message.action === 'stateUpdate') {
     const { isReading, isPaused } = message.state
-    
+
     if (isReading) {
-      showPlayer().then(() => updatePlayerState(isPaused)).catch(console.error)
+      showPlayer()
+        .then(() => updatePlayerState(isPaused))
+        .catch(console.error)
     } else {
       hidePlayer()
     }
@@ -1176,9 +1185,11 @@ browser.runtime.onMessage.addListener(runtimeMessageListener)
 // Also listen for direct updates from content script (same page)
 stateUpdateHandler = (event: CustomEvent) => {
   const { isReading, isPaused } = event.detail
-  
+
   if (isReading) {
-    showPlayer().then(() => updatePlayerState(isPaused)).catch(console.error)
+    showPlayer()
+      .then(() => updatePlayerState(isPaused))
+      .catch(console.error)
   } else {
     // When reading stops naturally (not via stop button), keep player visible
     // Update the player state but don't hide it
@@ -1194,23 +1205,23 @@ storageChangeListener = (changes) => {
     // Recreate player with new locale if it exists
     if (floatingPlayer) {
       const wasShowing = floatingPlayer.classList.contains('show')
-      
+
       // Clean up before recreating
       eventHandlers.forEach((handlers, element) => {
         handlers.forEach((handlerList, event) => {
-          handlerList.forEach(handler => {
+          handlerList.forEach((handler) => {
             element.removeEventListener(event, handler)
           })
         })
       })
       eventHandlers.clear()
-      
+
       // Cancel pending animation frame
       if (rafId !== null) {
         cancelAnimationFrame(rafId)
         rafId = null
       }
-      
+
       // Remove drag handlers
       if (dragHandler) {
         document.removeEventListener('mousemove', dragHandler)
@@ -1220,20 +1231,22 @@ storageChangeListener = (changes) => {
         document.removeEventListener('mouseup', stopDragHandler)
         stopDragHandler = null
       }
-      
+
       floatingPlayer.remove()
       floatingPlayer = null
-      
+
       // Reload messages and recreate
-      loadLocaleMessages().then(() => {
-        createFloatingPlayer()
-        if (wasShowing && floatingPlayer) {
-          floatingPlayer.classList.add('show')
-        }
-      }).catch(console.error)
+      loadLocaleMessages()
+        .then(() => {
+          createFloatingPlayer()
+          if (wasShowing && floatingPlayer) {
+            floatingPlayer.classList.add('show')
+          }
+        })
+        .catch(console.error)
     }
   }
-  
+
   // Listen for progress bar visibility toggle
   if (changes.showProgressBar && floatingPlayer) {
     const progressBar = floatingPlayer.querySelector('.rifm-progress-bar') as HTMLElement
@@ -1250,19 +1263,19 @@ export function destroyPlayer() {
   // Remove all tracked DOM event listeners
   eventHandlers.forEach((handlers, element) => {
     handlers.forEach((handlerList, event) => {
-      handlerList.forEach(handler => {
+      handlerList.forEach((handler) => {
         element.removeEventListener(event, handler)
       })
     })
   })
   eventHandlers.clear()
-  
+
   // Cancel any pending animation frame
   if (rafId !== null) {
     cancelAnimationFrame(rafId)
     rafId = null
   }
-  
+
   // Remove drag handlers if active
   if (dragHandler) {
     document.removeEventListener('mousemove', dragHandler)
@@ -1272,34 +1285,33 @@ export function destroyPlayer() {
     document.removeEventListener('mouseup', stopDragHandler)
     stopDragHandler = null
   }
-  
+
   // Remove state update listener
   if (stateUpdateHandler) {
     window.removeEventListener('rifm-state-update', stateUpdateHandler as EventListener)
     stateUpdateHandler = null
   }
-  
+
   // Remove runtime message listener
   if (runtimeMessageListener) {
     browser.runtime.onMessage.removeListener(runtimeMessageListener)
     runtimeMessageListener = null
   }
-  
+
   // Remove storage change listener
   if (storageChangeListener) {
     browser.storage.local.onChanged.removeListener(storageChangeListener)
     storageChangeListener = null
   }
-  
+
   // Remove player from DOM
   if (floatingPlayer) {
     floatingPlayer.remove()
     floatingPlayer = null
   }
-  
+
   // Reset state
   isDragging = false
   isMiniMode = false
   currentMessages = {}
 }
-

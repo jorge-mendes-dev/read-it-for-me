@@ -10,18 +10,18 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 animate-fade-in"
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-title"
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm mx-4 shadow-2xl animate-scale-in"
+        className="bg-surface-1 border border-hairline rounded-lg p-6 max-w-sm mx-4 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center mb-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full mb-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-3">
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -37,20 +37,13 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
               />
             </svg>
           </div>
-          <h2
-            id="welcome-title"
-            className="text-xl font-bold text-gray-900 dark:text-white mb-2"
-          >
+          <h2 id="welcome-title" className="text-xl font-semibold text-ink mb-2">
             {t('welcomeTitle')}
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-            {t('welcomeDescription')}
-          </p>
-          <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded-lg mb-4 text-left">
-            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">
-              {t('quickTips')}
-            </p>
-            <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+          <p className="text-ink-muted text-sm mb-4">{t('welcomeDescription')}</p>
+          <div className="bg-surface-2 border border-hairline p-3 rounded-md mb-4 text-left">
+            <p className="text-xs font-medium text-ink mb-2">{t('quickTips')}</p>
+            <ul className="text-xs text-ink-muted space-y-1">
               <li>• {t('tipAutoDetect')}</li>
               <li>• {t('tipKeyboardShortcut')}</li>
               <li>• {t('tipPause')}</li>
@@ -60,7 +53,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
         </div>
         <button
           onClick={onClose}
-          className="w-full py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95"
+          className="w-full py-2.5 px-3 bg-primary hover:bg-primary-hover text-white rounded-md font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           aria-label="Close welcome guide"
         >
           {t('gotIt')}

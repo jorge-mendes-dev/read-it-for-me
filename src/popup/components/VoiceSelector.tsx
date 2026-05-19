@@ -1,11 +1,17 @@
-import { useMemo, useCallback } from 'react'
-import Select, { components, GroupBase, StylesConfig, OptionProps, SingleValueProps } from 'react-select'
-import { t } from '../../utils/i18n'
+import { useCallback, useMemo } from 'react'
+import Select, {
+  components,
+  GroupBase,
+  OptionProps,
+  SingleValueProps,
+  StylesConfig,
+} from 'react-select'
+import { VOICE_QUALITY } from '../../constants'
+import type { VoicesByLanguage, VoiceWithScore } from '../../types'
 import { getFlagEmoji } from '../../utils/flags'
+import { t } from '../../utils/i18n'
 import { getLanguageName } from '../../utils/languages'
 import { getVoiceScore } from '../../utils/voiceScoring'
-import type { VoicesByLanguage, VoiceWithScore } from '../../types'
-import { VOICE_QUALITY } from '../../constants'
 
 interface VoiceSelectorProps {
   voices: SpeechSynthesisVoice[]
@@ -90,14 +96,16 @@ export function VoiceSelector({
         (a: VoiceWithScore, b: VoiceWithScore) => b.score - a.score
       )
 
-      const langOptions: VoiceOption[] = sortedVoices.map(({ voice, index, score }: VoiceWithScore) => ({
-        value: index,
-        label: voice.name,
-        voice,
-        score,
-        flag,
-        isPremium: score >= VOICE_QUALITY.PREMIUM_THRESHOLD,
-      }))
+      const langOptions: VoiceOption[] = sortedVoices.map(
+        ({ voice, index, score }: VoiceWithScore) => ({
+          value: index,
+          label: voice.name,
+          voice,
+          score,
+          flag,
+          isPremium: score >= VOICE_QUALITY.PREMIUM_THRESHOLD,
+        })
+      )
 
       options.push({
         label: `${flag} ${langName}`,
@@ -125,106 +133,112 @@ export function VoiceSelector({
         <div className="flex items-center gap-2">
           <span className="text-lg">{data.flag}</span>
           <span className="flex-1">{data.label}</span>
-          {data.isPremium && <span className="text-yellow-500">⚡</span>}
+          {data.isPremium && <span className="text-primary">⚡</span>}
         </div>
       </components.Option>
     )
   }, [])
 
   // Custom single value component with proper typing
-  const CustomSingleValue = useCallback((props: SingleValueProps<VoiceOption, false, VoiceGroupOption>) => {
-    const { data } = props
-    return (
-      <components.SingleValue {...props}>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{data.flag}</span>
-          <span className="flex-1 truncate">{data.label}</span>
-          {data.isPremium && <span className="text-yellow-500">⚡</span>}
-        </div>
-      </components.SingleValue>
-    )
-  }, [])
+  const CustomSingleValue = useCallback(
+    (props: SingleValueProps<VoiceOption, false, VoiceGroupOption>) => {
+      const { data } = props
+      return (
+        <components.SingleValue {...props}>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{data.flag}</span>
+            <span className="flex-1 truncate">{data.label}</span>
+            {data.isPremium && <span className="text-primary">⚡</span>}
+          </div>
+        </components.SingleValue>
+      )
+    },
+    []
+  )
 
   // Custom styles for dark mode and theme matching (memoized)
-  const customStyles: StylesConfig<VoiceOption, false, VoiceGroupOption> = useMemo(() => ({
-    control: (base, state) => ({
-      ...base,
-      backgroundColor: 'var(--select-bg)',
-      borderColor: state.isFocused ? 'var(--color-primary)' : 'var(--select-border)',
-      borderWidth: '2px',
-      borderRadius: '0.75rem',
-      boxShadow: state.isFocused ? 'var(--select-focus-ring)' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      padding: '0.25rem',
-      minHeight: '48px',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      '&:hover': {
-        borderColor: 'var(--color-primary)',
-      },
+  const customStyles: StylesConfig<VoiceOption, false, VoiceGroupOption> = useMemo(
+    () => ({
+      control: (base, state) => ({
+        ...base,
+        backgroundColor: 'var(--select-bg)',
+        borderColor: state.isFocused ? 'var(--primary)' : 'var(--select-border)',
+        borderWidth: '1px',
+        borderRadius: '8px',
+        boxShadow: state.isFocused ? 'var(--select-focus-ring)' : 'none',
+        padding: '0.125rem',
+        minHeight: '48px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        '&:hover': {
+          borderColor: 'var(--primary)',
+        },
+      }),
+      menu: (base) => ({
+        ...base,
+        backgroundColor: 'var(--select-menu-bg)',
+        borderRadius: '8px',
+        boxShadow: 'none',
+        border: '1px solid var(--select-border)',
+        overflow: 'hidden',
+      }),
+      menuList: (base) => ({
+        ...base,
+        padding: '0.5rem',
+        maxHeight: '300px',
+      }),
+      option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected
+          ? 'var(--primary)'
+          : state.isFocused
+            ? 'var(--select-option-hover)'
+            : 'transparent',
+        color: state.isSelected ? 'white' : 'var(--select-text)',
+        cursor: 'pointer',
+        padding: '0.75rem',
+        borderRadius: '6px',
+        transition: 'all 0.15s',
+        '&:active': {
+          backgroundColor: 'var(--primary)',
+        },
+      }),
+      groupHeading: (base) => ({
+        ...base,
+        color: 'var(--select-group-text)',
+        fontSize: '0.75rem',
+        fontWeight: '600',
+        textTransform: 'uppercase' as const,
+        padding: '0.5rem 0.75rem',
+        marginTop: '0.25rem',
+      }),
+      singleValue: (base) => ({
+        ...base,
+        color: 'var(--select-text)',
+      }),
+      input: (base) => ({
+        ...base,
+        color: 'var(--select-text)',
+      }),
+      placeholder: (base) => ({
+        ...base,
+        color: 'var(--select-placeholder)',
+      }),
+      noOptionsMessage: (base) => ({
+        ...base,
+        color: 'var(--select-text)',
+        padding: '1rem',
+      }),
     }),
-    menu: (base) => ({
-      ...base,
-      backgroundColor: 'var(--select-menu-bg)',
-      borderRadius: '0.75rem',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      border: '1px solid var(--select-border)',
-      overflow: 'hidden',
-    }),
-    menuList: (base) => ({
-      ...base,
-      padding: '0.5rem',
-      maxHeight: '300px',
-    }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isSelected
-        ? 'var(--color-primary)'
-        : state.isFocused
-        ? 'var(--select-option-hover)'
-        : 'transparent',
-      color: state.isSelected ? 'white' : 'var(--select-text)',
-      cursor: 'pointer',
-      padding: '0.75rem',
-      borderRadius: '0.5rem',
-      transition: 'all 0.15s',
-      '&:active': {
-        backgroundColor: 'var(--color-primary)',
-      },
-    }),
-    groupHeading: (base) => ({
-      ...base,
-      color: 'var(--select-group-text)',
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      textTransform: 'uppercase' as const,
-      padding: '0.5rem 0.75rem',
-      marginTop: '0.25rem',
-    }),
-    singleValue: (base) => ({
-      ...base,
-      color: 'var(--select-text)',
-    }),
-    input: (base) => ({
-      ...base,
-      color: 'var(--select-text)',
-    }),
-    placeholder: (base) => ({
-      ...base,
-      color: 'var(--select-placeholder)',
-    }),
-    noOptionsMessage: (base) => ({
-      ...base,
-      color: 'var(--select-text)',
-      padding: '1rem',
-    }),
-  }), [])
+    []
+  )
 
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-2" role="status" aria-label="Loading voices">
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-        <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+        <div className="h-12 bg-surface-2 rounded-md"></div>
+        <div className="h-12 bg-surface-2 rounded-md"></div>
+        <div className="h-12 bg-surface-2 rounded-md"></div>
       </div>
     )
   }
@@ -232,12 +246,12 @@ export function VoiceSelector({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
-        <label htmlFor="voice-select" className="block text-xs font-medium text-gray-700 dark:text-gray-400">
+        <label htmlFor="voice-select" className="block text-xs font-medium text-ink-muted">
           {t('selectVoice')}
         </label>
         <button
           onClick={onTest}
-          className="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-lg transition-all duration-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 hover:scale-105 active:scale-95 font-medium"
+          className="text-xs bg-surface-2 border border-hairline text-ink px-3 py-1.5 rounded-md transition-colors duration-200 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 font-medium"
           aria-label="Test selected voice"
         >
           🔊 {t('test')}

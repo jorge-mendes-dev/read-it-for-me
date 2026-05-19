@@ -1,8 +1,16 @@
 // Content script that runs on all web pages
 // Handles text selection and speech synthesis
-import browser from '../utils/browser'
-import { showPlayer, hidePlayer, updatePlayerState, updateQueueCount, updateProgress, updateTimeEstimate, destroyPlayer } from './floatingPlayer'
 import type { ReadingRequest } from '../types'
+import browser from '../utils/browser'
+import {
+  destroyPlayer,
+  hidePlayer,
+  showPlayer,
+  updatePlayerState,
+  updateProgress,
+  updateQueueCount,
+  updateTimeEstimate,
+} from './floatingPlayer'
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let isReading = false
@@ -57,6 +65,53 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
 let readingQueue: ReadingRequest[] = []
 let queuedSelectionRanges: (Range | null)[] = [] // Store selection ranges for each queue item
 
+function applyReadingSettings(rate?: number, pitch?: number, volume?: number) {
+  const nextRate = rate ?? currentUtterance?.rate ?? 0.9
+  const nextPitch = pitch ?? currentUtterance?.pitch ?? 1
+  const nextVolume = volume ?? currentUtterance?.volume ?? 1
+
+  if (currentUtterance) {
+    currentUtterance.rate = nextRate
+    currentUtterance.pitch = nextPitch
+    currentUtterance.volume = nextVolume
+  }
+
+  // When actively speaking, restart from the current boundary so new settings apply immediately.
+  if (!isReading || isPaused || !currentUtterance || !window.speechSynthesis.speaking) {
+    return
+  }
+
+  const resumeFrom = Math.max(lastHighlightCharIndex, 0)
+  const remainingText = currentReadingText.substring(resumeFrom).trim()
+  if (!remainingText) {
+    return
+  }
+
+  const savedRange = originalSelectionRange
+  const voices = window.speechSynthesis.getVoices()
+  const voiceIndex = currentUtterance.voice
+    ? voices.findIndex((voice) => voice.voiceURI === currentUtterance?.voice?.voiceURI)
+    : -1
+
+  currentUtterance.onend = null
+  currentUtterance.onerror = null
+  window.speechSynthesis.cancel()
+
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
+
+  startReading(
+    remainingText,
+    voiceIndex >= 0 ? voiceIndex : undefined,
+    nextRate,
+    nextPitch,
+    nextVolume,
+    savedRange
+  )
+}
+
 // Function to process next item in queue
 function processNextInQueue() {
   if (readingQueue.length === 0) {
@@ -69,10 +124,10 @@ function processNextInQueue() {
       progressInterval = null
     }
     updateState()
-    
+
     // Show smart read button again if enabled
     showSmartReadButtonIfNeeded()
-    
+
     // Auto-hide player after 2 seconds when reading finishes
     if (autoHideTimeout) {
       clearTimeout(autoHideTimeout)
@@ -83,49 +138,56 @@ function processNextInQueue() {
     }, 2000)
     return
   }
-  
+
   const request = readingQueue.shift()!
   const savedRange = queuedSelectionRanges.shift() || null
-  
+
   // Update count after shifting to show correct remaining items
   updateQueueCount(readingQueue.length)
-  
+
   // Pass the saved range to startReading for queue items
-  startReading(request.text, request.voiceIndex, request.rate, request.pitch, request.volume, savedRange)
+  startReading(
+    request.text,
+    request.voiceIndex,
+    request.rate,
+    request.pitch,
+    request.volume,
+    savedRange
+  )
 }
 
 // Word highlighting function
 function highlightCurrentWord(charIndex: number) {
   // Skip if word highlighting is disabled
   if (!wordHighlightEnabled) return
-  
+
   // Remove previous highlight instantly (no animation to prevent blinking)
   clearWordHighlight(false)
-  
+
   // Find word boundaries in the spoken text using non-whitespace pattern
   const text = currentReadingText
   if (!text || charIndex >= text.length) return
-  
+
   // Find start of word (move back while encountering non-whitespace)
   let start = charIndex
   while (start > 0 && /\S/.test(text[start - 1])) {
     start--
   }
-  
+
   // Find end of word (move forward while encountering non-whitespace)
   let end = charIndex
   while (end < text.length && /\S/.test(text[end])) {
     end++
   }
-  
+
   const currentWord = text.substring(start, end).trim()
   if (!currentWord) return
-  
+
   // Only highlight if this word comes after our last highlight position
   if (charIndex <= lastHighlightCharIndex) {
     return // Skip words we've already passed
   }
-  
+
   // Calculate which occurrence of this word we should highlight
   // by counting how many times it appears before this position
   const textBeforeWord = text.substring(0, start)
@@ -133,7 +195,7 @@ function highlightCurrentWord(charIndex: number) {
   const regex = new RegExp('\\b' + escapedWord + '\\b', 'gi')
   const matchesBefore = textBeforeWord.match(regex)
   const targetOccurrence = matchesBefore ? matchesBefore.length : 0
-  
+
   // Add animation keyframes if not already added
   if (!document.getElementById('rifm-highlight-styles')) {
     const style = document.createElement('style')
@@ -143,20 +205,20 @@ function highlightCurrentWord(charIndex: number) {
         0% { 
           opacity: 0;
           transform: scale(0.95);
-          box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2);
+          box-shadow: 0 0 0 1px rgba(94, 105, 209, 0.2);
         }
         15% {
           opacity: 1;
           transform: scale(1.02);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+          box-shadow: 0 0 0 3px rgba(94, 105, 209, 0.5);
         }
         50% { 
           transform: scale(1.01);
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+          box-shadow: 0 0 0 2px rgba(94, 105, 209, 0.4);
         }
         100% { 
           transform: scale(1);
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+          box-shadow: 0 0 0 2px rgba(94, 105, 209, 0.35);
         }
       }
       
@@ -173,16 +235,16 @@ function highlightCurrentWord(charIndex: number) {
     `
     document.head.appendChild(style)
   }
-  
+
   // Check if user prefers reduced motion
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  
+
   // Try to find and highlight the word in the DOM
   try {
     // Use the original selection range to limit search area
     // This prevents highlighting words outside the selected text
     let searchRoot: Node = document.body
-    
+
     if (originalSelectionRange) {
       // Get the common ancestor of the original selection
       searchRoot = originalSelectionRange.commonAncestorContainer
@@ -191,127 +253,126 @@ function highlightCurrentWord(charIndex: number) {
         searchRoot = searchRoot.parentElement || document.body
       }
     }
-    
+
     // Case-insensitive comparison for matching
     const lowerWord = currentWord.toLowerCase()
-    
+
     // Find all text nodes in the search area
-    const walker = document.createTreeWalker(
-      searchRoot,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: (node) => {
-          // Skip script, style, and our own highlight elements
-          const parent = node.parentElement
-          if (!parent) return NodeFilter.FILTER_REJECT
-          const tagName = parent.tagName.toLowerCase()
-          if (tagName === 'script' || tagName === 'style' || parent.id === 'rifm-word-highlight') {
-            return NodeFilter.FILTER_REJECT
-          }
-          // Only accept nodes that contain the current word (case-insensitive)
-          return node.textContent && node.textContent.toLowerCase().includes(lowerWord) 
-            ? NodeFilter.FILTER_ACCEPT 
-            : NodeFilter.FILTER_REJECT
+    const walker = document.createTreeWalker(searchRoot, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        // Skip script, style, and our own highlight elements
+        const parent = node.parentElement
+        if (!parent) return NodeFilter.FILTER_REJECT
+        const tagName = parent.tagName.toLowerCase()
+        if (tagName === 'script' || tagName === 'style' || parent.id === 'rifm-word-highlight') {
+          return NodeFilter.FILTER_REJECT
         }
-      }
-    )
-    
+        // Only accept nodes that contain the current word (case-insensitive)
+        return node.textContent && node.textContent.toLowerCase().includes(lowerWord)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT
+      },
+    })
+
     // Find the text node and highlight position
     let found = false
     let node: Node | null
     let wordsProcessed = 0
     let occurrenceCount = 0 // Count how many times we've seen this word
-    
+
     while ((node = walker.nextNode()) && !found) {
       const textNode = node as Text
       const content = textNode.textContent || ''
       const lowerContent = content.toLowerCase()
-      
+
       // Skip this node if it's not within the original selection range
       if (originalSelectionRange && !isNodeInRange(textNode, originalSelectionRange)) {
         wordsProcessed++
         continue
       }
-      
+
       // Find all occurrences of the word in this text node
       let searchStart = 0
       let wordIndex = -1
-      
+
       while (searchStart < content.length) {
         wordIndex = lowerContent.indexOf(lowerWord, searchStart)
-        
+
         if (wordIndex === -1) break
-        
+
         // Validate this is a whole word, not a partial match (e.g., "cat" in "category")
         const before = content[wordIndex - 1]
         const after = content[wordIndex + currentWord.length]
         const isWholeWord = (!before || /\s/.test(before)) && (!after || /\s/.test(after))
-        
+
         if (isWholeWord) {
           // Check if this is the occurrence we're looking for
           if (occurrenceCount === targetOccurrence) {
             const actualWord = content.substring(wordIndex, wordIndex + currentWord.length)
-            
+
             try {
               // Create highlight element
               const highlight = document.createElement('span')
               highlight.id = 'rifm-word-highlight'
               highlight.style.cssText = `
-                background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%);
+                background: rgba(94, 105, 209, 0.22);
                 color: inherit;
                 padding: 2px 4px;
                 border-radius: 6px;
-                box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
+                box-shadow: 0 0 0 2px rgba(94, 105, 209, 0.35);
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                 will-change: transform, opacity;
                 ${prefersReducedMotion ? 'opacity: 0;' : 'animation: rifm-highlight-pulse 0.8s cubic-bezier(0.4, 0, 0.2, 1);'}
               `
-              
+
               // Fade in smoothly for reduced motion users
               if (prefersReducedMotion) {
                 requestAnimationFrame(() => {
                   highlight.style.opacity = '1'
                 })
               }
-              
+
               // Split the text node to isolate the word
               // This preserves all text and is safer than extractContents
               const wordEndIndex = wordIndex + actualWord.length
-              
+
               // If the word isn't at the start, split before it
               let targetNode = textNode
               if (wordIndex > 0) {
                 targetNode = textNode.splitText(wordIndex) as Text
               }
-              
+
               // If there's text after the word, split after it
               if (wordEndIndex < content.length) {
                 targetNode.splitText(actualWord.length)
               }
-              
+
               // Now targetNode contains only the word text
               // Wrap it in the highlight span
               const parent = targetNode.parentNode
               if (parent) {
                 highlight.textContent = targetNode.textContent
                 parent.replaceChild(highlight, targetNode)
-                
+
                 currentHighlightElement = highlight
                 lastHighlightCharIndex = charIndex // Track this position for next search
-                
+
                 // Scroll element into view if follow highlight is enabled
                 if (followHighlight) {
-                  setTimeout(() => {
-                    if (currentHighlightElement === highlight) {
-                      highlight.scrollIntoView({ 
-                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-                        block: 'center',
-                        inline: 'nearest'
-                      })
-                    }
-                  }, prefersReducedMotion ? 0 : 100)
+                  setTimeout(
+                    () => {
+                      if (currentHighlightElement === highlight) {
+                        highlight.scrollIntoView({
+                          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                          block: 'center',
+                          inline: 'nearest',
+                        })
+                      }
+                    },
+                    prefersReducedMotion ? 0 : 100
+                  )
                 }
-                
+
                 found = true
                 console.debug('[RIFM] Highlighted word:', actualWord)
                 break
@@ -330,10 +391,10 @@ function highlightCurrentWord(charIndex: number) {
             occurrenceCount++
           }
         }
-        
+
         searchStart = wordIndex + 1
       }
-      
+
       wordsProcessed++
       // Safety limit: don't process more than 1000 text nodes
       if (wordsProcessed > 1000) {
@@ -341,7 +402,7 @@ function highlightCurrentWord(charIndex: number) {
         break
       }
     }
-    
+
     if (!found) {
       console.debug('[RIFM] Could not find word in DOM:', currentWord)
     }
@@ -358,23 +419,23 @@ function clearWordHighlight(animate: boolean = true) {
         clearTimeout(highlightFadeoutTimeout)
         highlightFadeoutTimeout = null
       }
-      
+
       // Get the text content before removing
       const text = currentHighlightElement.textContent || ''
       const parent = currentHighlightElement.parentNode
       const elementToRemove = currentHighlightElement
-      
+
       // Clear the reference immediately to allow new highlights
       currentHighlightElement = null
-      
+
       if (parent && text) {
         // Check if animations are preferred
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        
+
         if (!prefersReducedMotion && animate) {
           // Smooth fade-out before removing (only when animate is true)
           elementToRemove.style.animation = 'rifm-highlight-fadeout 0.3s ease-out forwards'
-          
+
           highlightFadeoutTimeout = window.setTimeout(() => {
             highlightFadeoutTimeout = null
             if (parent.contains(elementToRemove)) {
@@ -407,7 +468,7 @@ function isNodeInRange(node: Node, range: Range): boolean {
   try {
     const nodeRange = document.createRange()
     nodeRange.selectNode(node)
-    
+
     // Check if the node range intersects with the original selection range
     return (
       range.compareBoundaryPoints(Range.END_TO_START, nodeRange) <= 0 &&
@@ -419,22 +480,29 @@ function isNodeInRange(node: Node, range: Range): boolean {
 }
 
 // Function to start reading
-function startReading(text: string, voiceIndex: number | undefined, rate: number, pitch: number, volume: number, savedRange?: Range | null) {
+function startReading(
+  text: string,
+  voiceIndex: number | undefined,
+  rate: number,
+  pitch: number,
+  volume: number,
+  savedRange?: Range | null
+) {
   if (autoHideTimeout) {
     clearTimeout(autoHideTimeout)
     autoHideTimeout = null
   }
-  
+
   const processedText = preprocessText(text)
   const utterance = new SpeechSynthesisUtterance(processedText)
-  
+
   const wordsPerMinute = 150 * (rate || 1)
   const words = processedText.split(/\s+/).length
   const estimatedSeconds = (words / wordsPerMinute) * 60
   updateTimeEstimate(estimatedSeconds)
-  
+
   const voices = window.speechSynthesis.getVoices()
-  
+
   if (voices.length === 0) {
     console.error('No speech synthesis voices available')
     isReading = false
@@ -443,7 +511,7 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
     updateState()
     return
   }
-  
+
   if (voiceIndex !== undefined && voices[voiceIndex]) {
     utterance.voice = voices[voiceIndex]
   } else {
@@ -455,14 +523,14 @@ function startReading(text: string, voiceIndex: number | undefined, rate: number
       utterance.voice = voices[0]
     }
   }
-  
+
   utterance.rate = rate
   utterance.pitch = pitch
   utterance.volume = volume
 
   currentReadingText = processedText
   lastHighlightCharIndex = -1
-  
+
   if (savedRange === null) {
     originalSelectionRange = null
   } else if (savedRange) {
@@ -531,7 +599,7 @@ async function loadLocaleMessages(): Promise<void> {
   try {
     const result = await browser.storage.local.get(['selectedLocale'])
     const locale = (result.selectedLocale as string | undefined) || 'en'
-    
+
     try {
       const url = browser.runtime.getURL(`_locales/${locale}/messages.json`)
       const response = await fetch(url)
@@ -553,50 +621,58 @@ function getMessage(key: string): string {
   if (currentMessages[key]) {
     return currentMessages[key].message
   }
-  console.warn(`[ContentScript] Translation missing for key: ${key}`);
+  console.warn(`[ContentScript] Translation missing for key: ${key}`)
   // Fallback values for common keys
   const fallbacks: { [key: string]: string } = {
-    'readThis': 'Read This',
-    'pause': 'Pause',
-    'resume': 'Resume',
-    'stop': 'Stop',
-    'clearQueue': 'Clear Queue',
-    'readFullArticle': 'Read Full Article'
+    readThis: 'Read This',
+    pause: 'Pause',
+    resume: 'Resume',
+    stop: 'Stop',
+    clearQueue: 'Clear Queue',
+    readFullArticle: 'Read Full Article',
   }
   return fallbacks[key] || key
 }
 
 // Initialize locale on load
-loadLocaleMessages().then(() => {
-  // Create tooltip after locale is loaded
-  createSelectionTooltip()
-  // Ensure tooltip has correct text
-  updateTooltipText()
-  
-  // Load smart read setting and create button if enabled
-  browser.storage.local.get(['smartRead']).then((result) => {
-    smartReadEnabled = (result.smartRead as boolean | undefined) ?? false
-    
-    // Initialize smart read button if enabled (after locale is loaded)
-    if (smartReadEnabled) {
-      detectAndShowSmartReadButton()
-    }
-  }).catch((error) => {
-    console.error('[ContentScript] Failed to load smart read setting:', error)
+loadLocaleMessages()
+  .then(() => {
+    // Create tooltip after locale is loaded
+    createSelectionTooltip()
+    // Ensure tooltip has correct text
+    updateTooltipText()
+
+    // Load smart read setting and create button if enabled
+    browser.storage.local
+      .get(['smartRead'])
+      .then((result) => {
+        smartReadEnabled = (result.smartRead as boolean | undefined) ?? false
+
+        // Initialize smart read button if enabled (after locale is loaded)
+        if (smartReadEnabled) {
+          detectAndShowSmartReadButton()
+        }
+      })
+      .catch((error) => {
+        console.error('[ContentScript] Failed to load smart read setting:', error)
+      })
   })
-}).catch((error) => {
-  console.error('[ContentScript] Failed to load locale, creating tooltip with defaults:', error)
-  // Create tooltip anyway with fallback text
-  createSelectionTooltip()
-})
+  .catch((error) => {
+    console.error('[ContentScript] Failed to load locale, creating tooltip with defaults:', error)
+    // Create tooltip anyway with fallback text
+    createSelectionTooltip()
+  })
 
 // Load word highlight setting
-browser.storage.local.get(['wordHighlightEnabled', 'followHighlight']).then((result) => {
-  wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? true
-  followHighlight = (result.followHighlight as boolean | undefined) ?? false
-}).catch((error) => {
-  console.error('[ContentScript] Failed to load word highlight setting:', error)
-})
+browser.storage.local
+  .get(['wordHighlightEnabled', 'followHighlight'])
+  .then((result) => {
+    wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? true
+    followHighlight = (result.followHighlight as boolean | undefined) ?? false
+  })
+  .catch((error) => {
+    console.error('[ContentScript] Failed to load word highlight setting:', error)
+  })
 
 // Preprocess text for natural speech
 function preprocessText(text: string): string {
@@ -606,7 +682,7 @@ function preprocessText(text: string): string {
   processed = processed.replace(/\[([^\]]+)\]/g, ', $1,')
   processed = processed.replace(/"([^"]+)"/g, ', $1,')
   processed = processed.replace(/'([^']+)'/g, '$1')
-  
+
   processed = processed.replace(/\bDr\./gi, 'Doctor')
   processed = processed.replace(/\bMr\./g, 'Mister')
   processed = processed.replace(/\bMrs\./g, 'Misses')
@@ -622,7 +698,7 @@ function preprocessText(text: string): string {
   processed = processed.replace(/\bvs\./gi, 'versus')
   processed = processed.replace(/\betc\b/gi, 'etcetera')
   processed = processed.replace(/\baka\b/gi, 'also known as')
-  
+
   processed = processed.replace(/(\d{1,2}):(\d{2})\s*(am|pm)/gi, '$1 $2 $3')
   processed = processed.replace(/(\d{1,2}):(\d{2})/g, '$1 $2')
   processed = processed.replace(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/g, '$1 $2 $3')
@@ -658,40 +734,44 @@ function preprocessText(text: string): string {
 
 function updateState() {
   // Send update to background (catch errors if background not ready)
-  browser.runtime.sendMessage({
-    action: 'stateUpdate',
-    state: { isReading, isPaused, currentText: currentUtterance?.text || '' }
-  }).catch(err => {
-    // Background might not be ready yet, silently ignore
-    console.debug('Could not send state update to background:', err.message)
-  })
-  
+  browser.runtime
+    .sendMessage({
+      action: 'stateUpdate',
+      state: { isReading, isPaused, currentText: currentUtterance?.text || '' },
+    })
+    .catch((err) => {
+      // Background might not be ready yet, silently ignore
+      console.debug('Could not send state update to background:', err.message)
+    })
+
   // Also dispatch custom event for floating player in same page
-  window.dispatchEvent(new CustomEvent('rifm-state-update', {
-    detail: { isReading, isPaused }
-  }))
+  window.dispatchEvent(
+    new CustomEvent('rifm-state-update', {
+      detail: { isReading, isPaused },
+    })
+  )
 }
 
 browser.runtime.onMessage.addListener((request: any) => {
   if (request.action === 'getSelectedText') {
-    const selectedText = window.getSelection()?.toString() || '';
-    const pageLang = document.documentElement.lang || 
-                     document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
-                     navigator.language;
-    return Promise.resolve({ 
+    const selectedText = window.getSelection()?.toString() || ''
+    const pageLang =
+      document.documentElement.lang ||
+      document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
+      navigator.language
+    return Promise.resolve({
       text: selectedText,
-      language: pageLang
-    });
+      language: pageLang,
+    })
   }
 
   if (request.action === 'startReading') {
     const { text, voiceIndex, rate, pitch, volume } = request
-    
+
     const selection = window.getSelection()
-    const selectionRange = (selection && selection.rangeCount > 0) 
-      ? selection.getRangeAt(0).cloneRange() 
-      : null
-    
+    const selectionRange =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null
+
     if (isReading && !isPaused) {
       readingQueue.push({ text, voiceIndex, rate, pitch, volume })
       queuedSelectionRanges.push(selectionRange)
@@ -720,7 +800,7 @@ browser.runtime.onMessage.addListener((request: any) => {
         isPaused = true
         updatePlayerState(true)
         updateState()
-        
+
         // Monitor if speech gets auto-canceled during pause (browser timeout)
         if (pauseCheckInterval) clearInterval(pauseCheckInterval)
         pauseCheckInterval = window.setInterval(() => {
@@ -748,11 +828,15 @@ browser.runtime.onMessage.addListener((request: any) => {
           clearInterval(pauseCheckInterval)
           pauseCheckInterval = null
         }
-        
+
         // Check if speech was auto-canceled during pause (browser timeout)
-        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending && currentUtterance) {
+        if (
+          !window.speechSynthesis.speaking &&
+          !window.speechSynthesis.pending &&
+          currentUtterance
+        ) {
           console.log('[RIFM] Restarting speech from position:', pausedAt)
-          
+
           // Extract remaining text from pause point
           const remainingText = currentReadingText.substring(pausedAt)
           if (remainingText.trim()) {
@@ -762,19 +846,19 @@ browser.runtime.onMessage.addListener((request: any) => {
             const currentPitch = currentUtterance.pitch
             const currentVolume = currentUtterance.volume
             const savedRange = originalSelectionRange
-            
+
             // Clear current utterance
             currentUtterance.onend = null
             currentUtterance.onerror = null
             window.speechSynthesis.cancel()
-            
+
             // Create new utterance with remaining text
             const newUtterance = new SpeechSynthesisUtterance(remainingText)
             newUtterance.voice = currentVoice
             newUtterance.rate = currentRate
             newUtterance.pitch = currentPitch
             newUtterance.volume = currentVolume
-            
+
             // Set up event handlers
             newUtterance.onboundary = (event: SpeechSynthesisEvent) => {
               if (event.name === 'word' && event.charIndex !== undefined) {
@@ -782,7 +866,7 @@ browser.runtime.onMessage.addListener((request: any) => {
                 highlightCurrentWord(pausedAt + event.charIndex)
               }
             }
-            
+
             newUtterance.onend = () => {
               clearWordHighlight()
               originalSelectionRange = null
@@ -792,7 +876,7 @@ browser.runtime.onMessage.addListener((request: any) => {
               }
               processNextInQueue()
             }
-            
+
             newUtterance.onerror = (event: SpeechSynthesisErrorEvent) => {
               console.error('Speech synthesis error:', event.error, event)
               clearWordHighlight()
@@ -803,7 +887,7 @@ browser.runtime.onMessage.addListener((request: any) => {
               }
               processNextInQueue()
             }
-            
+
             // Restore selection range
             originalSelectionRange = savedRange
             currentUtterance = newUtterance
@@ -866,7 +950,7 @@ browser.runtime.onMessage.addListener((request: any) => {
       isReading,
       isPaused,
       currentText: currentUtterance?.text || '',
-      queueLength: readingQueue.length
+      queueLength: readingQueue.length,
     })
   }
 
@@ -877,13 +961,18 @@ browser.runtime.onMessage.addListener((request: any) => {
     return Promise.resolve({ success: true })
   }
 
+  if (request.action === 'updateSettings') {
+    applyReadingSettings(request.rate, request.pitch, request.volume)
+    return Promise.resolve({ success: true })
+  }
+
   return Promise.resolve(null)
-});
+})
 
 // Listen for custom events from floating player (same context)
 rifmActionHandler = (event: CustomEvent) => {
   const { action } = event.detail
-  
+
   if (action === 'stopReading') {
     if (autoHideTimeout !== null) {
       clearTimeout(autoHideTimeout)
@@ -912,10 +1001,10 @@ rifmActionHandler = (event: CustomEvent) => {
     updateQueueCount(0)
     updateState()
     hidePlayer()
-    
+
     showSmartReadButtonIfNeeded()
   }
-  
+
   if (action === 'togglePlayPause') {
     if (isPaused) {
       try {
@@ -924,11 +1013,15 @@ rifmActionHandler = (event: CustomEvent) => {
           clearInterval(pauseCheckInterval)
           pauseCheckInterval = null
         }
-        
+
         // Check if speech was auto-canceled during pause
-        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending && currentUtterance) {
+        if (
+          !window.speechSynthesis.speaking &&
+          !window.speechSynthesis.pending &&
+          currentUtterance
+        ) {
           console.log('[RIFM] Restarting speech from position:', pausedAt)
-          
+
           const remainingText = currentReadingText.substring(pausedAt)
           if (remainingText.trim()) {
             const currentVoice = currentUtterance.voice
@@ -936,23 +1029,23 @@ rifmActionHandler = (event: CustomEvent) => {
             const currentPitch = currentUtterance.pitch
             const currentVolume = currentUtterance.volume
             const savedRange = originalSelectionRange
-            
+
             currentUtterance.onend = null
             currentUtterance.onerror = null
             window.speechSynthesis.cancel()
-            
+
             const newUtterance = new SpeechSynthesisUtterance(remainingText)
             newUtterance.voice = currentVoice
             newUtterance.rate = currentRate
             newUtterance.pitch = currentPitch
             newUtterance.volume = currentVolume
-            
+
             newUtterance.onboundary = (event: SpeechSynthesisEvent) => {
               if (event.name === 'word' && event.charIndex !== undefined) {
                 highlightCurrentWord(pausedAt + event.charIndex)
               }
             }
-            
+
             newUtterance.onend = () => {
               clearWordHighlight()
               originalSelectionRange = null
@@ -962,7 +1055,7 @@ rifmActionHandler = (event: CustomEvent) => {
               }
               processNextInQueue()
             }
-            
+
             newUtterance.onerror = (event: SpeechSynthesisErrorEvent) => {
               console.error('Speech synthesis error:', event.error, event)
               clearWordHighlight()
@@ -973,7 +1066,7 @@ rifmActionHandler = (event: CustomEvent) => {
               }
               processNextInQueue()
             }
-            
+
             originalSelectionRange = savedRange
             currentUtterance = newUtterance
             window.speechSynthesis.speak(newUtterance)
@@ -1002,7 +1095,7 @@ rifmActionHandler = (event: CustomEvent) => {
         isPaused = true
         updatePlayerState(true)
         updateState()
-        
+
         // Monitor for auto-cancel
         if (pauseCheckInterval) clearInterval(pauseCheckInterval)
         pauseCheckInterval = window.setInterval(() => {
@@ -1019,11 +1112,15 @@ rifmActionHandler = (event: CustomEvent) => {
       }
     }
   }
-  
+
   if (action === 'clearQueue') {
     readingQueue = []
     queuedSelectionRanges = []
     updateQueueCount(0)
+  }
+
+  if (action === 'updateSettings') {
+    applyReadingSettings(event.detail.rate, event.detail.pitch, event.detail.volume)
   }
 }
 window.addEventListener('rifm-action', rifmActionHandler as EventListener)
@@ -1040,37 +1137,30 @@ function createSelectionTooltip() {
     <style>
       #rifm-selection-tooltip {
         position: fixed !important;
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
-        color: white !important;
+        background: #141519 !important;
+        color: #f7f8f8 !important;
+        border: 1px solid #23252a !important;
         padding: 8px 16px !important;
-        border-radius: 20px !important;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+        border-radius: 8px !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         font-size: 13px !important;
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         cursor: pointer !important;
         z-index: 2147483646 !important;
         display: none !important;
         align-items: center !important;
         gap: 6px !important;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
         user-select: none !important;
-        backdrop-filter: blur(10px) !important;
         white-space: nowrap !important;
         opacity: 0 !important;
         transform: translateY(-8px) scale(0.9) !important;
       }
 
-      @media (prefers-color-scheme: dark) {
-        #rifm-selection-tooltip {
-          background: linear-gradient(135deg, #4f52dd 0%, #7748e2 100%) !important;
-          box-shadow: 0 4px 12px rgba(79, 82, 221, 0.5) !important;
-        }
-      }
-
       #rifm-selection-tooltip:hover {
-        transform: translateY(0) scale(1.08) !important;
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6) !important;
+        background: #1a1c22 !important;
+        border-color: #2d3038 !important;
+        transform: translateY(0) scale(1.03) !important;
       }
 
       #rifm-selection-tooltip:active {
@@ -1086,7 +1176,7 @@ function createSelectionTooltip() {
       #rifm-selection-tooltip svg {
         width: 16px !important;
         height: 16px !important;
-        fill: white !important;
+        fill: #5e6ad2 !important;
         animation: tooltipIconPulse 2s ease-in-out infinite !important;
       }
 
@@ -1125,23 +1215,23 @@ function showSelectionTooltip() {
   }
 
   updateTooltipText()
-  
+
   // Get the current selection
   const selection = window.getSelection()
   if (!selection || selection.rangeCount === 0) return
-  
+
   const range = selection.getRangeAt(0)
   const rect = range.getBoundingClientRect()
-  
+
   // Tooltip dimensions
   const tooltipWidth = 150
   const tooltipHeight = 40
   const margin = 5 // Reduced margin for closer positioning
-  
+
   // Calculate position centered above the selection
-  let finalX = rect.left + (rect.width / 2) - (tooltipWidth / 2)
+  let finalX = rect.left + rect.width / 2 - tooltipWidth / 2
   let finalY = rect.top - tooltipHeight - margin
-  
+
   // Adjust horizontal position if too close to edges
   if (finalX + tooltipWidth > window.innerWidth - margin) {
     finalX = window.innerWidth - tooltipWidth - margin
@@ -1149,17 +1239,17 @@ function showSelectionTooltip() {
   if (finalX < margin) {
     finalX = margin
   }
-  
+
   // If too close to top, show below selection instead
   if (finalY < margin) {
     finalY = rect.bottom + margin
   }
-  
+
   // Ensure tooltip stays within viewport vertically
   if (finalY + tooltipHeight > window.innerHeight - margin) {
     finalY = window.innerHeight - tooltipHeight - margin
   }
-  
+
   // Position tooltip
   selectionTooltip.style.left = `${finalX}px`
   selectionTooltip.style.top = `${finalY}px`
@@ -1168,12 +1258,12 @@ function showSelectionTooltip() {
 
 function hideSelectionTooltip() {
   if (!selectionTooltip) return
-  
+
   // Clear any existing timeout to prevent multiple hide attempts
   if (tooltipHideTimeout !== null) {
     clearTimeout(tooltipHideTimeout)
   }
-  
+
   // Trigger exit animation before hiding
   selectionTooltip.style.opacity = '0'
   selectionTooltip.style.transform = 'translateY(-8px) scale(0.9)'
@@ -1191,13 +1281,13 @@ function detectLanguageFromText(text: string): string {
   const koreanRegex = /[\uac00-\ud7af]/
   const arabicRegex = /[\u0600-\u06ff]/
   const cyrillicRegex = /[\u0400-\u04ff]/
-  
+
   if (chineseRegex.test(text)) return 'zh-CN'
   if (japaneseRegex.test(text)) return 'ja-JP'
   if (koreanRegex.test(text)) return 'ko-KR'
   if (arabicRegex.test(text)) return 'ar-SA'
   if (cyrillicRegex.test(text)) return 'ru-RU'
-  
+
   return 'en-US' // Default to English
 }
 
@@ -1207,37 +1297,43 @@ function scoreVoice(voice: SpeechSynthesisVoice, fullLangCode: string): number {
   let score = 0
   const name = voice.name.toLowerCase()
   const lang = voice.lang.toLowerCase()
-  
+
   // Exact language match bonus
   if (lang === fullLangCode) score += 50
   else if (lang.startsWith(fullLangCode)) score += 30
-  
+
   // Premium quality indicators
   if (name.includes('neural')) score += 100
   if (name.includes('premium')) score += 90
   if (name.includes('enhanced')) score += 80
   if (name.includes('natural')) score += 70
-  
+
   // Prefer Microsoft/Edge voices (usually higher quality)
   if (name.includes('microsoft')) score += 40
   if (name.includes('edge')) score += 40
-  
+
   // Google voices are generally good
   if (name.includes('google')) score += 30
-  
+
   // Avoid robotic/poor quality voices
   if (name.includes('espeak')) score -= 50
   if (name.includes('festival')) score -= 50
-  
+
   // Prefer local voices (usually faster and more reliable)
   if (voice.localService) score += 20
-  
+
   // Female voices often sound more natural
-  if (name.includes('female') || name.includes('aria') || name.includes('zira') || 
-      name.includes('heera') || name.includes('susan') || name.includes('samantha')) {
+  if (
+    name.includes('female') ||
+    name.includes('aria') ||
+    name.includes('zira') ||
+    name.includes('heera') ||
+    name.includes('susan') ||
+    name.includes('samantha')
+  ) {
     score += 15
   }
-  
+
   return score
 }
 
@@ -1247,22 +1343,21 @@ function scoreVoice(voice: SpeechSynthesisVoice, fullLangCode: string): number {
 function getBestVoiceForLanguage(language: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   const langCode = language.split('-')[0].toLowerCase()
-  
+
   // Find voices matching the language
-  const matchingVoices = voices.filter(voice => 
-    voice.lang.toLowerCase().startsWith(langCode)
-  )
-  
+  const matchingVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith(langCode))
+
   if (matchingVoices.length === 0) return null
-  
+
   // Prefer premium/high-quality voices
-  const premiumVoice = matchingVoices.find(v => 
-    v.name.includes('Premium') || 
-    v.name.includes('Enhanced') ||
-    v.name.includes('Neural') ||
-    !v.name.includes('Google')
+  const premiumVoice = matchingVoices.find(
+    (v) =>
+      v.name.includes('Premium') ||
+      v.name.includes('Enhanced') ||
+      v.name.includes('Neural') ||
+      !v.name.includes('Google')
   )
-  
+
   return premiumVoice || matchingVoices[0]
 }
 
@@ -1281,79 +1376,87 @@ function handleSelectionRead() {
     // Try document lang attribute first
     const htmlLang = document.documentElement.lang
     if (htmlLang) return htmlLang
-    
+
     // Try meta content-language
-    const metaLang = document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content')
+    const metaLang = document
+      .querySelector('meta[http-equiv="content-language"]')
+      ?.getAttribute('content')
     if (metaLang) return metaLang
-    
+
     // Try meta language
     const metaLang2 = document.querySelector('meta[name="language"]')?.getAttribute('content')
     if (metaLang2) return metaLang2
-    
+
     // Fallback to text detection
     return detectLanguageFromText(selectedText)
   }
 
   // Get saved voice settings
-  browser.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice']).then(async (result) => {
-    let voiceIndex = result.defaultVoiceIndex as number | undefined
-    const rate = (result.defaultRate as number | undefined) ?? 0.9
-    const pitch = (result.defaultPitch as number | undefined) ?? 1
-    const volume = (result.defaultVolume as number | undefined) ?? 1
-    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
+  browser.storage.local
+    .get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'])
+    .then(async (result) => {
+      let voiceIndex = result.defaultVoiceIndex as number | undefined
+      const rate = (result.defaultRate as number | undefined) ?? 0.9
+      const pitch = (result.defaultPitch as number | undefined) ?? 1
+      const volume = (result.defaultVolume as number | undefined) ?? 1
+      const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
 
-    // Auto-select voice based on page language if enabled
-    if (autoSelect) {
-      // Wait for voices to be loaded
-      const voices = await ensureVoicesLoaded()
-      const pageLang = getPageLanguage()
-      const langCode = pageLang.split('-')[0].toLowerCase()
-      const fullLangCode = pageLang.toLowerCase()
-      
-      // Find matching voices for page language
-      const matchingVoices = voices.filter(voice => {
-        const voiceLang = voice.lang.toLowerCase()
-        return voiceLang.startsWith(langCode) || 
-               voiceLang === fullLangCode ||
-               voiceLang.startsWith(fullLangCode)
-      })
-      
-      if (matchingVoices.length > 0) {
-        // Sort voices by score and pick the best
-        const rankedVoices = matchingVoices
-          .map(voice => ({ voice, score: scoreVoice(voice, fullLangCode) }))
-          .sort((a, b) => b.score - a.score)
-        
-        const bestVoice = rankedVoices[0].voice
-        voiceIndex = voices.indexOf(bestVoice)
-        
-        // Save the auto-selected voice so the popup can update
-        browser.storage.local.set({ autoSelectedVoice: voiceIndex })
+      // Auto-select voice based on page language if enabled
+      if (autoSelect) {
+        // Wait for voices to be loaded
+        const voices = await ensureVoicesLoaded()
+        const pageLang = getPageLanguage()
+        const langCode = pageLang.split('-')[0].toLowerCase()
+        const fullLangCode = pageLang.toLowerCase()
+
+        // Find matching voices for page language
+        const matchingVoices = voices.filter((voice) => {
+          const voiceLang = voice.lang.toLowerCase()
+          return (
+            voiceLang.startsWith(langCode) ||
+            voiceLang === fullLangCode ||
+            voiceLang.startsWith(fullLangCode)
+          )
+        })
+
+        if (matchingVoices.length > 0) {
+          // Sort voices by score and pick the best
+          const rankedVoices = matchingVoices
+            .map((voice) => ({ voice, score: scoreVoice(voice, fullLangCode) }))
+            .sort((a, b) => b.score - a.score)
+
+          const bestVoice = rankedVoices[0].voice
+          voiceIndex = voices.indexOf(bestVoice)
+
+          // Save the auto-selected voice so the popup can update
+          browser.storage.local.set({ autoSelectedVoice: voiceIndex })
+        }
       }
-    }
 
-    // Add to queue if already reading, otherwise start immediately
-    if (isReading && !isPaused) {
-      // Save current selection range for this queue item
-      const currentSelection = window.getSelection()
-      const selectionRange = (currentSelection && currentSelection.rangeCount > 0) 
-        ? currentSelection.getRangeAt(0).cloneRange() 
-        : null
-      
-      readingQueue.push({ text: selectedText, voiceIndex, rate, pitch, volume })
-      queuedSelectionRanges.push(selectionRange)
-      showPlayer().then(() => updateQueueCount(readingQueue.length))
-    } else {
-      // Clear queue and start new reading
-      readingQueue = []
-      queuedSelectionRanges = []
-      startReading(selectedText, voiceIndex, rate, pitch, volume)
-    }
-  }).catch((error) => {
-    console.error('Failed to load voice settings for reading:', error)
-    // Fallback: start reading with default settings
-    startReading(selectedText, undefined, 0.9, 1, 1)
-  })
+      // Add to queue if already reading, otherwise start immediately
+      if (isReading && !isPaused) {
+        // Save current selection range for this queue item
+        const currentSelection = window.getSelection()
+        const selectionRange =
+          currentSelection && currentSelection.rangeCount > 0
+            ? currentSelection.getRangeAt(0).cloneRange()
+            : null
+
+        readingQueue.push({ text: selectedText, voiceIndex, rate, pitch, volume })
+        queuedSelectionRanges.push(selectionRange)
+        showPlayer().then(() => updateQueueCount(readingQueue.length))
+      } else {
+        // Clear queue and start new reading
+        readingQueue = []
+        queuedSelectionRanges = []
+        startReading(selectedText, voiceIndex, rate, pitch, volume)
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load voice settings for reading:', error)
+      // Fallback: start reading with default settings
+      startReading(selectedText, undefined, 0.9, 1, 1)
+    })
 }
 
 // Store selected text and show tooltip
@@ -1363,12 +1466,12 @@ mouseUpHandler = () => {
     clearTimeout(tooltipShowTimeout)
     tooltipShowTimeout = null
   }
-  
+
   // Small delay to ensure selection is complete
   tooltipShowTimeout = window.setTimeout(() => {
     const selection = window.getSelection()
     const selectedText = selection?.toString()
-    
+
     if (selectedText && selectedText.trim().length > 0) {
       browser.storage.local.set({ lastSelectedText: selectedText })
       showSelectionTooltip()
@@ -1442,14 +1545,17 @@ keydownHandler = (e: KeyboardEvent) => {
   // Space: Pause/Resume (avoid input fields and contentEditable)
   if (e.code === 'Space') {
     const target = e.target as HTMLElement
-    const isEditable = target.tagName === 'INPUT' || 
-                       target.tagName === 'TEXTAREA' || 
-                       target.isContentEditable ||
-                       target.getAttribute('contenteditable') === 'true'
-    
+    const isEditable =
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable ||
+      target.getAttribute('contenteditable') === 'true'
+
     if (!isEditable) {
       e.preventDefault()
-      window.dispatchEvent(new CustomEvent('rifm-action', { detail: { action: 'togglePlayPause' } }))
+      window.dispatchEvent(
+        new CustomEvent('rifm-action', { detail: { action: 'togglePlayPause' } })
+      )
       return
     }
   }
@@ -1470,38 +1576,67 @@ function detectArticleContent(): { text: string; element: Element } | null {
     const tagName = element.tagName.toLowerCase()
     const className = element.className.toString().toLowerCase()
     const id = element.id.toLowerCase()
-    
+
     // Exclude navigation, headers, footers, sidebars, ads, etc.
-    const excludedTags = ['nav', 'header', 'footer', 'aside', 'script', 'style', 'iframe', 'form', 'button']
+    const excludedTags = [
+      'nav',
+      'header',
+      'footer',
+      'aside',
+      'script',
+      'style',
+      'iframe',
+      'form',
+      'button',
+    ]
     if (excludedTags.includes(tagName)) return true
-    
+
     // Exclude by class/id keywords
     const excludedKeywords = [
-      'nav', 'menu', 'sidebar', 'header', 'footer', 'advertisement', 'ad-',
-      'cookie', 'banner', 'popup', 'modal', 'comment', 'share', 'social',
-      'related', 'recommend', 'widget', 'promo', 'sponsored', 'subscribe'
+      'nav',
+      'menu',
+      'sidebar',
+      'header',
+      'footer',
+      'advertisement',
+      'ad-',
+      'cookie',
+      'banner',
+      'popup',
+      'modal',
+      'comment',
+      'share',
+      'social',
+      'related',
+      'recommend',
+      'widget',
+      'promo',
+      'sponsored',
+      'subscribe',
     ]
-    
+
     for (const keyword of excludedKeywords) {
       if (className.includes(keyword) || id.includes(keyword)) {
         return true
       }
     }
-    
+
     return false
   }
-  
+
   // Helper to extract clean text from element
   const getCleanText = (element: Element): string => {
     const clone = element.cloneNode(true) as Element
-    
+
     // Remove script, style, and excluded elements from clone
-    const toRemove = clone.querySelectorAll('script, style, nav, header, footer, aside, iframe, form, button, [class*="nav"], [class*="menu"], [class*="sidebar"], [class*="comment"], [class*="ad-"], [class*="share"]')
-    toRemove.forEach(el => el.remove())
-    
+    const toRemove = clone.querySelectorAll(
+      'script, style, nav, header, footer, aside, iframe, form, button, [class*="nav"], [class*="menu"], [class*="sidebar"], [class*="comment"], [class*="ad-"], [class*="share"]'
+    )
+    toRemove.forEach((el) => el.remove())
+
     return clone.textContent?.trim() || ''
   }
-  
+
   // Try common article selectors with clean text extraction
   const articleSelectors = [
     'article[role="article"]',
@@ -1513,14 +1648,14 @@ function detectArticleContent(): { text: string; element: Element } | null {
     '.entry-content',
     '.article-body',
     '.story-body',
-    'main .content'
+    'main .content',
   ]
-  
+
   for (const selector of articleSelectors) {
     const elements = document.querySelectorAll(selector)
     for (const element of elements) {
       if (shouldExcludeElement(element)) continue
-      
+
       const text = getCleanText(element)
       // Check if it has substantial content (more than 500 characters)
       if (text && text.length > 500) {
@@ -1528,46 +1663,48 @@ function detectArticleContent(): { text: string; element: Element } | null {
       }
     }
   }
-  
+
   // Fallback: Find element with highest text density in main content
   const mainContent = document.querySelector('main') || document.body
-  const candidates = mainContent.querySelectorAll<HTMLElement>('article, section, div[class*="content"], div[class*="article"], div[class*="post"]')
-  
+  const candidates = mainContent.querySelectorAll<HTMLElement>(
+    'article, section, div[class*="content"], div[class*="article"], div[class*="post"]'
+  )
+
   let bestElement: HTMLElement | null = null
   let bestScore = 0
-  
+
   // Limit search to first 50 candidates for performance
   const maxCandidates = Math.min(candidates.length, 50)
   for (let i = 0; i < maxCandidates; i++) {
     const element = candidates[i]
-    
+
     // Skip excluded elements
     if (shouldExcludeElement(element)) continue
-    
+
     // Skip elements that are too small
     const rect = element.getBoundingClientRect()
     if (rect.width < 200 || rect.height < 100) continue
-    
+
     const cleanText = getCleanText(element)
     if (cleanText.length < 500) continue
-    
+
     // Calculate score based on text length and paragraph count
     const paragraphs = element.querySelectorAll('p').length
     const textLength = cleanText.length
-    
+
     // Prefer elements with more paragraphs and longer text
-    const score = textLength + (paragraphs * 100)
-    
+    const score = textLength + paragraphs * 100
+
     if (score > bestScore) {
       bestScore = score
       bestElement = element
     }
   }
-  
+
   if (bestElement) {
     return { text: getCleanText(bestElement), element: bestElement }
   }
-  
+
   return null
 }
 
@@ -1585,10 +1722,10 @@ function createRangeFromElement(element: Element): Range | null {
 
 function createSmartReadButton() {
   if (smartReadButton) return
-  
+
   smartReadButton = document.createElement('button')
   smartReadButton.id = 'rifm-smart-read-button'
-  
+
   // Create style element
   const style = document.createElement('style')
   style.textContent = `
@@ -1596,23 +1733,21 @@ function createSmartReadButton() {
       position: fixed !important;
       top: 80px !important;
       right: 20px !important;
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
-      color: white !important;
-      border: none !important;
-      border-radius: 50px !important;
-      padding: 14px 24px !important;
+      background: #141519 !important;
+      color: #f7f8f8 !important;
+      border: 1px solid #23252a !important;
+      border-radius: 8px !important;
+      padding: 10px 14px !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 14px !important;
-      font-weight: 600 !important;
+      font-weight: 500 !important;
       cursor: pointer !important;
       z-index: 2147483645 !important;
       display: flex !important;
       align-items: center !important;
       gap: 8px !important;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
       user-select: none !important;
-      backdrop-filter: blur(10px) !important;
       white-space: nowrap !important;
       opacity: 0 !important;
       transform: translateY(-100px) scale(0.8) !important;
@@ -1623,16 +1758,10 @@ function createSmartReadButton() {
       transform: translateY(0) scale(1) !important;
     }
     
-    @media (prefers-color-scheme: dark) {
-      #rifm-smart-read-button {
-        background: linear-gradient(135deg, #4f52dd 0%, #7748e2 100%) !important;
-        box-shadow: 0 4px 12px rgba(79, 82, 221, 0.5) !important;
-      }
-    }
-    
     #rifm-smart-read-button:hover {
-      transform: translateY(-2px) scale(1.05) !important;
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6) !important;
+      background: #1a1c22 !important;
+      border-color: #2d3038 !important;
+      transform: translateY(-2px) scale(1.03) !important;
     }
     
     #rifm-smart-read-button:active {
@@ -1642,7 +1771,7 @@ function createSmartReadButton() {
     #rifm-smart-read-button svg {
       width: 18px !important;
       height: 18px !important;
-      stroke: white !important;
+      stroke: #5e6ad2 !important;
       fill: none !important;
       flex-shrink: 0 !important;
     }
@@ -1654,41 +1783,44 @@ function createSmartReadButton() {
       }
     }
   `
-  
+
   // Create SVG icon
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('fill', 'none')
   svg.setAttribute('stroke', 'currentColor')
-  
+
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   path.setAttribute('stroke-linecap', 'round')
   path.setAttribute('stroke-linejoin', 'round')
   path.setAttribute('stroke-width', '2')
-  path.setAttribute('d', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z')
-  
+  path.setAttribute(
+    'd',
+    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+  )
+
   svg.appendChild(path)
-  
+
   // Create text span
   const textSpan = document.createElement('span')
   textSpan.id = 'rifm-smart-read-text'
   textSpan.textContent = getMessage('readFullArticle')
-  
+
   // Assemble button
   smartReadButton.appendChild(svg)
   smartReadButton.appendChild(textSpan)
-  
+
   // Add click handler BEFORE appending to DOM
   smartReadButtonClickHandler = handleSmartRead
   smartReadButton.addEventListener('click', smartReadButtonClickHandler)
-  
+
   // Append style and button to document
   if (!document.getElementById('rifm-smart-read-styles')) {
     style.id = 'rifm-smart-read-styles'
     document.head.appendChild(style)
   }
   document.body.appendChild(smartReadButton)
-  
+
   // Animate in
   setTimeout(() => {
     smartReadButton?.classList.add('show')
@@ -1706,7 +1838,7 @@ function updateSmartReadButtonText() {
 
 function hideSmartReadButton() {
   if (!smartReadButton) return
-  
+
   smartReadButton.classList.remove('show')
   setTimeout(() => {
     if (smartReadButton) {
@@ -1723,7 +1855,7 @@ function hideSmartReadButton() {
 function detectAndShowSmartReadButton() {
   // Only show if article content is detected and not already creating
   if (isCreatingSmartReadButton || smartReadButton) return
-  
+
   const articleContent = detectArticleContent()
   if (articleContent) {
     isCreatingSmartReadButton = true
@@ -1752,10 +1884,10 @@ function handleSmartRead() {
     console.warn('[RIFM] No article content detected')
     return
   }
-  
+
   const { text: articleText, element: articleElement } = articleContent
   const articleRange = createRangeFromElement(articleElement)
-  
+
   hideSmartReadButton()
 
   // Get page language from various sources
@@ -1763,79 +1895,86 @@ function handleSmartRead() {
     // Try document lang attribute first
     const htmlLang = document.documentElement.lang
     if (htmlLang) return htmlLang
-    
+
     // Try meta content-language
-    const metaLang = document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content')
+    const metaLang = document
+      .querySelector('meta[http-equiv="content-language"]')
+      ?.getAttribute('content')
     if (metaLang) return metaLang
-    
+
     // Try meta language
     const metaLang2 = document.querySelector('meta[name="language"]')?.getAttribute('content')
     if (metaLang2) return metaLang2
-    
+
     // Fallback to text detection
     return detectLanguageFromText(articleText)
   }
 
   // Get saved voice settings (using same logic as handleSelectionRead)
-  browser.storage.local.get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice']).then(async (result) => {
-    let voiceIndex = result.defaultVoiceIndex as number | undefined
-    const rate = (result.defaultRate as number | undefined) ?? 0.9
-    const pitch = (result.defaultPitch as number | undefined) ?? 1
-    const volume = (result.defaultVolume as number | undefined) ?? 1
-    const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
+  browser.storage.local
+    .get(['defaultVoiceIndex', 'defaultRate', 'defaultPitch', 'defaultVolume', 'autoSelectVoice'])
+    .then(async (result) => {
+      let voiceIndex = result.defaultVoiceIndex as number | undefined
+      const rate = (result.defaultRate as number | undefined) ?? 0.9
+      const pitch = (result.defaultPitch as number | undefined) ?? 1
+      const volume = (result.defaultVolume as number | undefined) ?? 1
+      const autoSelect = (result.autoSelectVoice as boolean | undefined) ?? true // Default to true
 
-    // Auto-select voice based on page language if enabled
-    if (autoSelect) {
-      // Wait for voices to be loaded
-      const voices = await ensureVoicesLoaded()
-      const pageLang = getPageLanguage()
-      const langCode = pageLang.split('-')[0].toLowerCase()
-      const fullLangCode = pageLang.toLowerCase()
-      
-      // Find matching voices for page language
-      const matchingVoices = voices.filter(voice => {
-        const voiceLang = voice.lang.toLowerCase()
-        return voiceLang.startsWith(langCode) || 
-               voiceLang === fullLangCode ||
-               voiceLang.startsWith(fullLangCode)
-      })
-      
-      if (matchingVoices.length > 0) {
-        // Sort voices by score and pick the best
-        const rankedVoices = matchingVoices
-          .map(voice => ({ voice, score: scoreVoice(voice, fullLangCode) }))
-          .sort((a, b) => b.score - a.score)
-        
-        const bestVoice = rankedVoices[0].voice
-        voiceIndex = voices.indexOf(bestVoice)
-        
-        // Save the auto-selected voice so the popup can update
-        browser.storage.local.set({ autoSelectedVoice: voiceIndex })
-      }
-    }
+      // Auto-select voice based on page language if enabled
+      if (autoSelect) {
+        // Wait for voices to be loaded
+        const voices = await ensureVoicesLoaded()
+        const pageLang = getPageLanguage()
+        const langCode = pageLang.split('-')[0].toLowerCase()
+        const fullLangCode = pageLang.toLowerCase()
 
-    // Add to queue if already reading, otherwise start immediately
-    if (isReading && !isPaused) {
-      readingQueue.push({ text: articleText, voiceIndex, rate, pitch, volume })
-      queuedSelectionRanges.push(articleRange) // Article range for highlighting
-      showPlayer().then(() => updateQueueCount(readingQueue.length))
-    } else {
-      // Stop current if paused and start new one
-      if (currentUtterance) {
-        currentUtterance.onend = null
-        currentUtterance.onerror = null
-        window.speechSynthesis.cancel()
+        // Find matching voices for page language
+        const matchingVoices = voices.filter((voice) => {
+          const voiceLang = voice.lang.toLowerCase()
+          return (
+            voiceLang.startsWith(langCode) ||
+            voiceLang === fullLangCode ||
+            voiceLang.startsWith(fullLangCode)
+          )
+        })
+
+        if (matchingVoices.length > 0) {
+          // Sort voices by score and pick the best
+          const rankedVoices = matchingVoices
+            .map((voice) => ({ voice, score: scoreVoice(voice, fullLangCode) }))
+            .sort((a, b) => b.score - a.score)
+
+          const bestVoice = rankedVoices[0].voice
+          voiceIndex = voices.indexOf(bestVoice)
+
+          // Save the auto-selected voice so the popup can update
+          browser.storage.local.set({ autoSelectedVoice: voiceIndex })
+        }
       }
-      readingQueue = [] // Clear queue
-      queuedSelectionRanges = [] // Clear saved ranges
-      // Pass article range for word highlighting
-      startReading(articleText, voiceIndex, rate, pitch, volume, articleRange)
-    }
-  }).catch((error) => {
-    console.error('Failed to load voice settings for smart read:', error)
-    // Fallback: start reading with default settings and article range
-    startReading(articleText, undefined, 0.9, 1, 1, articleRange)
-  })
+
+      // Add to queue if already reading, otherwise start immediately
+      if (isReading && !isPaused) {
+        readingQueue.push({ text: articleText, voiceIndex, rate, pitch, volume })
+        queuedSelectionRanges.push(articleRange) // Article range for highlighting
+        showPlayer().then(() => updateQueueCount(readingQueue.length))
+      } else {
+        // Stop current if paused and start new one
+        if (currentUtterance) {
+          currentUtterance.onend = null
+          currentUtterance.onerror = null
+          window.speechSynthesis.cancel()
+        }
+        readingQueue = [] // Clear queue
+        queuedSelectionRanges = [] // Clear saved ranges
+        // Pass article range for word highlighting
+        startReading(articleText, voiceIndex, rate, pitch, volume, articleRange)
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load voice settings for smart read:', error)
+      // Fallback: start reading with default settings and article range
+      startReading(articleText, undefined, 0.9, 1, 1, articleRange)
+    })
 }
 
 // Cleanup function to prevent memory leaks
@@ -1861,14 +2000,14 @@ function cleanup() {
     browser.storage.local.onChanged.removeListener(storageChangeHandler)
     storageChangeHandler = null
   }
-  
+
   // Cancel any ongoing speech
   if (currentUtterance) {
     currentUtterance.onend = null
     currentUtterance.onerror = null
   }
   window.speechSynthesis.cancel()
-  
+
   // Clear all timeouts and intervals
   if (progressInterval) {
     clearInterval(progressInterval)
@@ -1894,7 +2033,7 @@ function cleanup() {
     clearTimeout(highlightFadeoutTimeout)
     highlightFadeoutTimeout = null
   }
-  
+
   // Remove DOM elements
   if (selectionTooltip) {
     if (selectionTooltipClickHandler) {
@@ -1915,24 +2054,24 @@ function cleanup() {
     smartReadButton.remove()
     smartReadButton = null
   }
-  
+
   // Remove smart read styles
   const smartReadStyles = document.getElementById('rifm-smart-read-styles')
   if (smartReadStyles) {
     smartReadStyles.remove()
   }
-  
+
   isCreatingSmartReadButton = false
-  
+
   // Destroy floating player
   destroyPlayer()
-  
+
   // Remove beforeunload listener
   if (beforeunloadHandler) {
     window.removeEventListener('beforeunload', beforeunloadHandler)
     beforeunloadHandler = null
   }
-  
+
   // Reset state
   readingQueue = []
   queuedSelectionRanges = []
@@ -1946,4 +2085,3 @@ function cleanup() {
 // Listen for page unload to cleanup
 beforeunloadHandler = cleanup
 window.addEventListener('beforeunload', beforeunloadHandler)
-

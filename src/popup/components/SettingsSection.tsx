@@ -18,19 +18,19 @@ export function SettingsSection({
   children,
 }: SettingsSectionProps) {
   return (
-    <div className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+    <div className="border-b border-hairline last:border-b-0">
       <button
         onClick={onToggle}
-        className="w-full p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-200"
+        className="w-full p-5 flex items-center justify-between hover:bg-surface-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         aria-expanded={isExpanded}
         aria-controls={id}
       >
         <div className="flex items-center gap-2">
           {icon}
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h2>
+          <h2 className="text-sm font-semibold text-ink-muted">{title}</h2>
         </div>
         <svg
-          className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+          className={`w-5 h-5 text-ink-tertiary transition-transform duration-200 ${
             isExpanded ? 'rotate-180' : ''
           }`}
           fill="none"

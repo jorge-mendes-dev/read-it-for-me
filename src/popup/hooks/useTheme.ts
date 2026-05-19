@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ThemeMode } from '../../types'
 import browser from '../../utils/browser'
 
@@ -8,34 +8,20 @@ import browser from '../../utils/browser'
  * @returns Theme state and setter function
  */
 export function useTheme() {
-  const [theme, setTheme] = useState<ThemeMode>('auto')
+  const [theme, setTheme] = useState<ThemeMode>('dark')
   const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   // Apply theme to DOM with smooth transitions
   useEffect(() => {
     const root = document.documentElement
-    
+
     // Disable transitions on first load to prevent flash
     if (isInitialLoad) {
       root.classList.add('no-transitions')
     }
 
-    // Apply dark mode based on theme setting
-    if (theme === 'auto') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.classList.toggle('dark', prefersDark)
-      
-      // Listen for system theme changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = (e: MediaQueryListEvent) => {
-        root.classList.toggle('dark', e.matches)
-      }
-      mediaQuery.addEventListener('change', handleChange)
-      
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    } else {
-      root.classList.toggle('dark', theme === 'dark')
-    }
+    // The popup is intentionally dark-only for design-system consistency.
+    root.classList.add('dark')
 
     // Re-enable transitions after first render
     if (isInitialLoad) {
@@ -50,19 +36,22 @@ export function useTheme() {
 
   // Load theme from storage on mount
   useEffect(() => {
-    browser.storage.local.get(['theme']).then((result) => {
-      if (result.theme) {
-        setTheme(result.theme as ThemeMode)
-      }
-    }).catch((error) => {
-      console.error('Failed to load theme from storage:', error)
-    })
+    browser.storage.local
+      .get(['theme'])
+      .then(() => {
+        setTheme('dark')
+        browser.storage.local.set({ theme: 'dark' })
+      })
+      .catch((error) => {
+        console.error('Failed to load theme from storage:', error)
+      })
   }, [])
 
   // Persist theme when it changes
   const setThemeWithPersistence = (newTheme: ThemeMode) => {
-    setTheme(newTheme)
-    browser.storage.local.set({ theme: newTheme })
+    void newTheme
+    setTheme('dark')
+    browser.storage.local.set({ theme: 'dark' })
   }
 
   return [theme, setThemeWithPersistence] as const

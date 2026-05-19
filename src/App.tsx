@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
-import { t, initializeLocale, setLocale, availableLocales } from './utils/i18n'
-import { useTheme, useVoices } from './popup/hooks'
-import { WelcomeModal, ThemeToggle, VoiceSelector, SettingsSection } from './popup/components'
-import type { SettingsSection as SettingsSectionType } from './types'
+import { useEffect, useState } from 'react'
 import { UI_CONFIG } from './constants'
+import { SettingsSection, VoiceSelector, WelcomeModal } from './popup/components'
+import { useTheme, useVoices } from './popup/hooks'
+import type { SettingsSection as SettingsSectionType } from './types'
 import browser from './utils/browser'
+import { availableLocales, initializeLocale, setLocale, t } from './utils/i18n'
 
 function App() {
   const { voices, isLoadingVoices } = useVoices()
-  const [theme, setTheme] = useTheme()
+  useTheme()
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
   const [localeReady, setLocaleReady] = useState(false)
@@ -25,60 +25,84 @@ function App() {
 
   useEffect(() => {
     // Check if first run
-    browser.storage.local.get(['hasSeenWelcome']).then((result) => {
-      if (!result.hasSeenWelcome) {
-        setShowFirstRun(true)
-      }
-    }).catch((error) => {
-      console.error('Failed to check first run status:', error)
-    })
-    
+    browser.storage.local
+      .get(['hasSeenWelcome'])
+      .then((result) => {
+        if (!result.hasSeenWelcome) {
+          setShowFirstRun(true)
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to check first run status:', error)
+      })
+
     // Initialize locale first
-    initializeLocale().then(locale => {
-      setCurrentLocale(locale)
-      setLocaleReady(true)
-    })
+    initializeLocale()
+      .then((locale) => {
+        setCurrentLocale(locale)
+      })
+      .catch((error) => {
+        console.error('Failed to initialize locale:', error)
+        setCurrentLocale('en')
+      })
+      .finally(() => {
+        setLocaleReady(true)
+      })
   }, [])
 
   useEffect(() => {
     if (!localeReady || voices.length === 0) return
 
     // Load saved default voice settings and recent voices
-    browser.storage.local.get(['defaultVoiceIndex', 'recentVoices', 'showProgressBar', 'autoSelectVoice', 'autoSelectedVoice', 'wordHighlightEnabled', 'followHighlight', 'smartRead']).then((result) => {
-      const autoSelectedVoice = result.autoSelectedVoice as number | undefined
-      const defaultVoiceIndex = result.defaultVoiceIndex as number | undefined
-      const recentVoices = result.recentVoices as number[] | undefined
-      const showProgressBar = result.showProgressBar as boolean | undefined
-      const autoSelectVoice = result.autoSelectVoice as boolean | undefined
+    browser.storage.local
+      .get([
+        'defaultVoiceIndex',
+        'recentVoices',
+        'showProgressBar',
+        'autoSelectVoice',
+        'autoSelectedVoice',
+        'wordHighlightEnabled',
+        'followHighlight',
+        'smartRead',
+      ])
+      .then((result) => {
+        const autoSelectedVoice = result.autoSelectedVoice as number | undefined
+        const defaultVoiceIndex = result.defaultVoiceIndex as number | undefined
+        const recentVoices = result.recentVoices as number[] | undefined
+        const showProgressBar = result.showProgressBar as boolean | undefined
+        const autoSelectVoice = result.autoSelectVoice as boolean | undefined
 
-      // If auto-select is enabled and we have an auto-selected voice, use that
-      if (autoSelectVoice && autoSelectedVoice !== undefined && voices[autoSelectedVoice]) {
-        setSelectedVoice(autoSelectedVoice)
-      } else if (defaultVoiceIndex !== undefined && voices[defaultVoiceIndex]) {
-        setSelectedVoice(defaultVoiceIndex)
-      }
-      if (recentVoices) {
-        setRecentVoices(recentVoices)
-      }
-      if (showProgressBar !== undefined) {
-        setShowProgressBar(showProgressBar)
-      }
-      if (autoSelectVoice !== undefined) {
-        setAutoSelectVoice(autoSelectVoice)
-      }
-      const wordHighlight = result.wordHighlightEnabled as boolean | undefined
-      if (wordHighlight !== undefined) {
-        setWordHighlightEnabled(wordHighlight)
-      }
-      const followHighlightSetting = result.followHighlight as boolean | undefined
-      if (followHighlightSetting !== undefined) {
-        setFollowHighlight(followHighlightSetting)
-      }      const smartReadValue = result.smartRead as boolean | undefined
-      if (smartReadValue !== undefined) {
-        setSmartRead(smartReadValue)
-      }    }).catch((error) => {
-      console.error('Failed to load voice settings:', error)
-    })
+        // If auto-select is enabled and we have an auto-selected voice, use that
+        if (autoSelectVoice && autoSelectedVoice !== undefined && voices[autoSelectedVoice]) {
+          setSelectedVoice(autoSelectedVoice)
+        } else if (defaultVoiceIndex !== undefined && voices[defaultVoiceIndex]) {
+          setSelectedVoice(defaultVoiceIndex)
+        }
+        if (recentVoices) {
+          setRecentVoices(recentVoices)
+        }
+        if (showProgressBar !== undefined) {
+          setShowProgressBar(showProgressBar)
+        }
+        if (autoSelectVoice !== undefined) {
+          setAutoSelectVoice(autoSelectVoice)
+        }
+        const wordHighlight = result.wordHighlightEnabled as boolean | undefined
+        if (wordHighlight !== undefined) {
+          setWordHighlightEnabled(wordHighlight)
+        }
+        const followHighlightSetting = result.followHighlight as boolean | undefined
+        if (followHighlightSetting !== undefined) {
+          setFollowHighlight(followHighlightSetting)
+        }
+        const smartReadValue = result.smartRead as boolean | undefined
+        if (smartReadValue !== undefined) {
+          setSmartRead(smartReadValue)
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load voice settings:', error)
+      })
   }, [localeReady, voices])
 
   // Listen for auto-selected voice changes
@@ -105,10 +129,10 @@ function App() {
     })
 
     // Update recent voices
-    const updated = [
-      selectedVoice,
-      ...recentVoices.filter((v) => v !== selectedVoice),
-    ].slice(0, UI_CONFIG.RECENT_VOICES_LIMIT)
+    const updated = [selectedVoice, ...recentVoices.filter((v) => v !== selectedVoice)].slice(
+      0,
+      UI_CONFIG.RECENT_VOICES_LIMIT
+    )
     setRecentVoices(updated)
     browser.storage.local.set({ recentVoices: updated })
 
@@ -154,17 +178,17 @@ function App() {
 
   if (!localeReady) {
     return (
-      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-[500px] p-6 flex items-center justify-center">
+      <div className="bg-canvas min-h-[500px] p-6 flex items-center justify-center text-ink">
         <div className="text-center" role="status" aria-live="polite">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-3"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-ink-muted">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-[500px] p-6 transition-colors duration-300">
+    <div className="bg-canvas min-h-[500px] p-6 text-ink transition-colors duration-300">
       <div className="max-w-md mx-auto">
         {/* First Run Welcome */}
         <WelcomeModal isOpen={showFirstRun} onClose={closeWelcome} />
@@ -174,51 +198,67 @@ function App() {
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4 relative group">
             {logoUrl ? (
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                <img src={logoUrl} alt="Read It For Me" className="relative w-16 h-16 rounded-2xl shadow-2xl ring-2 ring-white/50 dark:ring-gray-700/50 group-hover:scale-110 transition-transform duration-300" />
+                <img
+                  src={logoUrl}
+                  alt="Read It For Me"
+                  className="relative w-16 h-16 rounded-xl border border-hairline group-hover:scale-105 transition-transform duration-300"
+                />
               </div>
             ) : (
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity"></div>
-                <div className="relative w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-2xl flex items-center justify-center ring-2 ring-white/50 dark:ring-gray-700/50 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <div className="relative w-16 h-16 bg-primary rounded-xl flex items-center justify-center border border-primary/60 group-hover:scale-105 transition-transform duration-300">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                    />
                   </svg>
                 </div>
               </div>
             )}
           </div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
-            {t('readItForMe')}
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">{t('selectTextPrompt')}</p>
-          
-          {/* Theme Toggle */}
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <ThemeToggle theme={theme} onThemeChange={setTheme} />
-          </div>
-          
+          <h1 className="text-3xl font-semibold tracking-[-0.6px] text-ink">{t('readItForMe')}</h1>
+          <p className="text-sm text-ink-muted mt-2 font-medium">{t('selectTextPrompt')}</p>
+
           {/* Help Buttons */}
           <div className="flex items-center justify-center gap-2 mt-4">
             <button
               onClick={() => setShowFirstRun(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-ink-muted hover:text-ink bg-surface-1 hover:bg-surface-2 rounded-md transition-colors duration-200 border border-hairline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               title="Show welcome guide"
               aria-label="Show welcome guide"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               {t('help')}
             </button>
             <button
               onClick={() => setShowKeyboardHelp(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light hover:text-white dark:hover:text-white hover:bg-gradient-to-r hover:from-primary hover:to-secondary bg-indigo-50 dark:bg-indigo-900/30 hover:shadow-lg rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border border-primary/20 dark:border-primary/30"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-ink-muted hover:text-ink bg-surface-1 hover:bg-surface-2 rounded-md transition-colors duration-200 border border-hairline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               title={t('showKeyboardShortcuts')}
               aria-label={t('showKeyboardShortcuts')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                />
               </svg>
               ⌨️
             </button>
@@ -226,14 +266,12 @@ function App() {
         </div>
 
         {/* Settings Card */}
-        <div className="bg-white/90 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 dark:border-gray-700/60 mb-4 overflow-hidden hover:shadow-3xl transition-shadow duration-300">
+        <div className="bg-surface-1 rounded-lg border border-hairline mb-4 overflow-hidden">
           {/* Language Selection - Always Visible */}
-          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('language')}
-            </label>
+          <div className="p-5 border-b border-hairline">
+            <label className="block text-xs font-medium text-ink-muted mb-2">{t('language')}</label>
             <select
-              className="w-full p-3.5 border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium shadow-sm hover:border-primary/50 dark:hover:border-primary/50 cursor-pointer"
+              className="w-full py-2 px-3 border border-hairline rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all bg-surface-2 text-ink text-sm font-medium cursor-pointer"
               value={currentLocale}
               onChange={(e) => handleLanguageChange(e.target.value)}
             >
@@ -251,7 +289,7 @@ function App() {
             title={t('voice')}
             icon={
               <svg
-                className="w-4 h-4 text-primary dark:text-primary-light"
+                className="w-4 h-4 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -280,26 +318,25 @@ function App() {
             <button
               id="save-default-btn"
               onClick={saveAsDefault}
-              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white text-sm font-bold rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-2 relative overflow-hidden group"
+              className="w-full py-2 px-3 bg-primary text-white text-sm font-medium rounded-md transition-colors duration-200 hover:bg-primary-hover active:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 flex items-center justify-center gap-2"
               aria-label="Save current voice as default"
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              <span className="relative flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              {t('saveAsDefault')}
+              <span className="flex items-center gap-2">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                {t('saveAsDefault')}
               </span>
             </button>
           </SettingsSection>
@@ -310,7 +347,7 @@ function App() {
             title={t('playback')}
             icon={
               <svg
-                className="w-4 h-4 text-primary dark:text-primary-light"
+                className="w-4 h-4 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -329,36 +366,42 @@ function App() {
           >
             {/* Quick Speed Presets */}
             <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-ink-muted mb-2">
                 {t('speedPresets')}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 0.75 })}
-                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  className="px-3 py-2 text-xs font-medium bg-surface-2 border border-hairline text-ink rounded-md transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  🐢 {t('presetSlow')}<br/><span className="text-[10px] opacity-90">0.75x</span>
+                  🐢 {t('presetSlow')}
+                  <br />
+                  <span className="text-caption opacity-90">0.75x</span>
                 </button>
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 1.0 })}
-                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  className="px-3 py-2 text-xs font-medium bg-primary text-white rounded-md transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  ▶️ {t('presetNormal')}<br/><span className="text-[10px] opacity-90">1.0x</span>
+                  ▶️ {t('presetNormal')}
+                  <br />
+                  <span className="text-caption opacity-90">1.0x</span>
                 </button>
                 <button
                   onClick={() => browser.storage.local.set({ defaultRate: 1.5 })}
-                  className="px-3 py-2 text-xs font-semibold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  className="px-3 py-2 text-xs font-medium bg-surface-2 border border-hairline text-ink rounded-md transition-colors hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  ⚡ {t('presetFast')}<br/><span className="text-[10px] opacity-90">1.5x</span>
+                  ⚡ {t('presetFast')}
+                  <br />
+                  <span className="text-caption opacity-90">1.5x</span>
                 </button>
               </div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 text-center">
+              <p className="text-caption text-ink-subtle mt-2 text-center">
                 {t('fineTuneSpeedTip')}
               </p>
             </div>
-            
+
             <label className="flex items-center justify-between cursor-pointer group">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+              <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -380,7 +423,7 @@ function App() {
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </div>
             </label>
           </SettingsSection>
@@ -391,7 +434,7 @@ function App() {
             title={t('advanced')}
             icon={
               <svg
-                className="w-4 h-4 text-primary dark:text-primary-light"
+                className="w-4 h-4 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -416,8 +459,13 @@ function App() {
           >
             <div>
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -438,18 +486,21 @@ function App() {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </div>
               </label>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
-                {t('autoDetectLanguageDesc')}
-              </p>
+              <p className="text-xs text-ink-subtle mt-1 ml-5">{t('autoDetectLanguageDesc')}</p>
             </div>
-            
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+
+            <div className="pt-4 border-t border-hairline">
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -470,18 +521,21 @@ function App() {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </div>
               </label>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
-                {t('wordHighlightDesc')}
-              </p>
+              <p className="text-xs text-ink-subtle mt-1 ml-5">{t('wordHighlightDesc')}</p>
             </div>
-            
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+
+            <div className="pt-4 border-t border-hairline">
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -508,18 +562,21 @@ function App() {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </div>
               </label>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
-                {t('followHighlightDesc')}
-              </p>
+              <p className="text-xs text-ink-subtle mt-1 ml-5">{t('followHighlightDesc')}</p>
             </div>
-            
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+
+            <div className="pt-4 border-t border-hairline">
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -540,12 +597,10 @@ function App() {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary dark:peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </div>
               </label>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
-                {t('smartReadDesc')}
-              </p>
+              <p className="text-xs text-ink-subtle mt-1 ml-5">{t('smartReadDesc')}</p>
             </div>
           </SettingsSection>
         </div>
@@ -556,85 +611,98 @@ function App() {
             href="https://buymeacoffee.com/jorge.mendesdev"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 text-sm font-semibold rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-surface-1 hover:bg-surface-2 border border-hairline text-ink text-sm font-medium rounded-md transition-colors"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.888.501-.297.302-.393.77-.177 1.146.154.267.415.456.692.58.36.162.737.284 1.123.366 1.075.238 2.189.331 3.287.37 1.218.05 2.437.01 3.65-.118.299-.033.598-.073.896-.119.352-.054.578-.513.474-.834-.124-.383-.457-.531-.834-.473-.466.074-.96.108-1.382.146-1.177.08-2.358.082-3.536.006a22.228 22.228 0 01-1.157-.107c-.086-.01-.18-.025-.258-.036-.243-.036-.484-.08-.724-.13-.111-.027-.111-.185 0-.212h.005c.277-.06.557-.108.838-.147h.002c.131-.009.263-.032.394-.048a25.076 25.076 0 013.426-.12c.674.019 1.347.067 2.017.144l.228.031c.267.04.533.088.798.145.392.085.895.113 1.07.542.055.137.08.288.111.431l.319 1.484a.237.237 0 01-.199.284h-.003c-.037.006-.075.01-.112.015a36.704 36.704 0 01-4.743.295 37.059 37.059 0 01-4.699-.304c-.14-.017-.293-.042-.417-.06-.326-.048-.649-.108-.973-.161-.393-.065-.768-.032-1.123.161-.29.16-.527.404-.675.701-.154.316-.199.66-.267 1-.069.34-.176.707-.135 1.056.087.753.613 1.365 1.37 1.502a39.69 39.69 0 0011.343.376.483.483 0 01.535.53l-.071.697-1.018 9.907c-.041.41-.047.832-.125 1.237-.122.637-.553 1.028-1.182 1.171-.577.131-1.165.2-1.756.205-.656.004-1.31-.025-1.966-.022-.699.004-1.556-.06-2.095-.58-.475-.458-.54-1.174-.605-1.793l-.731-7.013-.322-3.094c-.037-.351-.286-.695-.678-.678-.336.015-.718.3-.678.679l.228 2.185.949 9.112c.147 1.344 1.174 2.068 2.446 2.272.742.12 1.503.144 2.257.156.966.016 1.942.053 2.892-.122 1.408-.258 2.465-1.198 2.616-2.657.34-3.332.683-6.663 1.024-9.995l.215-2.087a.484.484 0 01.39-.426c.402-.078.787-.212 1.074-.518.455-.488.546-1.124.385-1.766zm-1.478.772c-.145.137-.363.201-.578.233-2.416.359-4.866.54-7.308.46-1.748-.06-3.477-.254-5.207-.498-.17-.024-.353-.055-.47-.18-.22-.236-.111-.71-.054-.995.052-.26.152-.609.463-.646.484-.057 1.046.148 1.526.22.577.088 1.156.159 1.737.212 2.48.226 5.002.19 7.472-.14.45-.06.899-.13 1.345-.21.399-.072.84-.206 1.08.206.166.281.188.657.162.974a.544.544 0 01-.169.364zm-6.159 3.9c-.862.37-1.84.788-3.109.788a5.884 5.884 0 01-1.569-.217l.877 9.004c.065.78.717 1.38 1.5 1.38 0 0 1.243.065 1.658.065.447 0 1.786-.065 1.786-.065.783 0 1.434-.6 1.499-1.38l.94-9.95a3.996 3.996 0 00-1.322-.238c-.826 0-1.491.284-2.26.613z"/>
+              <path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.888.501-.297.302-.393.77-.177 1.146.154.267.415.456.692.58.36.162.737.284 1.123.366 1.075.238 2.189.331 3.287.37 1.218.05 2.437.01 3.65-.118.299-.033.598-.073.896-.119.352-.054.578-.513.474-.834-.124-.383-.457-.531-.834-.473-.466.074-.96.108-1.382.146-1.177.08-2.358.082-3.536.006a22.228 22.228 0 01-1.157-.107c-.086-.01-.18-.025-.258-.036-.243-.036-.484-.08-.724-.13-.111-.027-.111-.185 0-.212h.005c.277-.06.557-.108.838-.147h.002c.131-.009.263-.032.394-.048a25.076 25.076 0 013.426-.12c.674.019 1.347.067 2.017.144l.228.031c.267.04.533.088.798.145.392.085.895.113 1.07.542.055.137.08.288.111.431l.319 1.484a.237.237 0 01-.199.284h-.003c-.037.006-.075.01-.112.015a36.704 36.704 0 01-4.743.295 37.059 37.059 0 01-4.699-.304c-.14-.017-.293-.042-.417-.06-.326-.048-.649-.108-.973-.161-.393-.065-.768-.032-1.123.161-.29.16-.527.404-.675.701-.154.316-.199.66-.267 1-.069.34-.176.707-.135 1.056.087.753.613 1.365 1.37 1.502a39.69 39.69 0 0011.343.376.483.483 0 01.535.53l-.071.697-1.018 9.907c-.041.41-.047.832-.125 1.237-.122.637-.553 1.028-1.182 1.171-.577.131-1.165.2-1.756.205-.656.004-1.31-.025-1.966-.022-.699.004-1.556-.06-2.095-.58-.475-.458-.54-1.174-.605-1.793l-.731-7.013-.322-3.094c-.037-.351-.286-.695-.678-.678-.336.015-.718.3-.678.679l.228 2.185.949 9.112c.147 1.344 1.174 2.068 2.446 2.272.742.12 1.503.144 2.257.156.966.016 1.942.053 2.892-.122 1.408-.258 2.465-1.198 2.616-2.657.34-3.332.683-6.663 1.024-9.995l.215-2.087a.484.484 0 01.39-.426c.402-.078.787-.212 1.074-.518.455-.488.546-1.124.385-1.766zm-1.478.772c-.145.137-.363.201-.578.233-2.416.359-4.866.54-7.308.46-1.748-.06-3.477-.254-5.207-.498-.17-.024-.353-.055-.47-.18-.22-.236-.111-.71-.054-.995.052-.26.152-.609.463-.646.484-.057 1.046.148 1.526.22.577.088 1.156.159 1.737.212 2.48.226 5.002.19 7.472-.14.45-.06.899-.13 1.345-.21.399-.072.84-.206 1.08.206.166.281.188.657.162.974a.544.544 0 01-.169.364zm-6.159 3.9c-.862.37-1.84.788-3.109.788a5.884 5.884 0 01-1.569-.217l.877 9.004c.065.78.717 1.38 1.5 1.38 0 0 1.243.065 1.658.065.447 0 1.786-.065 1.786-.065.783 0 1.434-.6 1.499-1.38l.94-9.95a3.996 3.996 0 00-1.322-.238c-.826 0-1.491.284-2.26.613z" />
             </svg>
             {t('buyMeACoffee')}
           </a>
         </div>
 
         {/* Developer Credit */}
-        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+        <div className="text-center text-xs text-ink-subtle">
           <p>
             {t('developedBy')}{' '}
             <a
               href="https://jorgemendes.com.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary dark:text-primary-light hover:text-primary-dark dark:hover:text-primary font-medium hover:underline transition-colors duration-200"
+              className="text-primary hover:text-primary-hover font-medium hover:underline transition-colors duration-200"
             >
               Jorge Mendes
             </a>
           </p>
         </div>
-        
+
         {/* Keyboard Shortcuts Modal */}
         {showKeyboardHelp && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000000] flex items-center justify-center p-4 animate-fade-in"
             onClick={() => setShowKeyboardHelp(false)}
           >
-            <div 
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in"
+            <div
+              className="bg-surface-1 border border-hairline rounded-lg max-w-md w-full p-6 animate-scale-in"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                <h2 className="text-xl font-semibold text-ink flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                    />
                   </svg>
                   {t('keyboardShortcuts')}
                 </h2>
                 <button
                   onClick={() => setShowKeyboardHelp(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="text-ink-tertiary hover:text-ink-muted transition-colors"
                   aria-label={t('close')}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
-              
+
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('readSelectedText')}</span>
-                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between p-3 bg-surface-2 rounded-md border border-hairline">
+                  <span className="text-sm text-ink-muted">{t('readSelectedText')}</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-ink bg-surface-3 border border-hairline rounded-sm">
                     Ctrl + Shift + R
                   </kbd>
                 </div>
-                
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('pauseResume')}</span>
-                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+
+                <div className="flex items-center justify-between p-3 bg-surface-2 rounded-md border border-hairline">
+                  <span className="text-sm text-ink-muted">{t('pauseResume')}</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-ink bg-surface-3 border border-hairline rounded-sm">
                     Space
                   </kbd>
                 </div>
-                
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('stopReading')}</span>
-                  <kbd className="px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm">
+
+                <div className="flex items-center justify-between p-3 bg-surface-2 rounded-md border border-hairline">
+                  <span className="text-sm text-ink-muted">{t('stopReading')}</span>
+                  <kbd className="px-3 py-1.5 text-xs font-semibold text-ink bg-surface-3 border border-hairline rounded-sm">
                     Esc
                   </kbd>
                 </div>
               </div>
-              
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  {t('tooltipTip')}
-                </p>
+
+              <div className="mt-6 pt-4 border-t border-hairline">
+                <p className="text-xs text-ink-subtle text-center">{t('tooltipTip')}</p>
               </div>
             </div>
           </div>
@@ -645,5 +713,3 @@ function App() {
 }
 
 export default App
-
-
