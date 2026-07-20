@@ -4,6 +4,47 @@ All notable changes to Read It For Me will be documented in this file.
 
 ---
 
+## 🎉 [1.0.5] - Chrome Voice Experience Improvements - 2026-07-20
+
+### ✨ New Features
+
+#### 💡 Voice Help Panel
+
+- Added a help panel (💡 button) with step-by-step instructions for getting more voices in Chrome
+- Explains how to install Windows language packs, natural voices, and use internet-connected voices
+- Warns when Google network voices aren't detected (possible connectivity issue)
+
+#### ⚡ Recommended Voices Group
+
+- Top 10 premium voices now appear in a dedicated "Recommended" group at the top of the voice selector
+- Makes it easy to find the best available voices without scrolling
+
+#### 🔍 Enhanced Voice Search
+
+- Search now matches quality terms: "premium", "neural", "online", "offline", "google", "microsoft"
+- Each voice shows its quality label (Neural, Premium, Online, Good, Basic)
+- Cloud voices are indicated with ☁️ icon
+- Voice count displayed in the selector label and dropdown header
+
+### 🔧 Improvements & Fixes
+
+- **Chrome Voice Loading**: Added polling mechanism (up to 2s) to reliably load voices in Chrome popups where `getVoices()` initially returns empty
+- **Network Voice Capture**: Delayed check (3s) ensures Google cloud voices that load after local voices are properly captured
+- **Content Script Reliability**: Voice loading in content scripts now uses both `voiceschanged` event AND polling as dual-strategy fallback
+- **Better Voice Scoring**: Google network voices (`localService === false`) receive a +50 quality score boost; Google-branded voices get +45
+- **Low-Quality Voice Detection**: eSpeak/MBROLA voices are penalized in scoring to avoid poor defaults
+- **Few Voices Warning**: Shows an alert when fewer than 5 voices are detected with guidance on how to add more
+- **Voice Type Legend**: Added legend showing ⚡ Premium, ☁️ Online, 💾 Offline indicators
+
+### 🛠️ Technical Updates
+
+- `useVoices` hook now returns `hasNetworkVoices` and `loadAttempts` for better state awareness
+- `voiceScoring.ts` exports new `getVoiceQualityLabel()` and `getVoiceSearchTags()` utilities
+- `ensureVoicesLoaded()` in content script uses race-condition-safe dual resolution strategy
+- Voice selector uses custom `MenuList` component showing voice count in dropdown
+
+---
+
 ## 🎉 [1.0.4] - Enhanced UI & Smart Features - 2026-05-19
 
 ### ✨ New Features
