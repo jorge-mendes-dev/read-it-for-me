@@ -276,7 +276,7 @@ function App() {
         </div>
 
         {/* Settings Card */}
-        <div className="bg-surface-1 rounded-lg border border-hairline mb-4 overflow-hidden">
+        <div className="bg-surface-1 rounded-lg border border-hairline mb-4 overflow-hidden ui-card">
           {/* Language Selection - Always Visible */}
           <div className="p-5 border-b border-hairline">
             <label className="block text-xs font-medium text-ink-muted mb-2">{t('language')}</label>
@@ -329,7 +329,7 @@ function App() {
             <button
               id="save-default-btn"
               onClick={saveAsDefault}
-              className="w-full py-2 px-3 text-sm font-medium ui-btn-primary ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-3 text-sm font-medium ui-btn-primary ui-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 flex items-center justify-center gap-2 mt-1"
               aria-label="Save current voice as default"
             >
               <span className="flex items-center gap-2">

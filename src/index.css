@@ -72,11 +72,13 @@ html.no-transitions * {
 body {
   margin: 0;
   padding: 0;
-  width: 320px;
+  width: 380px;
   min-height: 400px;
   background: var(--canvas);
   color: var(--ink);
   font-family: 'Inter', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -130,15 +132,69 @@ textarea {
   scrollbar-width: none;
 }
 
-.dark ::-webkit-scrollbar {
-  background-color: rgba(255, 255, 255, 0.05);
+/* Custom scrollbars for both themes */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Voice selector dropdown custom scrollbar */
+.voice-select__menu-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.voice-select__menu-list::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.voice-select__menu-list::-webkit-scrollbar-thumb {
+  background-color: var(--hairline-strong);
+  border-radius: 3px;
+}
+
+.voice-select__menu-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-tertiary);
+}
+
+/* Smooth card elevation */
+.ui-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dark .ui-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Pulse animation for loading states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ui-shimmer {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
 }

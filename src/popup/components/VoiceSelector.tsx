@@ -251,7 +251,8 @@ export function VoiceSelector({
       menuList: (base) => ({
         ...base,
         padding: '0',
-        maxHeight: '300px',
+        maxHeight: '340px',
+        scrollBehavior: 'smooth',
       }),
       option: (base, state) => ({
         ...base,
@@ -262,9 +263,10 @@ export function VoiceSelector({
             : 'transparent',
         color: state.isSelected ? 'white' : 'var(--select-text)',
         cursor: 'pointer',
-        padding: '0.625rem 0.75rem',
+        padding: '0.5rem 0.75rem',
         borderRadius: '6px',
         margin: '0.125rem 0.5rem',
+        fontSize: '0.8125rem',
         transition: 'all 0.15s',
         '&:active': {
           backgroundColor: 'var(--primary)',
@@ -302,14 +304,19 @@ export function VoiceSelector({
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-2" role="status" aria-label="Loading voices">
-        <div className="h-12 bg-surface-2 rounded-md"></div>
-        <div className="h-12 bg-surface-2 rounded-md"></div>
-        <div className="h-12 bg-surface-2 rounded-md"></div>
-        <p className="text-center text-xs text-ink-subtle animate-pulse mt-2">
-          {t('loadingVoices') ||
-            'Loading voices... Chrome may take a moment to load network voices.'}
-        </p>
+      <div className="space-y-3" role="status" aria-label="Loading voices">
+        <div className="flex items-center justify-between mb-1">
+          <div className="h-3 w-20 ui-shimmer rounded"></div>
+          <div className="h-6 w-14 ui-shimmer rounded-md"></div>
+        </div>
+        <div className="h-[48px] ui-shimmer rounded-lg"></div>
+        <div className="flex items-center justify-center gap-2 py-2">
+          <div className="w-3 h-3 rounded-full bg-primary/40 animate-pulse"></div>
+          <p className="text-center text-xs text-ink-subtle">
+            {t('loadingVoices') ||
+              'Loading voices... Chrome may take a moment to load network voices.'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -458,10 +465,19 @@ export function VoiceSelector({
       />
 
       {/* Voice type legend */}
-      <div className="flex items-center gap-3 text-[10px] text-ink-subtle">
-        <span className="flex items-center gap-0.5">⚡ {t('premiumVoice') || 'Premium'}</span>
-        <span className="flex items-center gap-0.5">☁️ {t('onlineVoice') || 'Online'}</span>
-        <span className="flex items-center gap-0.5">💾 {t('offlineVoice') || 'Offline'}</span>
+      <div className="flex items-center justify-center gap-4 text-[10px] text-ink-subtle pt-1">
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary/70"></span>
+          {t('premiumVoice') || 'Premium'}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70"></span>
+          {t('onlineVoice') || 'Online'}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-ink-tertiary/50"></span>
+          {t('offlineVoice') || 'Offline'}
+        </span>
       </div>
     </div>
   )

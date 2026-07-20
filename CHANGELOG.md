@@ -36,12 +36,24 @@ All notable changes to Read It For Me will be documented in this file.
 - **Few Voices Warning**: Shows an alert when fewer than 5 voices are detected with guidance on how to add more
 - **Voice Type Legend**: Added legend showing ⚡ Premium, ☁️ Online, 💾 Offline indicators
 
+### 🎨 UI Improvements
+
+- **Wider popup**: Increased from 320px to 380px for better readability and less cramped voice selection
+- **Card elevation**: Settings card now has subtle shadow depth for better visual hierarchy
+- **Custom scrollbars**: Both light and dark themes have refined thin scrollbars; voice dropdown has its own styled scrollbar
+- **Shimmer loading state**: Voice loading skeleton uses a smooth shimmer animation instead of basic pulse
+- **Voice legend redesign**: Color dots instead of emojis for a cleaner, more professional look
+- **Font smoothing**: Added antialiasing for sharper text rendering
+- **Taller dropdown menu**: Voice list shows more options (340px) with smooth scroll behavior
+- **Compact voice options**: Reduced option padding for denser voice lists with quality labels
+
 ### 🛠️ Technical Updates
 
 - `useVoices` hook now returns `hasNetworkVoices` and `loadAttempts` for better state awareness
 - `voiceScoring.ts` exports new `getVoiceQualityLabel()` and `getVoiceSearchTags()` utilities
 - `ensureVoicesLoaded()` in content script uses race-condition-safe dual resolution strategy
 - Voice selector uses custom `MenuList` component showing voice count in dropdown
+- Added `.ui-card` and `.ui-shimmer` utility classes for reusable visual patterns
 
 ---
 
