@@ -266,7 +266,7 @@ window.speechSynthesis.cancel() // Stop and clear
 
 ### Current Shortcuts (content script)
 
-- `Ctrl+Shift+R` - Read selected text
+- `Ctrl+Shift+Y` - Read selected text
 - `Space` - Pause/resume (when reading, not in input fields)
 - `Escape` - Stop reading
 

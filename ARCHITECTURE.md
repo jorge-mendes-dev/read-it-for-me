@@ -1,6 +1,7 @@
 # Read It For Me - Architecture Documentation
 
 ## Table of Contents
+
 1. [Architecture Overview](#architecture-overview)
 2. [Extension Loading Flow](#extension-loading-flow)
 3. [User Interaction Flow](#user-interaction-flow)
@@ -77,11 +78,12 @@ Manifest.json
 
 ```javascript
 // content-loader.js
-const api = typeof browser !== 'undefined' ? browser : chrome;
-await import(api.runtime.getURL('content.js'));
+const api = typeof browser !== 'undefined' ? browser : chrome
+await import(api.runtime.getURL('content.js'))
 ```
 
 **Benefits**:
+
 - Enables modern ES modules in content scripts
 - Supports code splitting and tree-shaking
 - Cross-browser compatible
@@ -160,6 +162,7 @@ await import(api.runtime.getURL('content.js'));
 ### A. Content Script (content.ts)
 
 **Responsibilities:**
+
 - Monitor text selection on web pages
 - Manage Speech Synthesis (Web Speech API)
 - Handle playback queue
@@ -186,14 +189,16 @@ updateProgress() → Shows reading progress
 ```
 
 **Event Listeners:**
+
 - `mouseup` - Show tooltip on selection
-- `keydown` - Keyboard shortcuts (Ctrl+Shift+R, Space, Escape)
+- `keydown` - Keyboard shortcuts (Ctrl+Shift+Y, Space, Escape)
 - `chrome.runtime.onMessage` - Messages from popup/background
 - `speechSynthesis.onend` - Cleanup when done
 - `speechSynthesis.onerror` - Error handling
 
 **Keyboard Shortcuts:**
-- `Ctrl+Shift+R` - Read selected text
+
+- `Ctrl+Shift+Y` - Read selected text
 - `Space` - Pause/resume (when reading, not in input fields)
 - `Escape` - Stop reading
 
@@ -202,6 +207,7 @@ updateProgress() → Shows reading progress
 ### B. Floating Player (floatingPlayer.ts)
 
 **Visual Component:**
+
 - Draggable floating window
 - Position: bottom-right (or user's last position)
 - Z-index: 999999 (always on top)
@@ -220,6 +226,7 @@ updateProgress() → Shows reading progress
 ```
 
 **Features:**
+
 - Click & drag to move
 - Mini mode toggle
 - Settings panel (speed, pitch, volume sliders)
@@ -246,23 +253,27 @@ updateTimeEstimate(current, total) - Update time display
 **Sections:**
 
 #### 1. Welcome Modal (first-run only)
+
 - Feature tour
 - Keyboard shortcuts guide
 - Quick start tips
 
 #### 2. Voice Selection
+
 - Grouped by language
 - Quality badges (Neural, Premium, Enhanced)
 - Play sample button
 - Save as default
 
 #### 3. Reading Controls
+
 - Speed: 0.5x - 2.0x (slider)
 - Pitch: 0.5 - 2.0 (slider)
 - Volume: 0% - 100% (slider)
 - Reset to defaults button
 
 #### 4. Settings
+
 - Theme: Light / Dark / Auto
 - Language: 7 languages (en, pt_BR, es, fr, de, ja, zh_CN)
 - Auto-detect language toggle
@@ -300,6 +311,7 @@ src/
 **Purpose:** Message broker between popup and content scripts
 
 **Why needed?**
+
 - Popup can't directly message content scripts in other tabs
 - Background worker has access to all tabs
 
@@ -330,27 +342,26 @@ Popup → Background → Content Script
 ```typescript
 browser.runtime.onMessage.addListener((request, sender) => {
   const message = request as Message
-  
+
   switch (message.action) {
     case 'startReading':
     case 'pauseReading':
     case 'resumeReading':
     case 'stopReading':
-      return browser.tabs.query({ active: true, currentWindow: true })
-        .then(tabs => {
-          if (tabs[0]?.id) {
-            return browser.tabs.sendMessage(tabs[0].id, request)
-          }
-          return null
-        })
-    
+      return browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+        if (tabs[0]?.id) {
+          return browser.tabs.sendMessage(tabs[0].id, request)
+        }
+        return null
+      })
+
     case 'stateUpdate':
       // Store state
       return Promise.resolve({ success: true })
-    
+
     case 'getState':
       return Promise.resolve(currentState)
-    
+
     default:
       return Promise.resolve(null)
   }
@@ -368,17 +379,17 @@ browser.runtime.onMessage.addListener((request, sender) => {
   // Voice settings
   defaultVoiceIndex: 0,           // Selected voice
   recentVoices: [0, 5, 12],       // Recently used voices
-  
+
   // Playback settings
   rate: 1.0,                      // 0.5 - 2.0
   pitch: 1.0,                     // 0.5 - 2.0
   volume: 1.0,                    // 0 - 1
-  
+
   // UI settings
   theme: 'auto',                  // 'light' | 'dark' | 'auto'
   selectedLocale: 'en',           // Current language
   hasSeenWelcome: true,           // Hide welcome modal
-  
+
   // Player state
   playerPosition: {x: 20, y: 20}, // Floating player position
   miniMode: false                 // Player size mode
@@ -405,17 +416,15 @@ browser.storage.local.onChanged.addListener((changes) => {
 
 ```typescript
 // Load settings
-const result = await browser.storage.local.get(['rate', 'pitch', 'volume'])
-  .catch(error => {
-    console.error('Storage error:', error)
-    return { rate: 1.0, pitch: 1.0, volume: 1.0 }
-  })
+const result = await browser.storage.local.get(['rate', 'pitch', 'volume']).catch((error) => {
+  console.error('Storage error:', error)
+  return { rate: 1.0, pitch: 1.0, volume: 1.0 }
+})
 
 // Save settings
-await browser.storage.local.set({ rate: 1.5 })
-  .catch(error => {
-    console.error('Failed to save settings:', error)
-  })
+await browser.storage.local.set({ rate: 1.5 }).catch((error) => {
+  console.error('Failed to save settings:', error)
+})
 ```
 
 ---
@@ -554,6 +563,7 @@ dist-firefox/
 ### Manifest Differences
 
 **Chrome/Edge (Manifest V3):**
+
 ```json
 {
   "manifest_version": 3,
@@ -567,6 +577,7 @@ dist-firefox/
 ```
 
 **Firefox (Manifest V2):**
+
 ```json
 {
   "manifest_version": 2,
@@ -600,6 +611,7 @@ await browser.runtime.sendMessage({...})
 ### Polyfill Magic
 
 **Before (Chrome-only callbacks):**
+
 ```javascript
 chrome.storage.local.get(['key'], (result) => {
   if (chrome.runtime.lastError) {
@@ -611,20 +623,20 @@ chrome.storage.local.get(['key'], (result) => {
 ```
 
 **After (Promise-based, cross-browser):**
+
 ```javascript
-const result = await browser.storage.local.get(['key'])
-  .catch(error => {
-    console.error('Storage error:', error)
-    return defaultValue
-  })
+const result = await browser.storage.local.get(['key']).catch((error) => {
+  console.error('Storage error:', error)
+  return defaultValue
+})
 ```
 
 ### Content Loader Cross-Browser
 
 ```javascript
 // content-loader.js detects environment:
-const api = typeof browser !== 'undefined' ? browser : chrome;
-await import(api.runtime.getURL('content.js'));
+const api = typeof browser !== 'undefined' ? browser : chrome
+await import(api.runtime.getURL('content.js'))
 ```
 
 ### Benefits
@@ -638,17 +650,17 @@ await import(api.runtime.getURL('content.js'));
 
 ## Key Technologies
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **React** | 18.3.1 | Popup UI | Component reusability, state management |
-| **TypeScript** | 5.5.3 | Type safety | Catch errors at compile time |
-| **Tailwind CSS** | 3.4.4 | Styling | Rapid UI development, consistent design |
-| **Vite** | 5.4.21 | Build tool | Fast builds, ES modules, HMR |
-| **webextension-polyfill** | 0.12.0 | Browser API | Promise-based, cross-browser |
-| **Web Speech API** | Native | TTS engine | Native browser TTS (no API keys!) |
-| **Chrome Storage API** | Native | Persistence | Settings survive browser restart |
-| **ESLint** | 9.39.2 | Code quality | Enforce best practices |
-| **Prettier** | 3.7.4 | Code formatting | Consistent code style |
+| Technology                | Version | Purpose         | Why                                     |
+| ------------------------- | ------- | --------------- | --------------------------------------- |
+| **React**                 | 18.3.1  | Popup UI        | Component reusability, state management |
+| **TypeScript**            | 5.5.3   | Type safety     | Catch errors at compile time            |
+| **Tailwind CSS**          | 3.4.4   | Styling         | Rapid UI development, consistent design |
+| **Vite**                  | 5.4.21  | Build tool      | Fast builds, ES modules, HMR            |
+| **webextension-polyfill** | 0.12.0  | Browser API     | Promise-based, cross-browser            |
+| **Web Speech API**        | Native  | TTS engine      | Native browser TTS (no API keys!)       |
+| **Chrome Storage API**    | Native  | Persistence     | Settings survive browser restart        |
+| **ESLint**                | 9.39.2  | Code quality    | Enforce best practices                  |
+| **Prettier**              | 3.7.4   | Code formatting | Consistent code style                   |
 
 ### Dev Dependencies
 
@@ -674,13 +686,14 @@ await import(api.runtime.getURL('content.js'));
 ```json
 {
   "permissions": [
-    "activeTab",    // Only read content of active tab when clicked
-    "storage"       // Save user settings
+    "activeTab", // Only read content of active tab when clicked
+    "storage" // Save user settings
   ]
 }
 ```
 
 **We DO NOT request:**
+
 - ❌ Reading all tabs
 - ❌ Browsing history
 - ❌ Cookies
@@ -725,6 +738,7 @@ dist/
 ```
 
 **Benefits:**
+
 - Shared dependencies loaded once
 - Smaller individual bundles
 - Faster page loads
@@ -738,6 +752,7 @@ document.addEventListener('selectionchange', debouncedHandler)
 ```
 
 **Prevents:**
+
 - Excessive tooltip updates
 - CPU thrashing during drag selection
 - Memory leaks from rapid event firing
@@ -758,12 +773,14 @@ window.addEventListener('beforeunload', () => {
 ### 5. Build Optimization
 
 **Production Build:**
+
 - Minification: 167KB → 54KB (gzipped)
 - Tree-shaking: Removes unused code
 - Dead code elimination
 - CSS purging (Tailwind)
 
 **Build Times:**
+
 - Development: ~200ms (HMR)
 - Production: ~2.5s (full build)
 
@@ -779,7 +796,7 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
       resolve(cachedVoices)
       return
     }
-    
+
     const voices = window.speechSynthesis.getVoices()
     if (voices.length > 0) {
       cachedVoices = voices
@@ -984,21 +1001,25 @@ Total: ~150KB (gzipped)
 ### Common Issues
 
 **1. Read button doesn't appear**
+
 - Check if content script is loaded: Open DevTools → Sources → Content Scripts
 - Verify manifest permissions: activeTab, storage
 - Check console for errors
 
 **2. Voice not speaking**
+
 - Ensure browser supports Web Speech API (Chrome, Edge, Safari)
 - Check if TTS voices are installed (Windows Settings → Time & Language → Speech)
 - Try different voice from popup settings
 
 **3. Settings not saving**
+
 - Check storage permissions in manifest
 - Open DevTools → Application → Storage → Extension Storage
 - Verify no errors in background service worker
 
 **4. Extension not loading in Firefox**
+
 - Use `dist-firefox/` folder (Manifest V2)
 - Check `about:debugging` for errors
 - Verify `browser_specific_settings.gecko.id` is set

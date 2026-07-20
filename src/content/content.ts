@@ -84,14 +84,38 @@ function ensureVoicesLoaded(): Promise<SpeechSynthesisVoice[]> {
     const voices = window.speechSynthesis.getVoices()
     if (voices.length > 0) {
       resolve(voices)
-    } else {
-      const handler = () => {
-        const loadedVoices = window.speechSynthesis.getVoices()
+      return
+    }
+
+    // Chrome-specific: voices may not be available immediately
+    // Use both voiceschanged event AND polling as fallback
+    let resolved = false
+
+    const handler = () => {
+      if (resolved) return
+      const loadedVoices = window.speechSynthesis.getVoices()
+      if (loadedVoices.length > 0) {
+        resolved = true
         window.speechSynthesis.removeEventListener('voiceschanged', handler)
         resolve(loadedVoices)
       }
-      window.speechSynthesis.addEventListener('voiceschanged', handler)
     }
+    window.speechSynthesis.addEventListener('voiceschanged', handler)
+
+    // Polling fallback for Chrome where voiceschanged may not fire reliably
+    let pollCount = 0
+    const pollInterval = setInterval(() => {
+      pollCount++
+      const polledVoices = window.speechSynthesis.getVoices()
+      if (polledVoices.length > 0 || pollCount >= 30) {
+        clearInterval(pollInterval)
+        if (!resolved) {
+          resolved = true
+          window.speechSynthesis.removeEventListener('voiceschanged', handler)
+          resolve(polledVoices)
+        }
+      }
+    }, 100)
   })
 }
 

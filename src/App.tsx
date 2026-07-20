@@ -7,7 +7,7 @@ import browser from './utils/browser'
 import { availableLocales, initializeLocale, setLocale, t } from './utils/i18n'
 
 function App() {
-  const { voices, isLoadingVoices } = useVoices()
+  const { voices, isLoadingVoices, hasNetworkVoices } = useVoices()
   const [theme, setTheme] = useTheme()
   const [selectedVoice, setSelectedVoice] = useState<number>(0)
   const [currentLocale, setCurrentLocale] = useState('en')
@@ -323,6 +323,7 @@ function App() {
               isLoading={isLoadingVoices}
               onVoiceChange={setSelectedVoice}
               onTest={testVoice}
+              hasNetworkVoices={hasNetworkVoices}
             />
 
             <button
