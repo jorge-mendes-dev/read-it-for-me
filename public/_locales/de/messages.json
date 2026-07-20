@@ -323,6 +323,14 @@
     "message": "Schaltfläche zum Lesen des vollständigen Artikels anzeigen",
     "description": "Description for smart read feature"
   },
+  "hotkeysEnabled": {
+    "message": "Tastenkürzel",
+    "description": "Label for hotkeys enabled toggle"
+  },
+  "hotkeysEnabledDesc": {
+    "message": "Tastenkürzel aktivieren (Strg+Umschalt+Y zum Lesen, Leertaste zum Pausieren, Esc zum Stoppen)",
+    "description": "Description for hotkeys enabled toggle"
+  },
   "readFullArticle": {
     "message": "Vollständigen Artikel vorlesen",
     "description": "Button text to read full article"

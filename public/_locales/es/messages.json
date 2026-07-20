@@ -248,7 +248,7 @@
     "description": "Tip about auto-detect feature"
   },
   "tipKeyboardShortcut": {
-    "message": "Presiona Ctrl+Shift+R para leer el texto seleccionado",
+    "message": "Presiona Ctrl+Shift+Y para leer el texto seleccionado",
     "description": "Tip about keyboard shortcut to read"
   },
   "tipPause": {
@@ -322,6 +322,14 @@
   "smartReadDesc": {
     "message": "Mostrar botón para leer el artículo completo",
     "description": "Description for smart read feature"
+  },
+  "hotkeysEnabled": {
+    "message": "Atajos de Teclado",
+    "description": "Label for hotkeys enabled toggle"
+  },
+  "hotkeysEnabledDesc": {
+    "message": "Habilitar atajos de teclado (Ctrl+Shift+Y para leer, Espacio para pausar, Esc para detener)",
+    "description": "Description for hotkeys enabled toggle"
   },
   "readFullArticle": {
     "message": "Leer Artículo Completo",

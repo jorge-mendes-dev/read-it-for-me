@@ -29,6 +29,7 @@ let lastHighlightCharIndex: number = -1 // Track the character position of the l
 let wordHighlightEnabled: boolean = true // Track if word highlighting is enabled
 let followHighlight: boolean = false // Track if auto-scroll to highlighted words is enabled
 let smartReadEnabled: boolean = false // Track if smart read feature is enabled
+let hotkeysEnabled: boolean = false // Track if keyboard shortcuts are enabled (default: disabled)
 let pausedAt: number = 0 // Track character position when paused for recovery
 let pauseCheckInterval: number | null = null // Check if speech stopped during pause
 
@@ -702,12 +703,13 @@ loadLocaleMessages()
     createSelectionTooltip()
   })
 
-// Load word highlight setting
+// Load word highlight setting and hotkeys setting
 browser.storage.local
-  .get(['wordHighlightEnabled', 'followHighlight'])
+  .get(['wordHighlightEnabled', 'followHighlight', 'hotkeysEnabled'])
   .then((result) => {
     wordHighlightEnabled = (result.wordHighlightEnabled as boolean | undefined) ?? true
     followHighlight = (result.followHighlight as boolean | undefined) ?? false
+    hotkeysEnabled = (result.hotkeysEnabled as boolean | undefined) ?? false
   })
   .catch((error) => {
     console.error('[ContentScript] Failed to load word highlight setting:', error)
@@ -1611,6 +1613,9 @@ storageChangeHandler = (changes) => {
       hideSmartReadButton()
     }
   }
+  if (changes.hotkeysEnabled) {
+    hotkeysEnabled = (changes.hotkeysEnabled.newValue as boolean | undefined) ?? false
+  }
   if (changes.theme) {
     const newTheme = changes.theme.newValue as ThemeMode | undefined
     if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'auto') {
@@ -1624,8 +1629,11 @@ browser.storage.local.onChanged.addListener(storageChangeHandler)
 
 // Keyboard Shortcuts
 keydownHandler = (e: KeyboardEvent) => {
-  // Ctrl+Shift+R: Read selected text (case-insensitive for 'r' key)
-  if (e.ctrlKey && e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+  // Skip all hotkeys if disabled
+  if (!hotkeysEnabled) return
+
+  // Ctrl+Shift+Y: Read selected text (case-insensitive for 'y' key)
+  if (e.ctrlKey && e.shiftKey && (e.key === 'Y' || e.key === 'y')) {
     e.preventDefault()
     const selection = window.getSelection()
     const selectedText = selection?.toString().trim()

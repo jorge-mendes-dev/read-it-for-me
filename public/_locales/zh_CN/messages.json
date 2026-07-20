@@ -236,7 +236,7 @@
     "description": "Tip about auto-detect feature"
   },
   "tipKeyboardShortcut": {
-    "message": "按Ctrl+Shift+R键朗读选定的文本",
+    "message": "按Ctrl+Shift+Y键朗读选定的文本",
     "description": "Tip about keyboard shortcut to read"
   },
   "tipPause": {
@@ -310,6 +310,14 @@
   "smartReadDesc": {
     "message": "显示读取完整文章的按钮",
     "description": "Description for smart read feature"
+  },
+  "hotkeysEnabled": {
+    "message": "键盘快捷键",
+    "description": "Label for hotkeys enabled toggle"
+  },
+  "hotkeysEnabledDesc": {
+    "message": "启用键盘快捷键（Ctrl+Shift+Y 朗读，空格暂停，Esc 停止）",
+    "description": "Description for hotkeys enabled toggle"
   },
   "readFullArticle": {
     "message": "阅读完整文章",

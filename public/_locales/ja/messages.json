@@ -236,7 +236,7 @@
     "description": "Tip about auto-detect feature"
   },
   "tipKeyboardShortcut": {
-    "message": "Ctrl+Shift+Rキーで選択したテキストを読み上げ",
+    "message": "Ctrl+Shift+Yキーで選択したテキストを読み上げ",
     "description": "Tip about keyboard shortcut to read"
   },
   "tipPause": {
@@ -310,6 +310,14 @@
   "smartReadDesc": {
     "message": "記事全体を読み上げるボタンを表示",
     "description": "Description for smart read feature"
+  },
+  "hotkeysEnabled": {
+    "message": "キーボードショートカット",
+    "description": "Label for hotkeys enabled toggle"
+  },
+  "hotkeysEnabledDesc": {
+    "message": "キーボードショートカットを有効にする（Ctrl+Shift+Yで読み上げ、スペースで一時停止、Escで停止）",
+    "description": "Description for hotkeys enabled toggle"
   },
   "readFullArticle": {
     "message": "記事全体を読む",

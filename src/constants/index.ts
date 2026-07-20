@@ -68,11 +68,12 @@ export const STORAGE_KEYS = {
   HAS_SEEN_WELCOME: 'hasSeenWelcome',
   SELECTED_LOCALE: 'selectedLocale',
   THEME: 'theme',
+  HOTKEYS_ENABLED: 'hotkeysEnabled',
 } as const
 
 // Keyboard Shortcuts
 export const KEYBOARD_SHORTCUTS = {
-  READ_SELECTION: { ctrl: true, shift: true, key: 'R' },
+  READ_SELECTION: { ctrl: true, shift: true, key: 'Y' },
   PAUSE_RESUME: { key: 'Space' },
   STOP: { key: 'Escape' },
 } as const

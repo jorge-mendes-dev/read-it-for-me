@@ -19,6 +19,7 @@ function App() {
   const [wordHighlightEnabled, setWordHighlightEnabled] = useState(true)
   const [followHighlight, setFollowHighlight] = useState(false)
   const [smartRead, setSmartRead] = useState(false)
+  const [hotkeysEnabled, setHotkeysEnabled] = useState(false)
   const [showFirstRun, setShowFirstRun] = useState(false)
   const [expandedSection, setExpandedSection] = useState<SettingsSectionType>('voice')
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
@@ -64,6 +65,7 @@ function App() {
         'wordHighlightEnabled',
         'followHighlight',
         'smartRead',
+        'hotkeysEnabled',
       ])
       .then((result) => {
         const autoSelectedVoice = result.autoSelectedVoice as number | undefined
@@ -98,6 +100,10 @@ function App() {
         const smartReadValue = result.smartRead as boolean | undefined
         if (smartReadValue !== undefined) {
           setSmartRead(smartReadValue)
+        }
+        const hotkeysEnabledValue = result.hotkeysEnabled as boolean | undefined
+        if (hotkeysEnabledValue !== undefined) {
+          setHotkeysEnabled(hotkeysEnabledValue)
         }
       })
       .catch((error) => {
@@ -606,6 +612,41 @@ function App() {
               </label>
               <p className="text-xs text-ink-subtle mt-1 ml-5">{t('smartReadDesc')}</p>
             </div>
+
+            <div className="pt-4 border-t border-hairline">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs font-medium text-ink-muted flex items-center gap-1">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                  {t('hotkeysEnabled')}
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={hotkeysEnabled}
+                    onChange={(e) => {
+                      const value = e.target.checked
+                      setHotkeysEnabled(value)
+                      browser.storage.local.set({ hotkeysEnabled: value })
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-surface-3 border border-hairline peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-pill peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-hairline after:border after:rounded-pill after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </div>
+              </label>
+              <p className="text-xs text-ink-subtle mt-1 ml-5">{t('hotkeysEnabledDesc')}</p>
+            </div>
           </SettingsSection>
         </div>
 
@@ -686,7 +727,7 @@ function App() {
                 <div className="flex items-center justify-between p-3 bg-surface-2 rounded-md border border-hairline">
                   <span className="text-sm text-ink-muted">{t('readSelectedText')}</span>
                   <kbd className="px-3 py-1.5 text-xs font-semibold text-ink bg-surface-3 border border-hairline rounded-sm">
-                    Ctrl + Shift + R
+                    Ctrl + Shift + Y
                   </kbd>
                 </div>
 
